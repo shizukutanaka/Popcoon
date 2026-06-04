@@ -1,7 +1,10 @@
 package com.example.popcoon.feature.ethics
 
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.ints.shouldBeInRange
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.string
@@ -9,6 +12,49 @@ import io.kotest.property.checkAll
 
 class EcoEthicsScorerTest : StringSpec({
 
+    // ── Python (popcoon_core.score_eco_ethics) との絶対値パリティ ──────────
+    // 期待値は Python 実装を実行して取得。乖離したらどちらかが壊れている。
+    "パリティ: JP smartphone []" {
+        val r = EcoEthicsScorer.score("JP", "smartphone", emptyList())
+        r.overall shouldBe 62
+        r.co2Score shouldBe 45
+        r.laborScore shouldBe 82
+        r.co2Kg shouldBe (70.0 plusOrMinus 1e-6)
+        r.greenAlternative.shouldBeNull()
+    }
+
+    "パリティ: CN smartphone []" {
+        val r = EcoEthicsScorer.score("CN", "smartphone", emptyList())
+        r.overall shouldBe 46
+        r.co2Score shouldBe 25
+        r.laborScore shouldBe 52
+        r.co2Kg shouldBe (121.333333 plusOrMinus 1e-4)
+        r.greenAlternative.shouldNotBeNull()
+    }
+
+    "パリティ: US laptop [green]" {
+        val r = EcoEthicsScorer.score("US", "laptop", listOf("green"))
+        r.overall shouldBe 72
+        r.co2Score shouldBe 75
+        r.laborScore shouldBe 78
+    }
+
+    "パリティ: VN tv [エコマーク]" {
+        val r = EcoEthicsScorer.score("VN", "tv", listOf("エコマーク"))
+        r.overall shouldBe 56
+        r.co2Score shouldBe 55
+        r.laborScore shouldBe 48
+    }
+
+    "パリティ: null unknown []" {
+        val r = EcoEthicsScorer.score(null, "unknown", emptyList())
+        r.overall shouldBe 54
+        r.co2Score shouldBe 45
+        r.laborScore shouldBe 55
+        r.greenAlternative.shouldBeNull()
+    }
+
+    // ── 一般プロパティ ──────────────────────────────────────────────
     "JP スマートフォン: スコアが 0-100 範囲" {
         val r = EcoEthicsScorer.score("JP", "smartphone", emptyList())
         r.overall shouldBeInRange 0..100
@@ -16,7 +62,7 @@ class EcoEthicsScorerTest : StringSpec({
         r.laborScore shouldBeInRange 0..100
     }
 
-    "CN 製造は JP より CO2 スコアが低い (kgCO2/kWh が高い)" {
+    "CN 製造は JP より CO2 スコアが低い" {
         val jp = EcoEthicsScorer.score("JP", "laptop", emptyList())
         val cn = EcoEthicsScorer.score("CN", "laptop", emptyList())
         (jp.co2Score > cn.co2Score) shouldBe true
@@ -34,28 +80,28 @@ class EcoEthicsScorerTest : StringSpec({
         (withLabel.co2Score >= noLabel.co2Score) shouldBe true
     }
 
-    "低スコアには代替案メッセージあり" {
-        val r = EcoEthicsScorer.score("CN", "tv", emptyList())
-        if (r.overall < 55) {
-            (r.greenAlternative != null) shouldBe true
-        }
+    // 代替案は「国産か否か」で決まる (スコアではない、Python と同仕様)
+    "JP (国産) は代替案なし" {
+        EcoEthicsScorer.score("JP", "laptop", emptyList()).greenAlternative.shouldBeNull()
     }
 
-    "高スコアには代替案なし" {
-        val r = EcoEthicsScorer.score("DE", "laptop", listOf("EcoLabel"))
-        if (r.overall >= 55) {
-            (r.greenAlternative == null) shouldBe true
-        }
+    "非JP + 既知カテゴリ は代替案あり" {
+        EcoEthicsScorer.score("DE", "laptop", listOf("EcoLabel"))
+            .greenAlternative.shouldNotBeNull()
     }
 
-    "未知の国コードは fallback CO2 係数を使用 (例外なし)" {
+    "未知カテゴリは代替案なし" {
+        EcoEthicsScorer.score("CN", "unknown", emptyList()).greenAlternative.shouldBeNull()
+    }
+
+    "未知の国コードは fallback 係数を使用 (例外なし)" {
         checkAll(Arb.string(2, 3)) { country ->
             val r = EcoEthicsScorer.score(country, "smartphone", emptyList())
             r.overall shouldBeInRange 0..100
         }
     }
 
-    "CO2 計算: smartphone は tv より低い (想定kWh 90 vs 850)" {
+    "CO2 計算: smartphone は tv より低い" {
         val phone = EcoEthicsScorer.score("JP", "smartphone", emptyList())
         val tv = EcoEthicsScorer.score("JP", "tv", emptyList())
         (phone.co2Kg < tv.co2Kg) shouldBe true
