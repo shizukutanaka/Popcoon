@@ -2,6 +2,7 @@ package com.example.popcoon.di
 
 import android.content.Context
 import androidx.room.Room
+import com.example.popcoon.BuildConfig
 import com.example.popcoon.data.db.PopcoonDatabase
 import com.example.popcoon.data.db.PriceCacheDao
 import com.example.popcoon.data.db.SearchHistoryDao
@@ -22,7 +23,11 @@ object DatabaseModule {
         return Room.databaseBuilder(
             context, PopcoonDatabase::class.java, PopcoonDatabase.DB_NAME,
         )
-            .fallbackToDestructiveMigration()  // 0.x なので破壊許容、v1.0+ では migration 強制
+            // debug のみ破壊的フォールバックを許可。
+            // release ではスキーマ変更時に明示 Migration を必須化し、
+            // ユーザーのウォッチリスト/価格履歴を黙って消さない (クラッシュで検知)。
+            // 新スキーマ導入時はここに .addMigrations(MIGRATION_x_y) を追加すること。
+            .apply { if (BuildConfig.DEBUG) fallbackToDestructiveMigration() }
             .build()
     }
 
