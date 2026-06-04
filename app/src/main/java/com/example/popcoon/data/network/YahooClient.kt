@@ -5,6 +5,7 @@ import com.example.popcoon.data.model.Platform
 import com.example.popcoon.data.model.Product
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
@@ -21,6 +22,11 @@ class YahooClient(
 ) {
     private val client = HttpClient {
         install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        install(HttpTimeout) {
+            connectTimeoutMillis = 5_000
+            requestTimeoutMillis = 15_000
+            socketTimeoutMillis = 10_000
+        }
     }
 
     suspend fun search(keyword: String, results: Int = 30): List<Product> {

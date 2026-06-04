@@ -5,6 +5,7 @@ import com.example.popcoon.data.model.Platform
 import com.example.popcoon.data.model.Product
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.header
 import io.ktor.client.request.post
@@ -50,6 +51,11 @@ class AmazonPaApiClient(
     private val client = HttpClient {
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true; explicitNulls = false })
+        }
+        install(HttpTimeout) {
+            connectTimeoutMillis = 5_000
+            requestTimeoutMillis = 15_000
+            socketTimeoutMillis = 10_000
         }
     }
 

@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import com.example.popcoon.BuildConfig
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -52,6 +53,11 @@ class PrivacyCrashReporter(
     private val client = HttpClient {
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true; explicitNulls = false })
+        }
+        install(HttpTimeout) {
+            connectTimeoutMillis = 5_000
+            requestTimeoutMillis = 15_000
+            socketTimeoutMillis = 10_000
         }
     }
 
