@@ -3,6 +3,7 @@ package com.example.popcoon.data.network
 import com.example.popcoon.data.model.Platform
 import com.example.popcoon.data.model.Product
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.UserAgent
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -12,7 +13,7 @@ import io.ktor.client.statement.bodyAsText
  * API が失敗した場合のフォールバックとして、商品ページの構造化データ (JSON-LD) を読む。
  *
  * 方針 (倫理的):
- *  - robots.txt を尊重 (HEAD /robots.txt で allow 確認)
+ *  - robots.txt を尊重 (GET /robots.txt を取得・キャッシュし allow 確認)
  *  - レート制限 (1 req/sec 以下)
  *  - User-Agent 明示 (Popcoon-Fallback/0.1 +https://github.com/shizukutanaka/popcoon)
  *  - 個別商品ページのみ (検索結果ページのスクレイプは禁止)
@@ -25,7 +26,12 @@ class FallbackScraper {
 
     private val client = HttpClient {
         install(UserAgent) {
-            agent = "Popcoon-Fallback/0.1 (+https://github.com/shizukutanaka/popcoon)"
+            agent = USER_AGENT
+        }
+        install(HttpTimeout) {
+            connectTimeoutMillis = 5_000
+            requestTimeoutMillis = 15_000
+            socketTimeoutMillis = 10_000
         }
     }
 
@@ -33,12 +39,25 @@ class FallbackScraper {
     private val lastAccessMs = HashMap<String, Long>()
     private val minIntervalMs = 1000L
 
+    // robots.txt のホスト別キャッシュ (true = 取得対象パスが許可)
+    private val robotsAllowCache = HashMap<String, String?>()
+
+    companion object {
+        const val USER_AGENT =
+            "Popcoon-Fallback/0.1 (+https://github.com/shizukutanaka/popcoon)"
+    }
+
     /**
      * 商品URLから JSON-LD Product スキーマを抽出して Product を構築する。
      * 失敗時は null。
      */
     suspend fun fetchProduct(url: String, platform: Platform): Product? {
-        val host = runCatching { java.net.URI(url).host }.getOrNull() ?: return null
+        val uri = runCatching { java.net.URI(url) }.getOrNull() ?: return null
+        val host = uri.host ?: return null
+        val path = uri.rawPath?.ifEmpty { "/" } ?: "/"
+
+        // robots.txt を尊重 (取得不能時は許可、明示 Disallow は遵守)
+        if (!isPathAllowedByRobots(uri, path)) return null
 
         // レート制限
         val now = System.currentTimeMillis()
@@ -46,7 +65,6 @@ class FallbackScraper {
         if (now - last < minIntervalMs) return null
         lastAccessMs[host] = now
 
-        // robots.txt チェックは割愛 (製品化時は必須)
         val html = runCatching {
             client.get(url) {
                 header("Accept", "text/html,application/xhtml+xml")
@@ -55,6 +73,26 @@ class FallbackScraper {
 
         val jsonLd = extractJsonLd(html) ?: return null
         return parseProductSchema(jsonLd, url, platform)
+    }
+
+    /**
+     * robots.txt を取得・キャッシュして対象パスの許可可否を返す。
+     * ネットワーク失敗・robots.txt 不存在の場合は許可 (true)。
+     */
+    private suspend fun isPathAllowedByRobots(uri: java.net.URI, path: String): Boolean {
+        val host = uri.host ?: return true
+        val robotsBody = if (robotsAllowCache.containsKey(host)) {
+            robotsAllowCache[host]
+        } else {
+            val scheme = uri.scheme ?: "https"
+            val body = runCatching {
+                client.get("$scheme://$host/robots.txt").bodyAsText()
+            }.getOrNull()
+            robotsAllowCache[host] = body
+            body
+        }
+        // 取得できなければ許可 (best-effort フォールバック)
+        return robotsBody == null || RobotsTxt.isAllowed(robotsBody, path, USER_AGENT)
     }
 
     /**
