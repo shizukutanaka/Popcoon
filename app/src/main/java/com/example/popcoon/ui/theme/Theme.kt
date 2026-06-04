@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 private val Pop_Teal         = Color(0xFF00C4CC)   // ブランド色 (装飾専用)
 private val Pop_TealAA       = Color(0xFF007B80)   // #00C4CC 系 AA 準拠 (4.81:1)
 private val Pop_TealAAA      = Color(0xFF005054)   // #00C4CC 系 AAA 準拠 (9.23:1)
+private val Pop_TealDark     = Color(0xFF00363A)   // ダーク背景上の primaryContainer (onPrimaryContainer = Pop_TealLight が可読)
 private val Pop_TealLight    = Color(0xFFB3ECEF)   // Container 背景
 private val Pop_TealVivid    = Color(0xFF00C4CC)   // Chip/Badge 背景 (on White ≥ 4.5 不要)
 private val Pop_Ink          = Color(0xFF0A1519)   // 本文 (18.5:1 AAA)
