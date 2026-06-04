@@ -218,4 +218,14 @@
     <string name="review_trust_label">レビュー信頼度</string>
     <string name="bundle_title">セット販売の実質単価</string>
     <string name="bundle_pack_count">%1$d個セット</string>
+
+    <!-- 共通 UI ラベル -->
+    <string name="action_delete">削除</string>
+    <string name="action_collapse">閉じる</string>
+    <string name="offline_cached">オフライン — キャッシュを表示中</string>
+    <string name="search_recent">最近の検索</string>
+    <string name="price_chart_insufficient">価格履歴データ不足</string>
+    <string name="point_effective_price">ポイント還元後 実質価格</string>
+    <string name="point_breakdown">内訳</string>
+    <string name="point_effective_subtitle">定価 %1$s より %2$s 還元</string>
 </resources>

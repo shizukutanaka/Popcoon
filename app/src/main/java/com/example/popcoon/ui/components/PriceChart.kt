@@ -18,8 +18,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.popcoon.R
 import com.example.popcoon.data.model.PriceRecord
 import java.time.Instant
 
@@ -51,7 +53,7 @@ fun PriceChart(
         ) {
             Box(Modifier.padding(Spacing.ml)) {
                 Text(
-                    "価格履歴データ不足",
+                    stringResource(R.string.price_chart_insufficient),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

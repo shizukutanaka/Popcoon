@@ -11,7 +11,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.popcoon.R
 import com.example.popcoon.ui.theme.Spacing
 import com.example.popcoon.ui.theme.IconSize
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -58,7 +60,7 @@ fun OfflineBanner(viewModel: OfflineBannerViewModel = hiltViewModel()) {
                     modifier = Modifier.size(IconSize.sm),
                 )
                 Text(
-                    "オフライン — キャッシュを表示中",
+                    stringResource(R.string.offline_cached),
                     style = MaterialTheme.typography.labelMedium,
                     color = Color.White,
                 )

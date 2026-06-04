@@ -14,8 +14,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.popcoon.R
 import com.example.popcoon.ui.theme.Spacing
 import com.example.popcoon.ui.theme.IconSize
 
@@ -60,7 +62,7 @@ fun SearchSuggestions(
                 if (query.isBlank() && recentSearches.isNotEmpty()) {
                     item {
                         Text(
-                            "最近の検索",
+                            stringResource(R.string.search_recent),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),

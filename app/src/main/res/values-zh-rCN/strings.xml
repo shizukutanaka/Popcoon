@@ -197,4 +197,14 @@
     <string name="review_trust_label">评价可信度</string>
     <string name="bundle_title">套装实际单价</string>
     <string name="bundle_pack_count">%1$d个装</string>
+
+    <!-- 通用 UI 标签 -->
+    <string name="action_delete">删除</string>
+    <string name="action_collapse">收起</string>
+    <string name="offline_cached">离线 — 显示缓存数据</string>
+    <string name="search_recent">最近搜索</string>
+    <string name="price_chart_insufficient">价格历史数据不足</string>
+    <string name="point_effective_price">积分返还后实付价</string>
+    <string name="point_breakdown">明细</string>
+    <string name="point_effective_subtitle">原价 %1$s 返还 %2$s</string>
 </resources>

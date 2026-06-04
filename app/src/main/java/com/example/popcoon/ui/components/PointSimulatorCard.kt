@@ -8,8 +8,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.popcoon.R
 import com.example.popcoon.data.model.Platform
 import com.example.popcoon.data.model.Product
 import com.example.popcoon.feature.points.PointSimulator
@@ -54,13 +56,19 @@ fun PointSimulatorCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "ポイント還元後 実質価格",
+                    stringResource(R.string.point_effective_price),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 // 内訳展開ボタン
                 TextButton(onClick = { expanded = !expanded }) {
-                    Text(if (expanded) "閉じる" else "内訳")
+                    Text(
+                        if (expanded) {
+                            stringResource(R.string.action_collapse)
+                        } else {
+                            stringResource(R.string.point_breakdown)
+                        },
+                    )
                 }
             }
 
@@ -76,7 +84,11 @@ fun PointSimulatorCard(
                         color = MaterialTheme.colorScheme.primary,
                     )
                     Text(
-                        "定価 ${com.example.popcoon.core.CurrencyFormatter.yen(result.sticker)} より ${com.example.popcoon.core.CurrencyFormatter.yen(result.pointsBack)} 還元",
+                        stringResource(
+                            R.string.point_effective_subtitle,
+                            com.example.popcoon.core.CurrencyFormatter.yen(result.sticker),
+                            com.example.popcoon.core.CurrencyFormatter.yen(result.pointsBack),
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )

@@ -197,4 +197,14 @@
     <string name="review_trust_label">리뷰 신뢰도</string>
     <string name="bundle_title">세트 실질 단가</string>
     <string name="bundle_pack_count">%1$d개 세트</string>
+
+    <!-- 공통 UI 라벨 -->
+    <string name="action_delete">삭제</string>
+    <string name="action_collapse">닫기</string>
+    <string name="offline_cached">오프라인 — 캐시 표시 중</string>
+    <string name="search_recent">최근 검색</string>
+    <string name="price_chart_insufficient">가격 기록 부족</string>
+    <string name="point_effective_price">포인트 적용 후 실질 가격</string>
+    <string name="point_breakdown">내역</string>
+    <string name="point_effective_subtitle">정가 %1$s 에서 %2$s 적립</string>
 </resources>

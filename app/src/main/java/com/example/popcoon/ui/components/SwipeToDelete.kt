@@ -20,6 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import com.example.popcoon.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -64,7 +66,7 @@ fun SwipeToDelete(
                 contentAlignment = Alignment.CenterEnd,
             ) {
                 Text(
-                    "削除",
+                    stringResource(R.string.action_delete),
                     modifier = Modifier.padding(end = 20.dp),
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
