@@ -36,4 +36,40 @@ class PopcoonLoggerTest : StringSpec({
         PopcoonLogger.i(42, "integer tag")
         PopcoonLogger.i(listOf(1, 2), "list tag")
     }
+
+    // ── sanitize (秘密情報リダクション) ─────────────────────────────
+    "マルチパラメータ URL の全ての値を伏せる" {
+        val out = PopcoonLogger.sanitize(
+            "GET https://api.example.com/x?AWSAccessKeyId=AKIAIOSFODNN7EXAMPLE" +
+                "&Signature=abc123XYZ&q=test",
+        )
+        out.contains("AKIAIOSFODNN7EXAMPLE") shouldBe false
+        out.contains("abc123XYZ") shouldBe false
+        out.contains("q=test") shouldBe false
+        out.contains("[redacted]") shouldBe true
+    }
+
+    "AWS アクセスキー ID はクエリ外でも伏せる" {
+        val out = PopcoonLogger.sanitize("Credential=AKIAIOSFODNN7EXAMPLE/20240101/us-west-2")
+        out.contains("AKIAIOSFODNN7EXAMPLE") shouldBe false
+        out.contains("[aws-key]") shouldBe true
+    }
+
+    "Authorization: Bearer トークンを伏せる" {
+        val out = PopcoonLogger.sanitize("Authorization: Bearer sk-ant-secrettoken123")
+        out.contains("sk-ant-secrettoken123") shouldBe false
+        out.contains("[redacted]") shouldBe true
+    }
+
+    "api_key= の値を伏せる" {
+        val out = PopcoonLogger.sanitize("config api_key=supersecretvalue loaded")
+        out.contains("supersecretvalue") shouldBe false
+        out.contains("[redacted]") shouldBe true
+    }
+
+    "email / ip / tel は従来どおり伏せる" {
+        PopcoonLogger.sanitize("user foo@bar.com").contains("foo@bar.com") shouldBe false
+        PopcoonLogger.sanitize("ip 192.168.1.1").contains("192.168.1.1") shouldBe false
+        PopcoonLogger.sanitize("tel +81-90-1234-5678").contains("1234-5678") shouldBe false
+    }
 })

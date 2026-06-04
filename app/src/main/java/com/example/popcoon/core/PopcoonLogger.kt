@@ -61,11 +61,27 @@ object PopcoonLogger {
         return if (raw.length > MAX_TAG_LENGTH) raw.take(MAX_TAG_LENGTH) else raw
     }
 
-    /** PII フィルタ — Crash Reporter と同じ regex 群 */
-    private fun sanitize(message: String): String {
+    /**
+     * PII / 秘密情報フィルタ。
+     * `internal` 可視性はテストからの直接検証用 (本来は実装詳細)。
+     */
+    internal fun sanitize(message: String): String {
         return message
             .replace(Regex("""[\w.-]+@[\w.-]+\.\w+"""), "[email]")
-            .replace(Regex("""\?[^\s)]+"""), "?[redacted]")
+            // URL クエリパラメータの「値」を全て伏せる (?k=v&k2=v2 のマルチパラメータ対応)
+            .replace(Regex("""([?&][^=\s&#]+=)[^\s&#"')]+"""), "$1[redacted]")
+            // AWS アクセスキー ID
+            .replace(Regex("""AKIA[0-9A-Z]{16}"""), "[aws-key]")
+            // Authorization ヘッダ (Bearer スキーム含めトークンを伏せる)
+            .replace(
+                Regex("""(?i)(authorization\s*[:=]\s*)(?:bearer\s+)?[^\s"',]+"""),
+                "$1[redacted]",
+            )
+            // api_key / secret / token などの key: value / key=value
+            .replace(
+                Regex("""(?i)\b(api[_-]?key|secret|token)\b(\s*[:=]\s*)["']?[^\s"',]+"""),
+                "$1$2[redacted]",
+            )
             .replace(Regex("""\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b"""), "[ip]")
             .replace(Regex("""\b\+?81[-\s]?\d{1,4}[-\s]?\d{1,4}[-\s]?\d{4}\b"""), "[tel]")
     }
