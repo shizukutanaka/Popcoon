@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Popcoon</string>
+
+    <!-- 検索画面 -->
+    <string name="search_hint">商品名・バーコードで検索</string>
+    <string name="search_idle">商品を検索してください</string>
+    <string name="search_empty">結果が見つかりません</string>
+    <string name="search_loading">検索中…</string>
+    <string name="search_error">検索に失敗しました</string>
+
+    <!-- 詳細画面 -->
+    <string name="detail_title">商品詳細</string>
+    <string name="detail_score_label">買い時スコア</string>
+    <string name="detail_current_price">現在価格</string>
+    <string name="detail_list_price">定価</string>
+    <string name="detail_shipping">送料</string>
+    <string name="detail_points_back">ポイント還元</string>
+    <string name="detail_total">実質合計</string>
+    <string name="detail_price">価格</string>
+    <string name="detail_score_breakdown">スコア内訳</string>
+    <string name="detail_warnings_title">景品表示法 注意</string>
+    <string name="detail_price_history">価格履歴</string>
+    <string name="detail_ai_advice">AI アドバイス</string>
+    <string name="detail_saved">保存済み</string>
+    <string name="detail_save">保存</string>
+
+    <!-- 設定画面 -->
+    <string name="settings_title">設定</string>
+    <string name="settings_privacy">プライバシー</string>
+    <string name="settings_crash_optin">クラッシュレポート共有</string>
+    <string name="settings_crash_desc">匿名化したスタックトレースのみ送信</string>
+    <string name="settings_ai_optin">AI アドバイザー</string>
+    <string name="settings_ai_desc">Claude API に商品情報を送信 (個人情報なし)</string>
+    <string name="settings_affiliate_optin">アフィリエイトリンク</string>
+    <string name="settings_affiliate_desc">OFF にすると素の URL を使用 (収益発生せず)</string>
+    <string name="settings_data">データ</string>
+    <string name="settings_export_csv">価格履歴を CSV 出力</string>
+    <string name="settings_export_desc">全ウォッチリスト商品の履歴を出力</string>
+    <string name="settings_clear_history">検索履歴を消去</string>
+    <string name="settings_clear_watchlist">お気に入りを消去</string>
+    <string name="settings_delete_all">全データ削除 (GDPR Article 17)</string>
+    <string name="settings_delete_desc">端末内 + サーバー両方を即時削除</string>
+    <string name="settings_delete_confirm_title">全データ削除</string>
+    <string name="settings_delete_confirm_body">この操作は取り消せない。\n端末内データ + サーバー側の関連データを完全削除する。</string>
+    <string name="settings_delete_action">削除</string>
+    <string name="settings_cancel">キャンセル</string>
+    <string name="settings_upgrade">アップグレード</string>
+    <string name="settings_premium">Premium</string>
+    <string name="settings_premium_active">Popcoon Premium 利用中</string>
+    <string name="settings_premium_features">Premium 機能</string>
+    <string name="settings_premium_price">¥480/月 または ¥3,800/年</string>
+    <string name="settings_version">バージョン</string>
+    <string name="settings_privacy_policy">プライバシーポリシー</string>
+    <string name="settings_licenses">オープンソースライセンス</string>
+    <string name="settings_info">情報</string>
+
+    <!-- ナビゲーション -->
+    <string name="nav_search">検索</string>
+    <string name="nav_watchlist">お気に入り</string>
+    <string name="nav_settings">設定</string>
+    <string name="nav_back">戻る</string>
+
+    <!-- オンボーディング -->
+    <string name="onboarding_skip">スキップ</string>
+    <string name="onboarding_next">次へ</string>
+    <string name="onboarding_start">始める</string>
+    <string name="onboarding_title1">3つのECを横断</string>
+    <string name="onboarding_desc1">Amazon・楽天・Yahoo!の価格を1度に比較。\nKeepa を超える 3EC 横断履歴。</string>
+    <string name="onboarding_title2">ダークパターン検出</string>
+    <string name="onboarding_desc2">常設セール・参考価格詐欺・端数価格を自動検出。\n景品表示法の罠から守る。</string>
+    <string name="onboarding_title3">買い時スコアと AI 助言</string>
+    <string name="onboarding_desc3">0-100 のスコアで判断簡単。\nClaude AI が「今買うべきか」を簡潔に説明。</string>
+
+    <!-- バーコード (追加分) -->
+    <string name="barcode_point_camera">バーコードにカメラを向けてください</string>
+    <string name="barcode_read_success">読み取り成功: %s</string>
+
+    <!-- スコアカード -->
+    <string name="score_buy_now">今が買い時</string>
+    <string name="score_neutral">様子見</string>
+    <string name="score_wait">もう少し待つとよい</string>
+    <string name="score_confidence">信頼度: %s</string>
+    <string name="score_breakdown">スコア内訳</string>
+    <string name="action_retry">再試行</string>
+
+    <!-- ソートオプション -->
+    <string name="sort_buy_timing">買い時順</string>
+    <string name="sort_price_asc">安い順</string>
+    <string name="sort_price_desc">高い順</string>
+    <string name="sort_discount_desc">割引率順</string>
+    <string name="sort_rating_desc">評価順</string>
+    <string name="detail_confidence">信頼度</string>
+    <string name="confidence_high">高</string>
+    <string name="confidence_medium">中</string>
+    <string name="confidence_low">低</string>
+
+    <!-- Verdict -->
+    <string name="verdict_buy_now">買い時</string>
+    <string name="verdict_neutral">様子見</string>
+    <string name="verdict_wait">待ち</string>
+
+    <!-- Dark pattern warnings -->
+    <string name="warn_always_on_discount">常設セール</string>
+    <string name="warn_inflated_list">参考価格誇張</string>
+    <string name="warn_pre_sale_markup">セール前値上げ</string>
+    <string name="warn_charm_pricing">端数価格</string>
+
+    <!-- Bundle pack -->
+    <string name="bundle_unit_price">実質単価</string>
+    <string name="bundle_savings">お得率</string>
+    <string name="bundle_exceptional">驚異のお得</string>
+    <string name="bundle_good">お得</string>
+    <string name="bundle_neutral">普通</string>
+    <string name="bundle_bad">割高</string>
+
+    <!-- Customs -->
+    <string name="customs_simulate">越境EC試算</string>
+    <string name="customs_foreign_price">現地価格</string>
+    <string name="customs_shipping">送料</string>
+    <string name="customs_duty">関税</string>
+    <string name="customs_consumption_tax">消費税</string>
+    <string name="customs_fee">手数料</string>
+    <string name="customs_total">着払い合計</string>
+    <string name="customs_exempt">免税</string>
+
+    <!-- Eco -->
+    <string name="eco_score">エコ倫理スコア</string>
+    <string name="eco_co2">CO2 スコア</string>
+    <string name="eco_labor">労働条件</string>
+    <string name="eco_alternative">代替品を検討</string>
+
+    <!-- Nav -->
+
+    <!-- Actions -->
+    <string name="action_share">共有</string>
+    <string name="action_save">保存</string>
+    <string name="action_alert">価格通知設定</string>
+
+    <!-- Privacy -->
+    <string name="privacy_title">プライバシー</string>
+    <string name="privacy_zero_telemetry">テレメトリ未送信</string>
+    <string name="privacy_delete_data">全データ削除</string>
+
+    <!-- バーコードスキャン -->
+    <string name="barcode_scan">バーコードスキャン</string>
+    <string name="barcode_scanning">スキャン中…</string>
+    <string name="barcode_success">読み取り成功</string>
+    <string name="barcode_error">スキャン失敗</string>
+    <string name="barcode_retry">再試行</string>
+    <string name="barcode_hint">バーコードにカメラを向けてください</string>
+    <string name="barcode_invalid">無効なバーコード</string>
+
+    <!-- ウォッチリスト -->
+    <string name="watchlist_title">お気に入り</string>
+    <string name="watchlist_empty">ウォッチリストは空</string>
+    <string name="watchlist_empty_hint">商品詳細から「保存」を押すとここに表示</string>
+    <string name="watchlist_add">保存</string>
+    <string name="watchlist_remove">削除</string>
+
+    <!-- セールカレンダー -->
+    <string name="sale_calendar">セールカレンダー</string>
+    <string name="sale_active_now">開催中</string>
+    <string name="sale_next">次回セール</string>
+    <string name="sale_major">大型セール</string>
+    <string name="sale_recurring">毎月恒例</string>
+
+    <!-- ポイントシミュレーター -->
+    <string name="points_sim_title">ポイントシミュレーター</string>
+    <string name="points_sticker">表示価格</string>
+    <string name="points_effective">実質価格</string>
+    <string name="points_back">ポイント還元</string>
+    <string name="points_breakdown">内訳</string>
+
+    <!-- Share Intent -->
+    <string name="share_received">URLを受け取りました</string>
+    <string name="share_comparing">価格比較中</string>
+
+    <!-- ウィジェット -->
+    <string name="widget_description">ウォッチリストの最安値とセール情報を表示</string>
+    <string name="widget_empty_hint">ウォッチリストに商品を追加してください</string>
+
+    <!-- App Shortcuts (ホーム画面長押し) -->
+    <string name="shortcut_barcode_short">スキャン</string>
+    <string name="shortcut_barcode_long">バーコードスキャン</string>
+    <string name="shortcut_watchlist_short">お気に入り</string>
+    <string name="shortcut_watchlist_long">ウォッチリストを開く</string>
+    <string name="shortcut_disabled">この機能は現在利用できません</string>
+
+    <!-- 通知チャンネル -->
+    <string name="channel_price_alert_name">価格アラート</string>
+    <string name="channel_price_alert_desc">ウォッチリストの商品が値下がりしたときに通知</string>
+    <string name="channel_weekly_digest_name">週刊まとめ</string>
+    <string name="channel_weekly_digest_desc">ウォッチリストの週次価格変動サマリー</string>
+    <string name="channel_system_name">システム通知</string>
+    <string name="channel_system_desc">アプリからのお知らせ</string>
+    <string name="premium_feature_no_ads">アフィリエイトリンク非表示</string>
+    <string name="premium_feature_export">価格履歴 CSV エクスポート</string>
+    <string name="premium_feature_ai_detail">AI アドバイス詳細表示</string>
+    <string name="confidence_unknown">不明</string>
+    <string name="prediction_title">価格予測</string>
+    <string name="prediction_confidence">信頼度: %1$s</string>
+    <string name="prediction_7d">7日後の予測</string>
+    <string name="prediction_30d">30日後の予測</string>
+    <string name="prediction_historic_low">過去最安 %1$s</string>
+    <string name="prediction_historic_high">過去最高 %1$s</string>
+    <string name="tco_title">総保有コスト (%1$d年)</string>
+    <string name="tco_purchase">本体価格</string>
+    <string name="tco_consumables">消耗品</string>
+    <string name="tco_energy">電気代</string>
+    <string name="tco_residual">残価</string>
+    <string name="tco_total">5年総額</string>
+    <string name="tco_per_month">月あたり %1$s</string>
+    <string name="prediction_margin_a11y">%1$s 誤差プラスマイナス%2$s</string>
+    <string name="review_trust_no_data">レビュー評価なし</string>
+    <string name="review_trust_few_reviews">レビュー数が少なく参考度低</string>
+    <string name="review_trust_too_perfect">高評価が多すぎる (サクラ注意)</string>
+    <string name="review_trust_label">レビュー信頼度</string>
+    <string name="bundle_title">セット販売の実質単価</string>
+    <string name="bundle_pack_count">%1$d個セット</string>
+</resources>

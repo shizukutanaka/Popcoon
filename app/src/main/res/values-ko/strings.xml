@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Popcoon</string>
+
+    <string name="search_hint">상품명 또는 바코드로 검색</string>
+    <string name="search_idle">상품을 검색하세요</string>
+    <string name="search_empty">결과를 찾을 수 없습니다</string>
+    <string name="search_loading">검색 중…</string>
+    <string name="search_error">검색 실패</string>
+
+    <string name="detail_title">상품 상세</string>
+    <string name="detail_score_label">구매 타이밍 점수</string>
+    <string name="detail_current_price">현재 가격</string>
+    <string name="detail_list_price">정가</string>
+    <string name="detail_shipping">배송비</string>
+    <string name="detail_points_back">포인트 적립</string>
+    <string name="detail_total">실제 합계</string>
+    <string name="detail_price">가격</string>
+    <string name="detail_score_breakdown">점수 내역</string>
+    <string name="detail_warnings_title">다크 패턴 경고</string>
+    <string name="detail_ai_advice">AI 조언</string>
+    <string name="detail_confidence">신뢰도</string>
+    <string name="confidence_high">높음</string>
+    <string name="confidence_medium">보통</string>
+    <string name="confidence_low">낮음</string>
+
+    <string name="verdict_buy_now">지금 구매</string>
+    <string name="verdict_neutral">관망</string>
+    <string name="verdict_wait">대기</string>
+
+    <string name="warn_always_on_discount">상시 할인</string>
+    <string name="warn_inflated_list">참고가 과장</string>
+    <string name="warn_pre_sale_markup">세일 전 가격 인상</string>
+    <string name="warn_charm_pricing">단수 가격</string>
+
+    <string name="bundle_unit_price">실제 단가</string>
+    <string name="bundle_savings">할인율</string>
+    <string name="bundle_exceptional">파격 할인</string>
+    <string name="bundle_good">이득</string>
+    <string name="bundle_neutral">보통</string>
+    <string name="bundle_bad">비쌈</string>
+
+    <string name="customs_simulate">해외직구 견적</string>
+    <string name="customs_foreign_price">현지 가격</string>
+    <string name="customs_shipping">배송비</string>
+    <string name="customs_duty">관세</string>
+    <string name="customs_consumption_tax">소비세</string>
+    <string name="customs_fee">수수료</string>
+    <string name="customs_total">총 비용</string>
+    <string name="customs_exempt">면세</string>
+
+    <string name="eco_score">에코 윤리 점수</string>
+    <string name="eco_co2">CO2 점수</string>
+    <string name="eco_labor">노동 조건</string>
+    <string name="eco_alternative">대체품 검토</string>
+
+    <string name="nav_back">뒤로</string>
+    <string name="nav_settings">설정</string>
+
+    <!-- ソートオプション -->
+    <string name="sort_buy_timing">구매 적기순</string>
+    <string name="sort_price_asc">가격 낮은 순</string>
+    <string name="sort_price_desc">가격 높은 순</string>
+    <string name="sort_discount_desc">할인율 높은 순</string>
+    <string name="sort_rating_desc">평점 높은 순</string>
+    <string name="action_retry">재시도</string>
+    <string name="action_share">공유</string>
+    <string name="action_save">저장</string>
+    <string name="action_alert">가격 알림</string>
+    <string name="privacy_title">개인정보</string>
+    <string name="privacy_zero_telemetry">텔레메트리 미전송</string>
+    <string name="privacy_delete_data">모든 데이터 삭제</string>
+
+    <string name="barcode_scan">바코드 스캔</string>
+    <string name="barcode_scanning">스캔 중…</string>
+    <string name="barcode_success">스캔 성공</string>
+    <string name="barcode_error">스캔 실패</string>
+    <string name="barcode_retry">재시도</string>
+    <string name="barcode_hint">바코드에 카메라를 맞추세요</string>
+    <string name="barcode_invalid">잘못된 바코드</string>
+
+    <string name="watchlist_title">즐겨찾기</string>
+    <string name="watchlist_empty">즐겨찾기가 비어 있습니다</string>
+    <string name="watchlist_empty_hint">상품 상세에서 저장을 눌러 추가</string>
+    <string name="watchlist_add">저장</string>
+    <string name="watchlist_remove">삭제</string>
+
+    <string name="sale_calendar">세일 캘린더</string>
+    <string name="sale_active_now">진행 중</string>
+    <string name="sale_next">다음 세일</string>
+    <string name="sale_major">대형 세일</string>
+    <string name="sale_recurring">매월 정기</string>
+
+    <string name="points_sim_title">포인트 시뮬레이터</string>
+    <string name="points_sticker">표시 가격</string>
+    <string name="points_effective">실질 가격</string>
+    <string name="points_back">포인트 환급</string>
+    <string name="points_breakdown">상세</string>
+
+    <string name="share_received">URL 수신</string>
+    <string name="share_comparing">가격 비교 중</string>
+
+    <string name="widget_description">즐겨찾기 최저가와 세일 정보 표시</string>
+    <string name="widget_empty_hint">상품을 즐겨찾기에 추가하세요</string>
+
+    <string name="shortcut_barcode_short">스캔</string>
+    <string name="shortcut_barcode_long">바코드 스캔</string>
+    <string name="shortcut_watchlist_short">즐겨찾기</string>
+    <string name="shortcut_watchlist_long">즐겨찾기 열기</string>
+    <string name="shortcut_disabled">이 기능은 사용할 수 없습니다</string>
+
+    <string name="channel_price_alert_name">가격 알림</string>
+    <string name="channel_price_alert_desc">즐겨찾기 상품 가격 하락 시 알림</string>
+    <string name="channel_weekly_digest_name">주간 요약</string>
+    <string name="channel_weekly_digest_desc">즐겨찾기 상품 주간 가격 변동 요약</string>
+    <string name="channel_system_name">시스템 알림</string>
+    <string name="channel_system_desc">앱 공지</string>
+
+    <!-- Detail -->
+    <string name="detail_price_history">가격 이력</string>
+    <string name="detail_saved">저장됨</string>
+    <string name="detail_save">저장</string>
+    <!-- Navigation -->
+    <string name="nav_search">검색</string>
+    <string name="nav_watchlist">즐겨찾기</string>
+    <!-- Onboarding -->
+    <string name="onboarding_skip">건너뛰기</string>
+    <string name="onboarding_next">다음</string>
+    <string name="onboarding_start">시작하기</string>
+    <string name="onboarding_title1">세 플랫폼을 동시에 비교</string>
+    <string name="onboarding_desc1">Amazon, Rakuten, Yahoo! 가격을 한 번에 비교.\nKeepa를 뛰어넘는 3플랫폼 이력.</string>
+    <string name="onboarding_title2">다크 패턴 감지</string>
+    <string name="onboarding_desc2">상시 할인, 과장된 참고가, 가격 끝수 책정을 자동 감지.\n오해의 소지가 있는 관행으로부터 보호합니다.</string>
+    <string name="onboarding_title3">구매 타이밍 점수와 AI 조언</string>
+    <string name="onboarding_desc3">0-100 점수로 쉽게 결정.\nClaude AI가 「지금 사야 할지」를 간결하게 설명.</string>
+    <!-- Barcode (extended) -->
+    <string name="barcode_point_camera">바코드에 카메라를 향해주세요</string>
+    <string name="barcode_read_success">인식 성공: %s</string>
+    <!-- Score -->
+    <string name="score_buy_now">지금이 구매 적기</string>
+    <string name="score_neutral">관망</string>
+    <string name="score_wait">조금 더 기다리는 것이 좋습니다</string>
+    <string name="score_confidence">신뢰도: %s</string>
+
+    <!-- ソートオプション -->
+    <string name="score_breakdown">점수 내역</string>
+    <!-- Settings (extended) -->
+    <string name="settings_title">설정</string>
+    <string name="settings_privacy">개인정보</string>
+    <string name="settings_crash_optin">충돌 보고서 공유</string>
+    <string name="settings_crash_desc">익명화된 스택 트레이스만 전송</string>
+    <string name="settings_ai_optin">AI 어드바이저</string>
+    <string name="settings_ai_desc">Claude API에 상품 정보 전송 (개인정보 없음)</string>
+    <string name="settings_affiliate_optin">제휴 링크</string>
+    <string name="settings_affiliate_desc">끄면 일반 URL 사용 (수익 없음)</string>
+    <string name="settings_data">데이터</string>
+    <string name="settings_export_csv">가격 이력을 CSV로 내보내기</string>
+    <string name="settings_export_desc">모든 즐겨찾기 상품 이력 내보내기</string>
+    <string name="settings_clear_history">검색 기록 삭제</string>
+    <string name="settings_clear_watchlist">즐겨찾기 삭제</string>
+    <string name="settings_delete_all">모든 데이터 삭제 (GDPR 제17조)</string>
+    <string name="settings_delete_desc">기기 및 서버 데이터를 즉시 완전 삭제</string>
+    <string name="settings_delete_confirm_title">모든 데이터 삭제</string>
+    <string name="settings_delete_confirm_body">이 작업은 취소할 수 없습니다.\n기기 데이터와 관련 서버 데이터가 영구적으로 삭제됩니다.</string>
+    <string name="settings_delete_action">삭제</string>
+    <string name="settings_cancel">취소</string>
+    <string name="settings_upgrade">업그레이드</string>
+    <string name="settings_premium">Premium</string>
+    <string name="settings_premium_active">Popcoon Premium 이용 중</string>
+    <string name="settings_premium_features">Premium 기능</string>
+    <string name="settings_premium_price">₩480/월 또는 ₩3,800/년</string>
+    <string name="settings_version">버전</string>
+    <string name="settings_privacy_policy">개인정보 처리방침</string>
+    <string name="settings_licenses">오픈소스 라이선스</string>
+    <string name="settings_info">정보</string>
+    <string name="premium_feature_no_ads">제휴 링크 없음</string>
+    <string name="premium_feature_export">가격 이력 CSV 내보내기</string>
+    <string name="premium_feature_ai_detail">상세 AI 조언</string>
+    <string name="confidence_unknown">알 수 없음</string>
+    <string name="prediction_title">가격 예측</string>
+    <string name="prediction_confidence">신뢰도: %1$s</string>
+    <string name="prediction_7d">7일 후 예측</string>
+    <string name="prediction_30d">30일 후 예측</string>
+    <string name="prediction_historic_low">최저가 %1$s</string>
+    <string name="prediction_historic_high">최고가 %1$s</string>
+    <string name="tco_title">총 소유 비용 (%1$d년)</string>
+    <string name="tco_purchase">본체 가격</string>
+    <string name="tco_consumables">소모품</string>
+    <string name="tco_energy">전기료</string>
+    <string name="tco_residual">잔존가치</string>
+    <string name="tco_total">5년 총액</string>
+    <string name="tco_per_month">월 %1$s</string>
+    <string name="prediction_margin_a11y">%1$s 오차 플러스마이너스%2$s</string>
+    <string name="review_trust_no_data">평가 없음</string>
+    <string name="review_trust_few_reviews">리뷰 수가 적어 신뢰도 낮음</string>
+    <string name="review_trust_too_perfect">평점이 너무 높음 (주의)</string>
+    <string name="review_trust_label">리뷰 신뢰도</string>
+    <string name="bundle_title">세트 실질 단가</string>
+    <string name="bundle_pack_count">%1$d개 세트</string>
+</resources>

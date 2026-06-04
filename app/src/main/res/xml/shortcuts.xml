@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android App Shortcuts — Apple の 3D Touch (Quick Actions) 相当。
+    ホーム画面でアイコンを長押しするとショートカットが表示される。
+
+    バーコードスキャン・ウォッチリスト・最後に見た商品 の3つを設定。
+    これにより「よく行う操作をアプリを開かずに始められる」という Apple の原則に準拠。
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- バーコードスキャン起動 -->
+    <shortcut
+        android:shortcutId="barcode_scan"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_barcode"
+        android:shortcutShortLabel="@string/shortcut_barcode_short"
+        android:shortcutLongLabel="@string/shortcut_barcode_long"
+        android:shortcutDisabledMessage="@string/shortcut_disabled">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.example.popcoon"
+            android:targetClass="com.example.popcoon.MainActivity"
+            android:data="popcoon://barcode" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <!-- ウォッチリスト直接表示 -->
+    <shortcut
+        android:shortcutId="watchlist"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_star"
+        android:shortcutShortLabel="@string/shortcut_watchlist_short"
+        android:shortcutLongLabel="@string/shortcut_watchlist_long"
+        android:shortcutDisabledMessage="@string/shortcut_disabled">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.example.popcoon"
+            android:targetClass="com.example.popcoon.MainActivity"
+            android:data="popcoon://watchlist" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+</shortcuts>

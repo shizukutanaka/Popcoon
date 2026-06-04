@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Popcoon ブランドカラー (WCAG AAA 準拠) -->
+    <color name="popcoon_brand">#00C4CC</color>
+    <color name="popcoon_brand_dark">#005C66</color>
+    <color name="popcoon_buy_now">#118A4E</color>
+    <color name="popcoon_wait">#C0392B</color>
+    <color name="popcoon_warning">#B8860B</color>
+
+    <!-- システムカラー -->
+    <color name="ic_launcher_background">#0A1519</color>
+</resources>

@@ -1,0 +1,180 @@
+package com.example.popcoon.ui
+
+import androidx.activity.compose.ReportDrawnAfter
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import com.example.popcoon.ui.theme.AppIcons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.compose.ui.res.stringResource
+import com.example.popcoon.R
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.example.popcoon.IntentEvent
+import com.example.popcoon.feature.settings.UserPreferences
+import com.example.popcoon.ui.screens.onboarding.OnboardingScreen
+import com.example.popcoon.ui.theme.PopcoonTheme
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+// ── タブ定義 ─────────────────────────────────────────────────────────────
+internal enum class Tab(
+    val route: String,
+    @androidx.annotation.StringRes val labelRes: Int,
+    val icon: ImageVector,
+) {
+    SEARCH("search", R.string.nav_search, AppIcons.Home),
+    WATCHLIST("watchlist", R.string.nav_watchlist, AppIcons.Save),
+    SETTINGS("settings", R.string.nav_settings, AppIcons.Settings),
+}
+
+// ── Root Composable ───────────────────────────────────────────────────────
+@Composable
+fun PopcoonApp(
+    initialEvent: StateFlow<IntentEvent> = MutableStateFlow(IntentEvent.None),
+    viewModel: AppRootViewModel = hiltViewModel(),
+) {
+    PopcoonTheme {
+        val state by viewModel.state.collectAsState()
+        val event by initialEvent.collectAsState()
+
+        Surface(modifier = Modifier.fillMaxSize()) {
+            // アニメーション付き状態切り替え (Apple 原則: 状態遷移はスムーズに)
+            AnimatedContent(
+                targetState = state,
+                transitionSpec = {
+                    fadeIn(tween(300)) togetherWith fadeOut(tween(200))
+                },
+                label = "rootStateTransition",
+            ) { s ->
+                when (s) {
+                    AppRootState.Loading -> {
+                        // 起動直後は空画面 (スプラッシュ代わり)
+                    }
+                    AppRootState.Onboarding ->
+                        OnboardingScreen(onComplete = viewModel::markOnboarded)
+                    AppRootState.Ready ->
+                        MainWithTabs(intentEvent = event)
+                }
+            }
+        }
+    }
+
+    if (state == AppRootState.Ready) {
+        ReportDrawnAfter { /* TTFD 計測 */ }
+    }
+}
+
+// ── タブバー付きメイン画面 ────────────────────────────────────────────────
+@Composable
+private fun MainWithTabs(intentEvent: IntentEvent) {
+    val navController = rememberNavController()
+    val navBackStack by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStack?.destination?.route
+
+    // タブバーを表示するルートのセット
+    val tabRoutes = Tab.entries.map { it.route }.toSet()
+    val showTabBar = currentRoute in tabRoutes
+
+    // Intent 由来の遷移
+    LaunchedEffect(intentEvent) {
+        when (intentEvent) {
+            is IntentEvent.OpenProduct ->
+                navController.navigate("detail/${intentEvent.productKey}") {
+                    launchSingleTop = true
+                }
+            is IntentEvent.StartSearch -> {
+                navController.navigate(Tab.SEARCH.route) {
+                    launchSingleTop = true
+                }
+            }
+            IntentEvent.OpenBarcode ->
+                navController.navigate("barcode") { launchSingleTop = true }
+            IntentEvent.OpenWatchlist ->
+                navController.navigateToTab(Tab.WATCHLIST)
+            IntentEvent.None -> Unit
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            Column {
+                com.example.popcoon.ui.components.OfflineBanner()
+            }
+        },
+        bottomBar = {
+            // Apple タブバー相当: 常時表示 (詳細画面では非表示)
+            AnimatedVisibility(
+                visible = showTabBar,
+                enter = slideInVertically(initialOffsetY = { it }),
+                exit = slideOutVertically(targetOffsetY = { it }),
+            ) {
+                NavigationBar {
+                    Tab.entries.forEach { tab ->
+                        NavigationBarItem(
+                            selected = currentRoute == tab.route,
+                            onClick = { navController.navigateToTab(tab) },
+                            icon = { Icon(tab.icon, contentDescription = stringResource(tab.labelRes)) },
+                            label = { Text(stringResource(tab.labelRes)) },
+                        )
+                    }
+                }
+            }
+        },
+    ) { padding ->
+        PopcoonNavGraph(
+            navController = navController,
+            modifier = Modifier.padding(padding),
+        )
+    }
+}
+
+// ── Root ViewModel ────────────────────────────────────────────────────────
+sealed interface AppRootState {
+    data object Loading : AppRootState
+    data object Onboarding : AppRootState
+    data object Ready : AppRootState
+}
+
+@HiltViewModel
+class AppRootViewModel @Inject constructor(
+    private val prefs: UserPreferences,
+) : ViewModel() {
+    private val _state = MutableStateFlow<AppRootState>(AppRootState.Loading)
+    val state: StateFlow<AppRootState> = _state
+
+    init {
+        viewModelScope.launch {
+            _state.value = if (prefs.onboarded.first())
+                AppRootState.Ready else AppRootState.Onboarding
+        }
+    }
+
+    fun markOnboarded() {
+        viewModelScope.launch {
+            prefs.setOnboarded(true)
+            _state.value = AppRootState.Ready
+        }
+    }
+}

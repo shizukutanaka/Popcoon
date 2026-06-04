@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Popcoon</string>
+
+    <string name="search_hint">按商品名或条码搜索</string>
+    <string name="search_idle">请搜索商品</string>
+    <string name="search_empty">未找到结果</string>
+    <string name="search_loading">搜索中…</string>
+    <string name="search_error">搜索失败</string>
+
+    <string name="detail_title">商品详情</string>
+    <string name="detail_score_label">购买时机评分</string>
+    <string name="detail_current_price">当前价格</string>
+    <string name="detail_list_price">原价</string>
+    <string name="detail_shipping">运费</string>
+    <string name="detail_points_back">积分返还</string>
+    <string name="detail_total">实际总额</string>
+    <string name="detail_price">价格</string>
+    <string name="detail_score_breakdown">评分详情</string>
+    <string name="detail_warnings_title">暗黑模式警告</string>
+    <string name="detail_ai_advice">AI 建议</string>
+    <string name="detail_confidence">可信度</string>
+    <string name="confidence_high">高</string>
+    <string name="confidence_medium">中</string>
+    <string name="confidence_low">低</string>
+
+    <string name="verdict_buy_now">立即购买</string>
+    <string name="verdict_neutral">观望</string>
+    <string name="verdict_wait">等待</string>
+
+    <string name="warn_always_on_discount">常态促销</string>
+    <string name="warn_inflated_list">虚高原价</string>
+    <string name="warn_pre_sale_markup">促销前涨价</string>
+    <string name="warn_charm_pricing">尾数定价</string>
+
+    <string name="bundle_unit_price">实际单价</string>
+    <string name="bundle_savings">优惠率</string>
+    <string name="bundle_exceptional">超值优惠</string>
+    <string name="bundle_good">优惠</string>
+    <string name="bundle_neutral">一般</string>
+    <string name="bundle_bad">偏贵</string>
+
+    <string name="customs_simulate">跨境购买测算</string>
+    <string name="customs_foreign_price">当地价格</string>
+    <string name="customs_shipping">运费</string>
+    <string name="customs_duty">关税</string>
+    <string name="customs_consumption_tax">消费税</string>
+    <string name="customs_fee">手续费</string>
+    <string name="customs_total">到岸总价</string>
+    <string name="customs_exempt">免税</string>
+
+    <string name="eco_score">环保伦理评分</string>
+    <string name="eco_co2">CO2 评分</string>
+    <string name="eco_labor">劳动条件</string>
+    <string name="eco_alternative">考虑替代品</string>
+
+    <string name="nav_back">返回</string>
+    <string name="nav_settings">设置</string>
+
+    <!-- ソートオプション -->
+    <string name="sort_buy_timing">最佳时机</string>
+    <string name="sort_price_asc">价格由低到高</string>
+    <string name="sort_price_desc">价格由高到低</string>
+    <string name="sort_discount_desc">折扣最高</string>
+    <string name="sort_rating_desc">评分最高</string>
+    <string name="action_retry">重试</string>
+    <string name="action_share">分享</string>
+    <string name="action_save">保存</string>
+    <string name="action_alert">价格通知</string>
+    <string name="privacy_title">隐私</string>
+    <string name="privacy_zero_telemetry">零遥测</string>
+    <string name="privacy_delete_data">删除全部数据</string>
+
+    <string name="barcode_scan">条形码扫描</string>
+    <string name="barcode_scanning">扫描中…</string>
+    <string name="barcode_success">扫描成功</string>
+    <string name="barcode_error">扫描失败</string>
+    <string name="barcode_retry">重试</string>
+    <string name="barcode_hint">将相机对准条形码</string>
+    <string name="barcode_invalid">无效条形码</string>
+
+    <string name="watchlist_title">收藏</string>
+    <string name="watchlist_empty">收藏列表为空</string>
+    <string name="watchlist_empty_hint">在商品详情点击"保存"添加到此处</string>
+    <string name="watchlist_add">保存</string>
+    <string name="watchlist_remove">删除</string>
+
+    <string name="sale_calendar">促销日历</string>
+    <string name="sale_active_now">进行中</string>
+    <string name="sale_next">下次促销</string>
+    <string name="sale_major">大型促销</string>
+    <string name="sale_recurring">每月定期</string>
+
+    <string name="points_sim_title">积分模拟器</string>
+    <string name="points_sticker">标价</string>
+    <string name="points_effective">实际价格</string>
+    <string name="points_back">积分返还</string>
+    <string name="points_breakdown">明细</string>
+
+    <string name="share_received">已接收URL</string>
+    <string name="share_comparing">正在比价</string>
+
+    <string name="widget_description">显示收藏商品最低价和促销信息</string>
+    <string name="widget_empty_hint">请添加商品到收藏</string>
+
+    <string name="shortcut_barcode_short">扫描</string>
+    <string name="shortcut_barcode_long">条形码扫描</string>
+    <string name="shortcut_watchlist_short">收藏</string>
+    <string name="shortcut_watchlist_long">打开收藏列表</string>
+    <string name="shortcut_disabled">此功能暂不可用</string>
+
+    <string name="channel_price_alert_name">价格提醒</string>
+    <string name="channel_price_alert_desc">收藏商品降价时通知</string>
+    <string name="channel_weekly_digest_name">每周摘要</string>
+    <string name="channel_weekly_digest_desc">收藏商品每周价格变动汇总</string>
+    <string name="channel_system_name">系统通知</string>
+    <string name="channel_system_desc">应用通知</string>
+
+    <!-- Detail -->
+    <string name="detail_price_history">价格历史</string>
+    <string name="detail_saved">已保存</string>
+    <string name="detail_save">保存</string>
+    <!-- Navigation -->
+    <string name="nav_search">搜索</string>
+    <string name="nav_watchlist">收藏</string>
+    <!-- Onboarding -->
+    <string name="onboarding_skip">跳过</string>
+    <string name="onboarding_next">下一步</string>
+    <string name="onboarding_start">开始</string>
+    <string name="onboarding_title1">同时比较三家平台</string>
+    <string name="onboarding_desc1">一次比较Amazon、乐天、Yahoo!的价格。\n超越Keepa的3平台历史记录。</string>
+    <string name="onboarding_title2">暗黑模式检测</string>
+    <string name="onboarding_desc2">自动检测常设折扣、虚假参考价和尾数定价。\n保护您免受误导性做法的侵害。</string>
+    <string name="onboarding_title3">购买时机评分与AI建议</string>
+    <string name="onboarding_desc3">0-100分让决策更简单。\nClaude AI简洁说明「现在是否该买」。</string>
+    <!-- Barcode (extended) -->
+    <string name="barcode_point_camera">请将相机对准条形码</string>
+    <string name="barcode_read_success">读取成功: %s</string>
+    <!-- Score -->
+    <string name="score_buy_now">现在是购买时机</string>
+    <string name="score_neutral">观望</string>
+    <string name="score_wait">建议稍等</string>
+    <string name="score_confidence">置信度: %s</string>
+
+    <!-- ソートオプション -->
+    <string name="score_breakdown">评分明细</string>
+    <!-- Settings (extended) -->
+    <string name="settings_title">设置</string>
+    <string name="settings_privacy">隐私</string>
+    <string name="settings_crash_optin">共享崩溃报告</string>
+    <string name="settings_crash_desc">仅发送匿名堆栈跟踪</string>
+    <string name="settings_ai_optin">AI顾问</string>
+    <string name="settings_ai_desc">向Claude API发送商品信息（无个人数据）</string>
+    <string name="settings_affiliate_optin">联盟链接</string>
+    <string name="settings_affiliate_desc">关闭则使用普通链接（无收益）</string>
+    <string name="settings_data">数据</string>
+    <string name="settings_export_csv">导出价格历史为CSV</string>
+    <string name="settings_export_desc">导出所有收藏商品历史</string>
+    <string name="settings_clear_history">清除搜索历史</string>
+    <string name="settings_clear_watchlist">清除收藏</string>
+    <string name="settings_delete_all">删除所有数据 (GDPR 第17条)</string>
+    <string name="settings_delete_desc">立即删除设备和服务器上的所有数据</string>
+    <string name="settings_delete_confirm_title">删除所有数据</string>
+    <string name="settings_delete_confirm_body">此操作无法撤销。\n设备数据和相关服务器数据将被永久删除。</string>
+    <string name="settings_delete_action">删除</string>
+    <string name="settings_cancel">取消</string>
+    <string name="settings_upgrade">升级</string>
+    <string name="settings_premium">Premium</string>
+    <string name="settings_premium_active">Popcoon Premium 使用中</string>
+    <string name="settings_premium_features">Premium 功能</string>
+    <string name="settings_premium_price">¥480/月 或 ¥3,800/年</string>
+    <string name="settings_version">版本</string>
+    <string name="settings_privacy_policy">隐私政策</string>
+    <string name="settings_licenses">开源许可证</string>
+    <string name="settings_info">信息</string>
+    <string name="premium_feature_no_ads">无联盟链接</string>
+    <string name="premium_feature_export">价格历史CSV导出</string>
+    <string name="premium_feature_ai_detail">详细AI建议</string>
+    <string name="confidence_unknown">未知</string>
+    <string name="prediction_title">价格预测</string>
+    <string name="prediction_confidence">置信度: %1$s</string>
+    <string name="prediction_7d">7天后预测</string>
+    <string name="prediction_30d">30天后预测</string>
+    <string name="prediction_historic_low">历史最低 %1$s</string>
+    <string name="prediction_historic_high">历史最高 %1$s</string>
+    <string name="tco_title">总拥有成本 (%1$d年)</string>
+    <string name="tco_purchase">购买价格</string>
+    <string name="tco_consumables">耗材</string>
+    <string name="tco_energy">电费</string>
+    <string name="tco_residual">残值</string>
+    <string name="tco_total">5年总额</string>
+    <string name="tco_per_month">每月 %1$s</string>
+    <string name="prediction_margin_a11y">%1$s 误差正负%2$s</string>
+    <string name="review_trust_no_data">无评价</string>
+    <string name="review_trust_few_reviews">评价过少参考度低</string>
+    <string name="review_trust_too_perfect">评分过高(注意刷单)</string>
+    <string name="review_trust_label">评价可信度</string>
+    <string name="bundle_title">套装实际单价</string>
+    <string name="bundle_pack_count">%1$d个装</string>
+</resources>

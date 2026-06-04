@@ -1,0 +1,51 @@
+.gradle
+build/
+.idea/
+*.iml
+local.properties
+*.hprof
+captures/
+.cxx/
+
+# Kotlin
+*.kotlin_metadata
+
+# Android
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# Release keys (NEVER commit)
+*.jks
+*.keystore
+release.keystore
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.hypothesis/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Node (backend)
+node_modules/
+.wrangler/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.env.local
+secrets.properties
+
+
+# Gradle Wrapper JAR は必ずコミット (clone 即ビルドのため)
+!gradle/wrapper/gradle-wrapper.jar

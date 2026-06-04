@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Popcoon</string>
+
+    <string name="search_hint">Search by product name or barcode</string>
+    <string name="search_idle">Search for a product</string>
+    <string name="search_empty">No results found</string>
+    <string name="search_loading">Searching…</string>
+    <string name="search_error">Search failed</string>
+
+    <string name="detail_title">Product Details</string>
+    <string name="detail_score_label">Buy Timing Score</string>
+    <string name="detail_current_price">Current price</string>
+    <string name="detail_list_price">List price</string>
+    <string name="detail_shipping">Shipping</string>
+    <string name="detail_points_back">Points back</string>
+    <string name="detail_total">Effective total</string>
+    <string name="detail_price">Price</string>
+    <string name="detail_score_breakdown">Score breakdown</string>
+    <string name="detail_warnings_title">Dark Pattern Warnings</string>
+    <string name="detail_ai_advice">AI Advice</string>
+    <string name="detail_confidence">Confidence</string>
+    <string name="confidence_high">High</string>
+    <string name="confidence_medium">Medium</string>
+    <string name="confidence_low">Low</string>
+
+    <string name="verdict_buy_now">Buy now</string>
+    <string name="verdict_neutral">Watch</string>
+    <string name="verdict_wait">Wait</string>
+
+    <string name="warn_always_on_discount">Always-on sale</string>
+    <string name="warn_inflated_list">Inflated list price</string>
+    <string name="warn_pre_sale_markup">Pre-sale markup</string>
+    <string name="warn_charm_pricing">Charm pricing</string>
+
+    <string name="bundle_unit_price">Effective unit price</string>
+    <string name="bundle_savings">Savings</string>
+    <string name="bundle_exceptional">Exceptional deal</string>
+    <string name="bundle_good">Good deal</string>
+    <string name="bundle_neutral">Neutral</string>
+    <string name="bundle_bad">Overpriced</string>
+
+    <string name="customs_simulate">Import cost estimate</string>
+    <string name="customs_foreign_price">Foreign price</string>
+    <string name="customs_shipping">Shipping</string>
+    <string name="customs_duty">Duty</string>
+    <string name="customs_consumption_tax">Consumption tax</string>
+    <string name="customs_fee">Handling fee</string>
+    <string name="customs_total">Landed cost</string>
+    <string name="customs_exempt">Tax exempt</string>
+
+    <string name="eco_score">Eco ethics score</string>
+    <string name="eco_co2">CO2 score</string>
+    <string name="eco_labor">Labor conditions</string>
+    <string name="eco_alternative">Consider alternative</string>
+
+    <string name="nav_back">Back</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- ソートオプション -->
+    <string name="sort_buy_timing">Best timing</string>
+    <string name="sort_price_asc">Price: Low to High</string>
+    <string name="sort_price_desc">Price: High to Low</string>
+    <string name="sort_discount_desc">Highest discount</string>
+    <string name="sort_rating_desc">Highest rating</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_share">Share</string>
+    <string name="action_save">Save</string>
+    <string name="action_alert">Price alert</string>
+    <string name="privacy_title">Privacy</string>
+    <string name="privacy_zero_telemetry">Zero telemetry</string>
+    <string name="privacy_delete_data">Delete all data</string>
+
+    <string name="barcode_scan">Barcode scan</string>
+    <string name="barcode_scanning">Scanning…</string>
+    <string name="barcode_success">Scan successful</string>
+    <string name="barcode_error">Scan failed</string>
+    <string name="barcode_retry">Retry</string>
+    <string name="barcode_hint">Point camera at barcode</string>
+    <string name="barcode_invalid">Invalid barcode</string>
+
+    <string name="watchlist_title">Watchlist</string>
+    <string name="watchlist_empty">Watchlist is empty</string>
+    <string name="watchlist_empty_hint">Tap "Save" on a product to add it here</string>
+    <string name="watchlist_add">Save</string>
+    <string name="watchlist_remove">Remove</string>
+
+    <string name="sale_calendar">Sale calendar</string>
+    <string name="sale_active_now">Active now</string>
+    <string name="sale_next">Next sale</string>
+    <string name="sale_major">Major sale</string>
+    <string name="sale_recurring">Monthly recurring</string>
+
+    <string name="points_sim_title">Points simulator</string>
+    <string name="points_sticker">List price</string>
+    <string name="points_effective">Effective price</string>
+    <string name="points_back">Points earned</string>
+    <string name="points_breakdown">Breakdown</string>
+
+    <string name="share_received">URL received</string>
+    <string name="share_comparing">Comparing prices</string>
+
+    <string name="widget_description">Show watchlist lowest prices and sale info</string>
+    <string name="widget_empty_hint">Add products to your watchlist</string>
+
+    <string name="shortcut_barcode_short">Scan</string>
+    <string name="shortcut_barcode_long">Barcode scan</string>
+    <string name="shortcut_watchlist_short">Watchlist</string>
+    <string name="shortcut_watchlist_long">Open watchlist</string>
+    <string name="shortcut_disabled">This feature is currently unavailable</string>
+
+    <string name="channel_price_alert_name">Price alerts</string>
+    <string name="channel_price_alert_desc">Notification when a watchlist item drops in price</string>
+    <string name="channel_weekly_digest_name">Weekly digest</string>
+    <string name="channel_weekly_digest_desc">Weekly watchlist price change summary</string>
+    <string name="channel_system_name">System</string>
+    <string name="channel_system_desc">General app notifications</string>
+
+    <!-- Detail screen (extended) -->
+    <string name="detail_price_history">Price history</string>
+    <string name="detail_saved">Saved</string>
+    <string name="detail_save">Save</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_privacy">Privacy</string>
+    <string name="settings_crash_optin">Share crash reports</string>
+    <string name="settings_crash_desc">Send only anonymized stack traces</string>
+    <string name="settings_ai_optin">AI Advisor</string>
+    <string name="settings_ai_desc">Send product info to Claude API (no personal data)</string>
+    <string name="settings_affiliate_optin">Affiliate links</string>
+    <string name="settings_affiliate_desc">Turn off to use plain URLs (no revenue)</string>
+    <string name="settings_data">Data</string>
+    <string name="settings_export_csv">Export price history as CSV</string>
+    <string name="settings_export_desc">Export all watchlist product history</string>
+    <string name="settings_clear_history">Clear search history</string>
+    <string name="settings_clear_watchlist">Clear watchlist</string>
+    <string name="settings_delete_all">Delete all data (GDPR Article 17)</string>
+    <string name="settings_delete_desc">Immediately delete both on-device and server data</string>
+    <string name="settings_delete_confirm_title">Delete all data</string>
+    <string name="settings_delete_confirm_body">This action cannot be undone.\nAll device data and related server data will be permanently deleted.</string>
+    <string name="settings_delete_action">Delete</string>
+    <string name="settings_cancel">Cancel</string>
+    <string name="settings_upgrade">Upgrade</string>
+    <string name="settings_premium">Premium</string>
+    <string name="settings_premium_active">Popcoon Premium active</string>
+    <string name="settings_premium_features">Premium features</string>
+    <string name="settings_premium_price">¥480/mo or ¥3,800/yr</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_privacy_policy">Privacy policy</string>
+    <string name="settings_licenses">Open source licenses</string>
+    <string name="settings_info">Info</string>
+
+    <!-- Navigation -->
+    <string name="nav_search">Search</string>
+    <string name="nav_watchlist">Watchlist</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_start">Get started</string>
+    <string name="onboarding_title1">Compare three ECs at once</string>
+    <string name="onboarding_desc1">Compare Amazon, Rakuten, and Yahoo! prices simultaneously.\nGoes beyond Keepa with 3-EC cross-history.</string>
+    <string name="onboarding_title2">Dark pattern detection</string>
+    <string name="onboarding_desc2">Auto-detects always-on sales, inflated reference prices, and charm pricing.\nProtects you from misleading practices.</string>
+    <string name="onboarding_title3">Buy-timing score and AI advice</string>
+    <string name="onboarding_desc3">Easy decisions with a 0-100 score.\nClaude AI explains "should you buy now" concisely.</string>
+
+    <!-- Barcode (extended) -->
+    <string name="barcode_point_camera">Point camera at barcode</string>
+    <string name="barcode_read_success">Read success: %s</string>
+
+    <!-- Score card -->
+    <string name="score_buy_now">Buy now</string>
+    <string name="score_neutral">Wait and see</string>
+    <string name="score_wait">Better to wait</string>
+    <string name="score_confidence">Confidence: %s</string>
+
+    <!-- ソートオプション -->
+    <string name="score_breakdown">Score breakdown</string>
+    <string name="premium_feature_no_ads">No affiliate links</string>
+    <string name="premium_feature_export">Price history CSV export</string>
+    <string name="premium_feature_ai_detail">Detailed AI advice</string>
+    <string name="confidence_unknown">Unknown</string>
+    <string name="prediction_title">Price Forecast</string>
+    <string name="prediction_confidence">Confidence: %1$s</string>
+    <string name="prediction_7d">In 7 days</string>
+    <string name="prediction_30d">In 30 days</string>
+    <string name="prediction_historic_low">Lowest %1$s</string>
+    <string name="prediction_historic_high">Highest %1$s</string>
+    <string name="tco_title">Total Cost of Ownership (%1$d yr)</string>
+    <string name="tco_purchase">Purchase price</string>
+    <string name="tco_consumables">Consumables</string>
+    <string name="tco_energy">Energy</string>
+    <string name="tco_residual">Residual value</string>
+    <string name="tco_total">5-yr total</string>
+    <string name="tco_per_month">%1$s / month</string>
+    <string name="prediction_margin_a11y">%1$s, margin plus or minus %2$s</string>
+    <string name="review_trust_no_data">No review rating</string>
+    <string name="review_trust_few_reviews">Too few reviews to trust</string>
+    <string name="review_trust_too_perfect">Suspiciously high rating</string>
+    <string name="review_trust_label">Review reliability</string>
+    <string name="bundle_title">Effective unit price</string>
+    <string name="bundle_pack_count">Pack of %1$d</string>
+</resources>

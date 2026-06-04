@@ -1,0 +1,36 @@
+# Popcoon 環境設定テンプレート
+# このファイルを `local.properties` にコピーして値を設定する。
+# local.properties は .gitignore 対象のため commit されない。
+
+# ── Android SDK (Android Studio が自動設定) ──────────────────────────────────
+sdk.dir=/path/to/Android/Sdk
+
+# ── Amazon Product Advertising API 5.0 ───────────────────────────────────────
+# https://affiliate.amazon.co.jp/ で取得
+AMAZON_ACCESS_KEY=
+AMAZON_SECRET_KEY=
+AMAZON_PARTNER_TAG=
+
+# ── 楽天 Ichiba API ──────────────────────────────────────────────────────────
+# https://webservice.rakuten.co.jp/ で取得
+RAKUTEN_APP_ID=
+RAKUTEN_AFFILIATE_ID=
+
+# ── Yahoo! ショッピング API v3 ──────────────────────────────────────────────
+# https://e.developer.yahoo.co.jp/ で取得
+YAHOO_APP_ID=
+YAHOO_SID=
+
+# ── Anthropic API (AI アドバイザー) ──────────────────────────────────────────
+# https://console.anthropic.com/ で取得
+ANTHROPIC_API_KEY=
+
+# ── Backend URL ──────────────────────────────────────────────────────────────
+# Cloudflare Workers のデプロイ先 URL
+BACKEND_URL=https://popcoon-backend.workers.dev
+
+# ── Release Signing (CI/CD で使用) ───────────────────────────────────────────
+# KEYSTORE_PATH=/path/to/release.jks
+# KEYSTORE_PASSWORD=
+# KEY_ALIAS=
+# KEY_PASSWORD=

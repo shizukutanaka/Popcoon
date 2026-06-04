@@ -1,0 +1,170 @@
+package com.example.popcoon.worker
+
+import android.content.Context
+import androidx.hilt.work.HiltWorker
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
+import androidx.work.CoroutineWorker
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.WorkerParameters
+import com.example.popcoon.core.PopcoonLogger
+import com.example.popcoon.data.db.WatchlistDao
+import com.example.popcoon.data.db.WatchlistItem
+import com.example.popcoon.data.repository.BackendClient
+import com.example.popcoon.data.repository.IProductRepository
+import com.example.popcoon.feature.notification.LocalNotificationManager
+import com.example.popcoon.feature.retention.ReviewPrompter
+import com.example.popcoon.feature.scorer.BuyTimingScorer
+import com.example.popcoon.widget.WidgetUpdater
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
+import kotlinx.coroutines.flow.first
+import java.util.concurrent.TimeUnit
+
+/**
+ * バックグラウンド価格同期 Worker。
+ *
+ * スケジュール: 1日1回、Wi-Fi 接続時のみ、充電中優先。
+ * 実行内容:
+ *  1. ウォッチリスト全商品の最新価格を取得
+ *  2. backend に価格履歴を追記
+ *  3. アラート条件を評価 (backend の cron と二重構造で信頼性向上)
+ *  4. ウィジェットを更新
+ *  5. ReviewPrompter の成功カウンターを加算 (値下がりした場合)
+ *
+ * 設計原則:
+ *  - 失敗しても次回実行まで待つ (Result.retry() で指数バックオフ)
+ *  - バッテリー / データ節約を優先 (NetworkType.CONNECTED + setRequiresBatteryNotLow)
+ *  - 処理時間上限: 10 分 (WorkManager の制約)
+ */
+@HiltWorker
+class PriceSyncWorker @AssistedInject constructor(
+    @Assisted context: Context,
+    @Assisted params: WorkerParameters,
+    private val watchlistDao: WatchlistDao,
+    private val repository: IProductRepository,
+    private val backend: BackendClient,
+    private val reviewPrompter: ReviewPrompter,
+    private val notificationManager: LocalNotificationManager,
+) : CoroutineWorker(context, params) {
+
+    override suspend fun doWork(): Result {
+        PopcoonLogger.i(this, "価格同期開始 run=$runAttemptCount")
+        val watchlist = runCatching {
+            watchlistDao.observeAll().first()
+        }.getOrDefault(emptyList())
+
+        if (watchlist.isEmpty()) return Result.success()
+
+        var priceDropCount = 0
+
+        // arXiv (PMC8523513) の知見: 過剰な通知は割り込み負荷となりUXを損なう。
+        // 1回の同期で送る通知を上限 MAX_NOTIFICATIONS 件に制限し、
+        // 値下がり率が大きい順に優先する。
+        data class Drop(val item: WatchlistItem, val latest: Long, val prev: Long, val pct: Int)
+        val drops = mutableListOf<Drop>()
+
+        watchlist.forEach { item ->
+            runCatching {
+                val history = backend.getPriceHistory(item.productKey)
+                if (history.isEmpty()) return@runCatching
+
+                val latest = history.first()
+                val previousPrice = item.realPrice
+
+                watchlistDao.upsert(item.copy(realPrice = latest.realPrice))
+
+                // 値下がり検出 → 候補に追加 (即時通知しない)
+                // 微小な値下がり (閾値未満) は通知ノイズになるため除外
+                // (arXiv 2509.02458: 経験的閾値で頻度制御)
+                if (latest.realPrice < previousPrice && previousPrice > 0) {
+                    val dropPct = ((previousPrice - latest.realPrice) * 100 / previousPrice).toInt()
+                    if (dropPct >= MIN_DROP_PERCENT) {
+                        drops += Drop(item, latest.realPrice, previousPrice, dropPct)
+                    }
+                }
+
+                BuyTimingScorer.score(
+                    current = latest.realPrice,
+                    listPrice = latest.listPrice,
+                    history = history,
+                    today = java.time.LocalDate.now(),
+                )
+            }.onFailure { PopcoonLogger.w(this, "履歴取得失敗: ${it.message}") }
+        }
+
+        // 値下がり率が大きい順に最大 MAX_NOTIFICATIONS 件だけ通知
+        drops.sortedByDescending { it.pct }
+            .take(MAX_NOTIFICATIONS)
+            .forEach { drop ->
+                priceDropCount++
+                notificationManager.sendPriceAlert(
+                    context = applicationContext,
+                    productKey = drop.item.productKey,
+                    title = "値下がりしました (${drop.pct}% OFF)",
+                    priceText = "${drop.item.title.take(20)}\n${CurrencyFormatter.yen(drop.latest)} (前回: ${CurrencyFormatter.yen(drop.prev)})",
+                )
+            }
+
+        // ウィジェット更新
+        runCatching {
+            val updated = watchlistDao.observeAll().first()
+            WidgetUpdater.update(applicationContext, updated)
+        }
+
+        // 値下がりがあれば成功イベントを記録 (ReviewPrompter 用)
+        if (priceDropCount > 0) {
+            repeat(priceDropCount) { reviewPrompter.recordSuccess() }
+        }
+
+        return Result.success()
+    }
+
+    companion object {
+        private const val WORK_NAME = "price_sync_daily"
+        /** 1回の同期で送る通知の上限 (過剰通知防止 — arXiv PMC8523513) */
+        private const val MAX_NOTIFICATIONS = 3
+        /** 通知する最小値下がり率 (微小変動のノイズ通知を抑制 — arXiv 2509.02458) */
+        private const val MIN_DROP_PERCENT = 3
+
+        /**
+         * 日次同期をスケジュール (アプリ起動時に呼ぶ)。
+         * ExistingPeriodicWorkPolicy.KEEP で既存スケジュールを保護。
+         */
+        fun schedule(context: Context) {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.UNMETERED)  // Wi-Fi のみ (データ通信節約)
+                .setRequiresBatteryNotLow(true)
+                .setRequiresStorageNotLow(true)                  // ストレージ枯渇時はスキップ
+                .build()
+
+            val request = PeriodicWorkRequestBuilder<PriceSyncWorker>(
+                repeatInterval = 24,
+                repeatIntervalTimeUnit = TimeUnit.HOURS,
+                flexTimeInterval = 4,
+                flexTimeIntervalUnit = TimeUnit.HOURS,
+            )
+                .setConstraints(constraints)
+                // 指数バックオフ: 失敗時 30s → 1m → 2m → ...
+                .setBackoffCriteria(
+                    BackoffPolicy.EXPONENTIAL,
+                    java.util.concurrent.TimeUnit.SECONDS.toMillis(30),
+                    java.util.concurrent.TimeUnit.MILLISECONDS,
+                )
+                .build()
+
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                WORK_NAME,
+                ExistingPeriodicWorkPolicy.KEEP,
+                request,
+            )
+        }
+
+        fun cancel(context: Context) {
+            WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+        }
+    }
+}

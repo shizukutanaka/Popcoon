@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: セキュリティ脆弱性の報告
+    url: https://github.com/shizukutanaka/popcoon/security/advisories/new
+    about: 脆弱性は公開 Issue ではなく Security Advisory で非公開報告してください (SECURITY.md 参照)
+  - name: 質問・ディスカッション
+    url: https://github.com/shizukutanaka/popcoon/discussions
+    about: 使い方の質問やアイデアの相談は Discussions へ

@@ -1,0 +1,23 @@
+# 改行コードを自動正規化
+* text=auto eol=lf
+
+# Windows バッチは CRLF
+*.bat text eol=crlf
+
+# バイナリ (差分を取らない)
+*.jar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.keystore binary
+*.jks binary
+*.aab binary
+*.apk binary
+
+# GitHub Linguist: 生成物・ベンダーを言語統計から除外
+gradle/wrapper/** linguist-vendored
+*.md linguist-documentation
+backend/** linguist-language=TypeScript

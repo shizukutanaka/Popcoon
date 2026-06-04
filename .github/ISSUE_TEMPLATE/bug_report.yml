@@ -1,0 +1,57 @@
+name: バグ報告
+description: 期待と異なる動作を報告
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Popcoon のバグを報告いただきありがとうございます。
+        再現可能な情報を提供すると早期修正に繋がる。
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 発生した事象
+      description: 何が起きたか
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待する動作
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 再現手順
+      placeholder: |
+        1. アプリを起動
+        2. "xxx" を検索
+        3. ...
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: Popcoon バージョン
+      placeholder: e.g. 0.1.0
+    validations:
+      required: true
+
+  - type: input
+    id: android-version
+    attributes:
+      label: Android OS バージョン
+      placeholder: e.g. Android 14 / API 34
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 関連ログ (任意)
+      render: shell

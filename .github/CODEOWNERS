@@ -1,0 +1,12 @@
+# Popcoon コードオーナー
+# PR 作成時に自動でレビュー依頼される
+
+# デフォルト: 全ファイル
+* @shizukutanaka
+
+# セキュリティ・課金は特に慎重なレビューが必要
+/app/src/main/java/com/example/popcoon/feature/billing/ @shizukutanaka
+/app/src/main/java/com/example/popcoon/data/network/ @shizukutanaka
+/backend/ @shizukutanaka
+/.github/workflows/ @shizukutanaka
+SECURITY.md @shizukutanaka

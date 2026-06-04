@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- P (Popcoon) を中央に配置。adaptive-icon の安全領域 (66dp) 内に収める -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M40,30 L40,78 L48,78 L48,60 L60,60 C68,60 74,54 74,46 C74,38 68,30 60,30 Z M48,38 L60,38 C63,38 66,41 66,46 C66,51 63,52 60,52 L48,52 Z" />
+</vector>

@@ -1,0 +1,46 @@
+name = "popcoon-backend"
+main = "src/index.ts"
+compatibility_date = "2026-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+[observability.logs]
+enabled = true
+
+# ── KV namespaces ────────────────────────────────────────────────────────────
+# デプロイ前に以下を実行してIDを取得してください:
+#   wrangler kv:namespace create PRICE_HISTORY
+#   wrangler kv:namespace create DEVICE_TOKENS
+#   wrangler kv:namespace create ALERTS
+#   wrangler kv:namespace create RATE_LIMIT
+# 取得したIDを id = "..." に設定してください。
+# CI/CD 環境では CLOUDFLARE_KV_PRICE_HISTORY_ID 等の環境変数で管理推奨。
+
+[[kv_namespaces]]
+binding = "PRICE_HISTORY"
+id = "${CLOUDFLARE_KV_PRICE_HISTORY_ID}"    # 例: abc123def456...
+
+[[kv_namespaces]]
+binding = "DEVICE_TOKENS"
+id = "${CLOUDFLARE_KV_DEVICE_TOKENS_ID}"
+
+[[kv_namespaces]]
+binding = "ALERTS"
+id = "${CLOUDFLARE_KV_ALERTS_ID}"
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT"
+id = "${CLOUDFLARE_KV_RATE_LIMIT_ID}"
+
+# ── Secrets (wrangler secret put で設定) ─────────────────────────────────────
+# FCM_SERVER_KEY  : Firebase Cloud Messaging サーバーキー
+# ADMIN_API_KEY   : 管理 API 認証用 (内部)
+# wrangler secret put FCM_SERVER_KEY
+# wrangler secret put ADMIN_API_KEY
+
+[vars]
+ENVIRONMENT = "production"
+MAX_HISTORY_PER_PRODUCT = "365"   # 1年分の価格履歴
+
+# ── Triggers: 毎時アラート評価 ───────────────────────────────────────────────
+[triggers]
+crons = ["0 * * * *"]

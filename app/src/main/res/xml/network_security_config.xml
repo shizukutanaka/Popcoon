@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Network Security Configuration
+
+  セキュリティ方針 (Android Security Best Practices 2025 準拠):
+   - 全ドメインで cleartext (HTTP) 通信を禁止 → HTTPS/TLS のみ
+   - リリースビルドではユーザー追加 CA を信頼しない
+     (中間者攻撃・自己署名証明書による傍受を防ぐ)
+   - デバッグビルドのみ user CA を許可 (開発時のプロキシデバッグ用)
+
+  注: 証明書ピンニングは EC API のエンドポイント証明書ローテーションに
+      追従できないリスクがあるため、現段階では採用しない。
+      代わりにシステムトラストストアに限定する。
+-->
+<network-security-config>
+    <!-- 全ドメイン: cleartext 禁止、システム CA のみ -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- デバッグビルドのみ: ローカルプロキシ (Charles/mitmproxy) を許可 -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>

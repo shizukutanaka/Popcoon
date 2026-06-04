@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- CSV エクスポートファイルの共有パス -->
+    <cache-path name="exports" path="exports/" />
+    <!-- クラッシュログの共有パス (Premium サポート送信用) -->
+    <files-path name="crashes" path="crashes/" />
+</paths>
