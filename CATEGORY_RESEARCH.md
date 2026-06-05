@@ -233,6 +233,12 @@ Popcoon の機能ドメインを **10カテゴリ**に分け、各カテゴリ�
 プライバシー方針と整合し、Python TDD で先行検証可能。詳細・優先度は `IMPROVEMENTS.md` /
 `RESEARCH_IMPROVEMENTS.md` のバックログと統合済み。
 
+### プロトタイプ検証（識別→実証）
+- **A5（曜日の買い時シグナル）を Python 参照プロトタイプとして実装・検証済み**:
+  `popcoon-tdd/proto_seasonal_signal.py` ＋ `test_proto_seasonal_signal.py`（8テスト pass、全体 244 passed）。
+  価格履歴から曜日季節性を学習し `BuyTimingScorer` 追加シグナル（±10）を返す純関数。ゼロ依存・決定的。
+  Kotlin 移植時は EcoEthics の教訓どおり出力一致パリティテストを併設すること。
+
 ---
 
 ## 出典（カテゴリ1-3）
