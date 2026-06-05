@@ -90,6 +90,48 @@
 - Conformal 予測: https://arxiv.org/abs/2505.08158 ／ https://arxiv.org/abs/2511.13608 ／ https://arxiv.org/html/2509.02844v3
 - LLM 属性抽出: https://arxiv.org/abs/2403.00863 ／ https://arxiv.org/abs/2403.02130
 
+---
+
+# Round 3 — 追加調査（実店舗・通知・プライバシー協調・説明性・LCA）
+
+## 追加の競合ギャップ
+
+| # | 改善点 | 競合根拠 | Popcoon 現状 / 該当コード | 優先 |
+|---|--------|----------|---------------------------|------|
+| G13 | **地域チラシ/実店舗の特売統合＋報酬のデジタル通貨交換** | トクバイ／Shufoo!（12万店舗のチラシ、Shufooポイント→PayPay/dポイント交換） | Popcoon は EC 3社のみ。実店舗の特売・チラシ未カバー。`feature/calendar/SaleCalendar` を実店舗特売へ拡張、`feature/points` と報酬交換導線を連携 | 中 |
+
+## 追加のアルゴリズム改善（arXiv 由来）
+
+### A8. 通知の「送る/送らない・いつ送る」最適化（オンデバイス） — `worker/PriceSyncWorker.kt` + `feature/notification/LocalNotificationManager.kt`
+現状は固定ルール（`MAX_NOTIFICATIONS=3` / `MIN_DROP_PERCENT=3%`）。研究知見：
+- "Should I send this notification?" (arXiv:2202.08812) — model-based RL で**通知数を減らしつつ開封率を向上**。
+- TIM (arXiv:2406.07067) — 時間帯別 CTR を推定し**送信時刻を制御**。
+- → **改善**: 端末内で曜日/時間帯ごとの開封傾向を学習し、**送信可否と送信時刻**を最適化。サーバ送信なしでプライバシー方針(I5)に合致。通知疲れを抑えつつ買い時を逃さない。
+
+### A9. 差分プライバシー/連合学習による協調シグナル — `data/repository/BackendClient.kt`（価格共有プール）
+現状はゼロテレメトリ＋価格履歴共有プール。研究知見：
+- Aero (arXiv:2312.10789) — 非信頼サーバ前提で**DP＋低オーバーヘッドの連合学習**。
+- DP機構評価 (arXiv:2510.09691)、グラフ連合推薦 (arXiv:2508.06208)。
+- → **改善**: 生データを送らず、**送信前に差分プライバシーノイズを付与**した集約で「相場/買い時」シグナルを協調改善。現行のプライバシー優先方針の自然な発展。
+
+### A10. 助言の説明可能性＋会話型フォローアップ — `feature/ai/BuyingAdvisor.kt` + `feature/scorer/BuyTimingScorer.kt`
+研究知見：
+- LLM推薦エージェント survey (arXiv:2502.10050)、会話型EC推薦 (ACM RecSys) — **説明可能性と信頼が最大の課題**、不透明なLLM判断のトレーサビリティが問題。
+- → **改善**: Popcoon は既に `BuyTimingScorer` のシグナル内訳を提示しており有利。助言が**参照した数値シグナルを必ず併記**する設計を堅持し、フォローアップ質問（会話型）に対応。LLM単独の不透明判断を避け、根拠提示型を強みに。
+
+### A11. EcoEthicsScorer の LCA 高度化＋不確実性の明示 — `feature/ethics/EcoEthicsScorer.kt`
+現状は国×カテゴリの簡易係数。研究知見：
+- AutoPCF (arXiv:2308.04241) / Entity Linking for PCF (arXiv:2502.07418) — 製品を**LCAデータベースへエンティティリンキング**して推定自動化。
+- PCF-RWKV — consumer-GPU で動く軽量 PCF モデル。信頼性基準 (arXiv:2509.00240) — **前提と不確実性の明示**が必須。
+- → **改善**: カテゴリ→LCA係数のマッピングを辞書/リンキングで精緻化し、スコアに**不確実性レンジと前提**を併記。重量級不要の軽量近似でオンデバイス維持。
+
+## Round 3 出典
+- トクバイ: https://tokubai.co.jp/ ／ Shufoo!: https://www.shufoo.net/ ／ チラシアプリ比較: https://app-liv.jp/shopping/shoptools/0798/
+- 通知最適化: https://arxiv.org/abs/2202.08812 ／ https://arxiv.org/abs/2406.07067
+- 連合学習/DP: https://arxiv.org/abs/2312.10789 ／ https://arxiv.org/abs/2510.09691 ／ https://arxiv.org/html/2508.06208v1
+- LLM推薦/説明可能性: https://arxiv.org/html/2502.10050v1 ／ https://dl.acm.org/doi/10.1145/3640457.3688061
+- 製品カーボンフットプリント: https://arxiv.org/pdf/2308.04241 ／ https://arxiv.org/pdf/2502.07418 ／ https://arxiv.org/html/2509.00240
+
 ## 出典
 - Keepa: https://keepa.com/ ／ 比較: https://goaura.com/blog/camelcamelcamel-vs-keepa
 - CamelCamelCamel: https://camelcamelcamel.com/
