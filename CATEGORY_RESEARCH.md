@@ -11,10 +11,10 @@ Popcoon の機能ドメインを **10カテゴリ**に分け、各カテゴリ�
 | 4 | レビュー信頼性・偽レビュー検出 | `feature/review/ReviewTrustScorer.kt` | ✅ 完了 |
 | 5 | ダークパターン検出 | `feature/darkpattern/DarkPatternDetector.kt` | ✅ 完了 |
 | 6 | ポイント/報酬・キャッシュバック最適化 | `feature/points/PointSimulator.kt` | ✅ 完了 |
-| 7 | 越境EC・関税・為替 | `feature/crossborder/CustomsSimulator.kt` | ⏳ 次回 |
-| 8 | バーコード/JAN・商品認識 | `feature/barcode/*` | ⏳ 次回 |
-| 9 | 通知・リテンション | `worker/PriceSyncWorker.kt`, `feature/notification/*`, `feature/retention/*` | ⏳ 次回 |
-| 10 | プライバシー・オンデバイスML・セキュリティ | `data/repository/BackendClient.kt`, `feature/crash/*`, `data/network/AwsSigV4Signer.kt` | ⏳ 次回 |
+| 7 | 越境EC・関税・為替 | `feature/crossborder/CustomsSimulator.kt` | ✅ 完了 |
+| 8 | バーコード/JAN・商品認識 | `feature/barcode/*` | ✅ 完了 |
+| 9 | 通知・リテンション | `worker/PriceSyncWorker.kt`, `feature/notification/*`, `feature/retention/*` | ✅ 完了 |
+| 10 | プライバシー・オンデバイスML・セキュリティ | `data/repository/BackendClient.kt`, `feature/crash/*`, `data/network/AwsSigV4Signer.kt` | ✅ 完了 |
 
 ---
 
@@ -148,6 +148,90 @@ Popcoon の機能ドメインを **10カテゴリ**に分け、各カテゴリ�
 ## 出典（カテゴリ4-6）
 - GitHub: https://github.com/archchitha/Opinion-Spam-Detection ／ https://github.com/sghosh1991/Fake_Review_Detection ／ https://github.com/kavya76/Spam-Reviews-Detector ／ https://github.com/anubhavs11/Fake-Product-Review-Monitoring ／ https://github.com/yamanalab/ec-darkpattern ／ https://github.com/SageSELab/AidUI ／ https://github.com/aruneshmathur/dark-patterns ／ https://github.com/Venkateeshh/DarkSurfer-Extension ／ https://github.com/starkarthikr/credit-card-optimizer ／ https://github.com/tianhaoz95/iwfp ／ https://github.com/kampofo6/Point-Pilot ／ https://github.com/aashishvanand/ccreward-web ／ https://github.com/riddhibajaj/CardGenie
 - arXiv: https://arxiv.org/abs/2510.01801 ／ https://arxiv.org/html/2506.13313v1 ／ https://arxiv.org/abs/2211.06543 ／ https://arxiv.org/html/2512.18269v1 ／ https://arxiv.org/abs/2406.01608 ／ https://arxiv.org/pdf/2506.03911 ／ https://arxiv.org/html/2512.23781
+
+## カテゴリ7: 越境EC・関税・為替 — `CustomsSimulator.kt`（現状: 簡易関税率＋16,666円閾値）
+
+**arXiv/参考:**
+1. HSコード分類は LLM 属性抽出 (2403.00863) と接続可能（品目→税率マッピング）
+2. landed cost の概念（送料＋関税＋消費税＋手数料の総額）
+
+**GitHub/ツール:**
+3. AccioWork/import-duty-calculator — HTS データ、Section 301、landed cost、MPF/HMF
+4. avadev/Avalara-AvaTax — クロスボーダー duty/import tax をチェックアウトで一括
+5. Flexport Tariff Simulator ／ SimplyDuty ／ Freightos ／ tariffdutycalculator
+
+**改善点:**
+- 現状の国×簡易率を **HSコード分類**で品目別税率に精緻化（HS分類は属性抽出 2403.00863 と接続、オンデバイス辞書で近似）。
+- **landed cost の一括提示**（送料＋関税＋消費税＋手数料、AccioWork/Avalara 流）。
+- **多通貨・FXレート対応**（現状JPY前提）で越境購入の実質比較。
+- 日本の少額免税（課税価格1万円以下）・個人輸入の課税価格60%ルールを明示。
+
+## カテゴリ8: バーコード/JAN・商品認識 — `feature/barcode/*`（現状: JANスキャン＋`JanCodeQuery`）
+
+**arXiv:**
+1. barcodeless product classifier（self-checkout、The Visual Computer）
+2. 2段階 Faster-RCNN＋ResNet-18 軽量パイプライン（edge 向け）
+3. MGL-YOLO 軽量バーコード検出 (PMC11644706)
+4. ラック商品認識 (2202.13081)
+
+**GitHub:**
+5. EventideSystems/brocade.io — オープン GTIN/商品DB API（認証不要 read）
+6. erikraft/EAN — バーコード生成/検索/スキャン
+7. evscott/barcodelookup — Node の EAN/ISBN ルックアップ
+8. eansearch/UPCBarcodeLookup — Swift パッケージ
+9. upcdatabase.org / barcodelookup.com API
+
+**改善点:**
+- JAN 無し/破損時の **画像ベース商品認識**（軽量 ResNet-18/YOLO、オンデバイス）をフォールバックに。
+- **オープン GTIN DB（brocade.io）**を `JanCodeQuery` の商品名解決フォールバックに追加。
+- MGL-YOLO 流の軽量検出でスキャン成功率/速度向上（暗所・歪み対応）。
+
+## カテゴリ9: 通知・リテンション — `PriceSyncWorker` / `LocalNotificationManager` / `feature/retention/ReviewPrompter`
+
+**arXiv:**
+1. "Should I send this notification?" (2202.08812) — RL で通知数減＋開封率増
+2. TIM (2406.07067) — 時間帯別 CTR で送信時刻制御
+
+**GitHub:**
+3. HelenGuohx/price-alert — 目標価格通知
+4. BexTuychiev/automated-price-tracking — **Discord 通知**
+5. duyet/pricetrack — Firebase、複数ECチャネル
+6. App Store discounts tracker — **RSS/Telegram/DingTalk** 多チャネル通知
+
+**改善点:**
+- 固定ルール（`MAX_NOTIFICATIONS=3` / `MIN_DROP_PERCENT=3%`）→ **送信判断・送信時刻のオンデバイス最適化**（2202.08812/TIM）。
+- **通知チャネル多様化**（競合は Discord/Telegram/メール/RSS）。現状はローカル通知＋widget のみ。
+- `ReviewPrompter`: レビュー依頼を**肯定的瞬間**（買い時的中後など）に出す習慣形成タイミング最適化。
+
+## カテゴリ10: プライバシー・オンデバイスML・セキュリティ — `BackendClient` / `PrivacyCrashReporter` / `AwsSigV4Signer`
+
+**arXiv:**
+1. Aero (2312.10789) — 非信頼サーバ前提の DP＋低オーバーヘッド連合学習
+2. DP機構評価 (2510.09691)、グラフ連合推薦 (2508.06208)
+
+**GitHub:**
+3. tensorflow/privacy — DP-SGD による学習
+4. TFLite on-device model personalization — 転送学習で端末内パーソナライズ
+5. 量子化/プルーニングで軽量化（TFLite topics）
+
+**改善点:**
+- 価格共有プールへの**差分プライバシーノイズ付与**（送信前、tensorflow/privacy の DP-SGD 思想）。
+- 買い時の**個人化を TFLite＋転送学習**でオンデバイス完結（データ送信なし、I5 方針に合致）。
+- セキュリティ: `AwsSigV4Signer` の署名検証テスト拡充、証明書ピン留めの段階導入（既出バックログ）。
+
+## 出典（カテゴリ7-10）
+- GitHub: https://github.com/AccioWork/import-duty-calculator ／ https://github.com/avadev/Avalara-AvaTax-for-Magento2 ／ https://github.com/EventideSystems/brocade.io ／ https://github.com/erikraft/EAN ／ https://github.com/evscott/barcodelookup ／ https://github.com/eansearch/UPCBarcodeLookup ／ https://github.com/HelenGuohx/price-alert ／ https://github.com/BexTuychiev/automated-price-tracking ／ https://github.com/duyet/pricetrack ／ https://github.com/tensorflow/privacy
+- arXiv/参考: https://arxiv.org/abs/2403.00863 ／ https://ar5iv.labs.arxiv.org/html/2202.13081 ／ https://pmc.ncbi.nlm.nih.gov/articles/PMC11644706/ ／ https://arxiv.org/abs/2202.08812 ／ https://arxiv.org/abs/2406.07067 ／ https://arxiv.org/abs/2312.10789 ／ https://arxiv.org/abs/2510.09691 ／ https://arxiv.org/html/2508.06208v1
+
+---
+
+## まとめ（全10カテゴリ完了）
+各カテゴリで arXiv 論文・GitHub OSS を ~10件収集し、Popcoon の該当コードに紐づく改善点を洗い出した。
+横断的に最も効果が高いのは **(A) 軽量線形/分解＋Conformal 区間による価格予測強化（cat1）**、
+**(B) 曜日/日付の買い時シグナル（cat2）**、**(C) 統一 taxonomy でのダークパターン網羅（cat5）**、
+**(D) オンデバイス DP/個人化（cat10）** — いずれも Popcoon のゼロ依存・オンデバイス・
+プライバシー方針と整合し、Python TDD で先行検証可能。詳細・優先度は `IMPROVEMENTS.md` /
+`RESEARCH_IMPROVEMENTS.md` のバックログと統合済み。
 
 ---
 
