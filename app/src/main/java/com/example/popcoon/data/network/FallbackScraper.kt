@@ -35,12 +35,12 @@ class FallbackScraper {
         }
     }
 
-    // 最終アクセス時刻 (ホスト別) — 粗いレート制限
-    private val lastAccessMs = HashMap<String, Long>()
+    // 最終アクセス時刻 (ホスト別) — 粗いレート制限。複数コルーチンから触るので並行安全に。
+    private val lastAccessMs = java.util.concurrent.ConcurrentHashMap<String, Long>()
     private val minIntervalMs = 1000L
 
-    // robots.txt のホスト別キャッシュ (true = 取得対象パスが許可)
-    private val robotsAllowCache = HashMap<String, String?>()
+    // robots.txt 本文のホスト別キャッシュ (取得不能時は "" を格納 = 全許可扱い)。
+    private val robotsCache = java.util.concurrent.ConcurrentHashMap<String, String>()
 
     companion object {
         const val USER_AGENT =
@@ -56,14 +56,14 @@ class FallbackScraper {
         val host = uri.host ?: return null
         val path = uri.rawPath?.ifEmpty { "/" } ?: "/"
 
-        // robots.txt を尊重 (取得不能時は許可、明示 Disallow は遵守)
-        if (!isPathAllowedByRobots(uri, path)) return null
-
-        // レート制限
+        // レート制限を先に適用 (robots.txt 取得もこのゲートの内側に収める)
         val now = System.currentTimeMillis()
         val last = lastAccessMs[host] ?: 0L
         if (now - last < minIntervalMs) return null
         lastAccessMs[host] = now
+
+        // robots.txt を尊重 (取得不能時は許可、明示 Disallow は遵守)
+        if (!isPathAllowedByRobots(uri, path)) return null
 
         val html = runCatching {
             client.get(url) {
@@ -81,18 +81,16 @@ class FallbackScraper {
      */
     private suspend fun isPathAllowedByRobots(uri: java.net.URI, path: String): Boolean {
         val host = uri.host ?: return true
-        val robotsBody = if (robotsAllowCache.containsKey(host)) {
-            robotsAllowCache[host]
-        } else {
+        // 取得失敗・不存在は "" を格納 (= 全許可)。ConcurrentHashMap は null 値不可のため空文字で表現。
+        val robotsBody = robotsCache[host] ?: run {
             val scheme = uri.scheme ?: "https"
             val body = runCatching {
                 client.get("$scheme://$host/robots.txt").bodyAsText()
-            }.getOrNull()
-            robotsAllowCache[host] = body
+            }.getOrNull() ?: ""
+            robotsCache[host] = body
             body
         }
-        // 取得できなければ許可 (best-effort フォールバック)
-        return robotsBody == null || RobotsTxt.isAllowed(robotsBody, path, USER_AGENT)
+        return RobotsTxt.isAllowed(robotsBody, path, USER_AGENT)
     }
 
     /**
