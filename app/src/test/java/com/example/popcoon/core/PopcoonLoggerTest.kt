@@ -67,6 +67,23 @@ class PopcoonLoggerTest : StringSpec({
         out.contains("[redacted]") shouldBe true
     }
 
+    "JSON 形式 \"secret\":\"v\" の値を伏せる" {
+        val out = PopcoonLogger.sanitize("body {\"secret\":\"toplevelsecret\"}")
+        out.contains("toplevelsecret") shouldBe false
+        out.contains("[redacted]") shouldBe true
+    }
+
+    "接頭辞付きキー MY_SECRET_KEY= の値を伏せる" {
+        val out = PopcoonLogger.sanitize("env MY_SECRET_KEY=leakme123")
+        out.contains("leakme123") shouldBe false
+    }
+
+    "Authorization: Basic 資格情報を伏せる" {
+        val out = PopcoonLogger.sanitize("Authorization: Basic dXNlcjpwYXNz")
+        out.contains("dXNlcjpwYXNz") shouldBe false
+        out.contains("[redacted]") shouldBe true
+    }
+
     "email / ip / tel は従来どおり伏せる" {
         PopcoonLogger.sanitize("user foo@bar.com").contains("foo@bar.com") shouldBe false
         PopcoonLogger.sanitize("ip 192.168.1.1").contains("192.168.1.1") shouldBe false

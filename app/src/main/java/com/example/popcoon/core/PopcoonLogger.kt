@@ -72,15 +72,19 @@ object PopcoonLogger {
             .replace(Regex("""([?&][^=\s&#]+=)[^\s&#"')]+"""), "$1[redacted]")
             // AWS アクセスキー ID
             .replace(Regex("""AKIA[0-9A-Z]{16}"""), "[aws-key]")
-            // Authorization ヘッダ (Bearer スキーム含めトークンを伏せる)
+            // Authorization ヘッダ (任意スキーム Bearer/Basic/Digest の資格情報まで伏せる)
             .replace(
-                Regex("""(?i)(authorization\s*[:=]\s*)(?:bearer\s+)?[^\s"',]+"""),
+                Regex("""(?i)(authorization\s*[:=]\s*)(?:\w+\s+)?[^\s"',;]+"""),
                 "$1[redacted]",
             )
-            // api_key / secret / token などの key: value / key=value
+            // api_key / secret / token / password / credential の値。
+            // key=value / key: value / JSON "key":"value" / 接頭辞付き MY_SECRET_KEY=... に対応
             .replace(
-                Regex("""(?i)\b(api[_-]?key|secret|token)\b(\s*[:=]\s*)["']?[^\s"',]+"""),
-                "$1$2[redacted]",
+                Regex(
+                    """(?i)("?\w*(?:api[_-]?key|secret|token|password|credential)\w*"?""" +
+                        """\s*[:=]\s*)["']?[^\s"',&}]+""",
+                ),
+                "$1[redacted]",
             )
             .replace(Regex("""\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b"""), "[ip]")
             .replace(Regex("""\b\+?81[-\s]?\d{1,4}[-\s]?\d{1,4}[-\s]?\d{4}\b"""), "[tel]")
