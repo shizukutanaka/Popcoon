@@ -84,4 +84,35 @@ class RobotsTxtTest : StringSpec({
         """.trimIndent()
         RobotsTxt.isAllowed(robots, "/secret/x", ua) shouldBe false
     }
+
+    "末尾 *\$ は配下すべてに一致 (false negative 回帰)" {
+        val robots = """
+            User-agent: *
+            Disallow: /admin*${'$'}
+        """.trimIndent()
+        RobotsTxt.isAllowed(robots, "/admin/users", ua) shouldBe false
+        RobotsTxt.isAllowed(robots, "/admin", ua) shouldBe false
+        RobotsTxt.isAllowed(robots, "/public", ua) shouldBe true
+    }
+
+    "完全一致 \$ は末尾固定" {
+        val robots = """
+            User-agent: *
+            Disallow: /x${'$'}
+        """.trimIndent()
+        RobotsTxt.isAllowed(robots, "/x", ua) shouldBe false
+        RobotsTxt.isAllowed(robots, "/x/y", ua) shouldBe true
+    }
+
+    "複数該当 UA グループは最長 (最も具体的) を採用" {
+        val robots = """
+            User-agent: popcoon
+            Disallow: /
+
+            User-agent: popcoon-fallback
+            Allow: /
+        """.trimIndent()
+        // UA は popcoon / popcoon-fallback 両方を含むが、より具体的な後者が勝つ
+        RobotsTxt.isAllowed(robots, "/dp/B000", ua) shouldBe true
+    }
 })

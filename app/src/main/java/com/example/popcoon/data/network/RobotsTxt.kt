@@ -24,10 +24,12 @@ object RobotsTxt {
     fun isAllowed(robotsTxt: String, path: String, userAgent: String = "*"): Boolean {
         val normalizedPath = path.ifEmpty { "/" }
         val groups = parseGroups(robotsTxt)
-        // UA 一致 (部分一致・大小無視) → 無ければ "*" グループ
+        // UA 一致 (部分一致・大小無視)。複数該当時は最長 (=最も具体的) なトークンを採用。
+        // 無ければ "*" グループ。
         val ua = userAgent.lowercase()
         val rules = groups.entries
-            .firstOrNull { (agent, _) -> agent != "*" && ua.contains(agent) }
+            .filter { (agent, _) -> agent != "*" && ua.contains(agent) }
+            .maxByOrNull { it.key.length }
             ?.value
             ?: groups["*"]
             ?: return true
@@ -87,23 +89,36 @@ object RobotsTxt {
     private fun matches(pattern: String, path: String): Boolean {
         val anchored = pattern.endsWith("$")
         val core = if (anchored) pattern.dropLast(1) else pattern
-        val parts = core.split("*")
-        var index = 0
-        for ((i, part) in parts.withIndex()) {
-            if (part.isEmpty()) continue
-            val found = path.indexOf(part, index)
-            if (i == 0) {
-                if (!path.startsWith(part)) return false
-                index = part.length
-            } else {
-                if (found < 0) return false
-                index = found + part.length
+        val segments = core.split("*").filter { it.isNotEmpty() }
+        if (segments.isEmpty()) return true // "*" / "" → 全マッチ
+
+        // 先頭が `*` でなければ path 先頭に固定、末尾が `*` でなく `$` があれば path 末尾に固定。
+        val startAnchored = !core.startsWith("*")
+        val endAnchored = anchored && !core.endsWith("*")
+
+        var pos = 0
+        for ((i, seg) in segments.withIndex()) {
+            val isFirst = i == 0
+            val isLast = i == segments.size - 1
+            when {
+                isFirst && startAnchored -> {
+                    if (!path.startsWith(seg)) return false
+                    pos = seg.length
+                    // 単一セグメントで両端固定なら末尾一致も必須
+                    if (isLast && endAnchored && pos != path.length) return false
+                }
+                isLast && endAnchored -> {
+                    // 末尾に固定: seg は path の末尾、かつ pos 以降に出現すること
+                    val start = path.length - seg.length
+                    if (start < pos || !path.startsWith(seg, start)) return false
+                    pos = path.length
+                }
+                else -> {
+                    val found = path.indexOf(seg, pos)
+                    if (found < 0) return false
+                    pos = found + seg.length
+                }
             }
-        }
-        if (anchored) {
-            // 最終 part が path の末尾で終わる必要がある
-            val last = parts.lastOrNull { it.isNotEmpty() } ?: return path.length == index || core == "*"
-            return path.endsWith(last)
         }
         return true
     }
