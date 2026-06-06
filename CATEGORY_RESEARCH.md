@@ -238,8 +238,12 @@ Popcoon の機能ドメインを **10カテゴリ**に分け、各カテゴリ�
   `popcoon-tdd/proto_seasonal_signal.py` ＋ `test_proto_seasonal_signal.py`（8テスト pass）。
   価格履歴から曜日季節性を学習し `BuyTimingScorer` 追加シグナル（±10）を返す純関数。ゼロ依存・決定的。
 - **A6（Conformal 予測区間）を Python 参照プロトタイプとして実装・検証済み**:
-  `popcoon-tdd/proto_conformal_interval.py` ＋ `test_proto_conformal_interval.py`（9テスト pass、全体 253 passed）。
+  `popcoon-tdd/proto_conformal_interval.py` ＋ `test_proto_conformal_interval.py`（9テスト pass）。
   split-conformal で `PricePredictionEngine.predictionMargin` を**被覆保証付き区間**に置換可能。
+- **A1（trend+seasonal 分解予測）を Python 参照プロトタイプとして実装・検証済み**:
+  `popcoon-tdd/proto_seasonal_decomp_forecast.py` ＋ `test_proto_seasonal_decomp_forecast.py`（9テスト pass、全体 262 passed）。
+  中心移動平均で季節成分を分離（生系列への単純線形回帰だと週内の安値偏りが見かけのトレンドに
+  混入する混線を回避）し、週次季節性を捉えて Holt 線形より正確に「○日後が安い」を予測。
   Kotlin 移植時は EcoEthics の教訓どおり出力一致パリティテストを併設すること。
 
 ---
