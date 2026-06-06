@@ -26,6 +26,8 @@
 
 ## 2. A6 Conformal 予測区間 → `feature/prediction/PricePredictionEngine.kt`
 - 参照: `popcoon-tdd/proto_conformal_interval.py::conformal_margin`
+- **状態: 移植済み（加算的）** — `feature/prediction/ConformalInterval.kt`（`conformalMargin`/`predictInterval`）
+  ＋ `ConformalIntervalTest.kt`（ゴールデンベクタ）。既存 `predictionMargin` への配線は後続。
 - Kotlin: `predictionMargin` を RMSE から split-conformal へ置換。
   `fun conformalMargin(residuals: List<Double>, alpha: Double = 0.1): Double`
   = 絶対残差ソート, `k = ceil((n+1)*(1-alpha))`, `k>n→max` 否則 `sorted[k-1]`。
