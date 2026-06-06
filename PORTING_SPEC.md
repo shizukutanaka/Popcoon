@@ -42,6 +42,8 @@
 
 ## 3. A1 季節分解予測 → `feature/prediction/PricePredictionEngine.kt`（または新 `SeasonalForecaster`）
 - 参照: `popcoon-tdd/proto_seasonal_decomp_forecast.py::seasonal_decompose_forecast`
+- **状態: 移植済み（加算的）** — `feature/prediction/SeasonalDecompForecast.kt` ＋
+  `SeasonalDecompForecastTest.kt`（ゴールデンベクタ）。PricePredictionEngine への統合は後続。
 - Kotlin: 中心移動平均(窓=period)で季節成分を分離 → 季節除去系列に最小二乗線形 → `a*t+b+seasonal[t%period]`。
   履歴 < max(2*period,4) は直近値フラット、period<=1 は純線形。
 - **パリティ（履歴=4週 [1000×5,800×2], horizon=7, period=7）**:
