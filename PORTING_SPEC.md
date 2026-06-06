@@ -14,6 +14,8 @@
 
 ## 1. A5 曜日の買い時シグナル → `feature/scorer/BuyTimingScorer.kt`
 - 参照: `popcoon-tdd/proto_seasonal_signal.py::seasonal_buy_signal`
+- **状態: 移植済み（加算的）** — `feature/scorer/SeasonalDowSignal.kt` ＋ `SeasonalDowSignalTest.kt`
+  （ゴールデンベクタ）。`BuyTimingScorer` への加算配線は後続。丸めは `kotlin.math.round`（half-to-even）で Python 一致。
 - Kotlin: `private fun seasonalDowSignal(history: List<PriceRecord>, today: LocalDate): Int`（±10）を
   追加し、既存スコアに加算。history から `(dow, price)` を導出（`recordedAt.atZone(Asia/Tokyo).dayOfWeek`,
   月=0..日=6）。`overall<=0` や履歴<14 やサンプル<2 は 0。
