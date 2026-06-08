@@ -1,13 +1,12 @@
-import com.example.popcoon.core.CurrencyFormatter
 package com.example.popcoon.ui.a11y
 
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
+import com.example.popcoon.core.CurrencyFormatter
+import com.example.popcoon.ui.theme.TouchTarget
 
 /**
  * アクセシビリティ拡張。
@@ -51,11 +50,26 @@ fun verdictA11yLabel(verdictName: String, score: Int? = null): String {
 fun priceA11yLabel(yenAmount: Long): String =
     CurrencyFormatter.yenAccessible(yenAmount)
 
-/** ダークパターン警告を文章化 */
+/**
+ * ダークパターン警告を文章化。
+ *
+ * 価格系（DarkPatternDetector）と UI テキスト系（DarkPatternTextDetector, PORTING_SPEC.md #5）
+ * 両方のカテゴリ名を TalkBack 向けに日本語化する。
+ */
 fun darkPatternA11yLabel(typeName: String): String = when (typeName) {
-    "ALWAYS_ON_DISCOUNT" -> "常設セールの警告"
+    // 価格系 (DarkPatternDetector.WarningType)
+    "ALWAYS_ON_DISCOUNT"  -> "常設セールの警告"
     "INFLATED_LIST_PRICE" -> "参考価格誇張の警告"
-    "PRE_SALE_MARKUP" -> "セール前値上げの警告"
-    "CHARM_PRICING" -> "端数価格の警告"
-    else -> "$typeName の警告"
+    "PRE_SALE_MARKUP"     -> "セール前値上げの警告"
+    "CHARM_PRICING"       -> "端数価格の警告"
+    "FAKE_SCARCITY"       -> "偽希少性の警告"
+    "COUNTDOWN_MANIPULATION" -> "カウントダウン操作の警告"
+    "DRIP_PRICING"        -> "隠れたコストの警告"
+    // UIテキスト系 (DarkPatternTextDetector.Category)
+    "URGENCY"             -> "緊急性を煽る表現の警告"
+    "SCARCITY"            -> "在庫を煽る表現の警告"
+    "SOCIAL_PROOF"        -> "社会的証明操作の警告"
+    "MISDIRECTION"        -> "誤誘導の警告"
+    "FORCED_ACTION"       -> "意思決定の強制（confirmshaming）の警告"
+    else -> "${typeName}の警告"
 }

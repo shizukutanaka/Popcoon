@@ -85,27 +85,36 @@ class PrivacyCrashReporter(
         }
     }
 
-    /**
-     * スタックトレースから個人情報を除去。
-     * - メールアドレス、URL中のクエリ、デバイス固有 ID、ファイルパスのユーザー名部分
-     */
-    private fun sanitize(stack: String): String {
-        return stack
+    private fun sanitize(stack: String): String = sanitizeStack(stack)
+
+    companion object {
+        /**
+         * スタックトレース・ログから個人情報を除去する純関数。
+         * PopcoonLogger の共通パターン + クラッシュログ固有のファイルパスパターン。
+         * `internal` 可視性はテスト用。
+         */
+        internal fun sanitizeStack(text: String): String = text
             // メールアドレス
             .replace(Regex("""[\w.-]+@[\w.-]+\.\w+"""), "[email]")
-            // URL クエリパラメータ
-            .replace(Regex("""\?[^\s)]+"""), "?[redacted]")
-            // /data/user/0/<package>/files/[user-name]/...
-            .replace(Regex("""/data/user/0/[^/]+/files/[^/]+"""),
-                "/data/user/0/[pkg]/files/[user]")
-            // /storage/emulated/0/[user-name]
-            .replace(Regex("""/storage/emulated/\d+/[^/]+"""),
-                "/storage/emulated/[u]/[user]")
+            // URL クエリパラメータ（マルチパラメータ対応: ?k=v&k2=v2）
+            .replace(Regex("""([?&][^=\s&#]+=)[^\s&#"')]+"""), "$1[redacted]")
+            // AWS アクセスキー ID
+            .replace(Regex("""AKIA[0-9A-Z]{16}"""), "[aws-key]")
+            // Authorization ヘッダ (任意スキーム)
+            .replace(Regex("""(?i)(authorization\s*[:=]\s*)(?:\w+\s+)?[^\s"',;]+"""), "$1[redacted]")
+            // api_key / secret / token / password / credential の値
+            .replace(
+                Regex("""(?i)("?\w*(?:api[_-]?key|secret|token|password|credential)\w*"?\s*[:=]\s*)["']?[^\s"',&}]+"""),
+                "$1[redacted]",
+            )
             // IPv4
             .replace(Regex("""\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b"""), "[ip]")
             // 電話番号 (日本 国内/国際)
             .replace(Regex("""\b\+?81[-\s]?\d{1,4}[-\s]?\d{1,4}[-\s]?\d{4}\b"""), "[tel]")
             .replace(Regex("""\b0\d{1,4}[-\s]?\d{1,4}[-\s]?\d{4}\b"""), "[tel]")
+            // Android ファイルパスのユーザー名部分
+            .replace(Regex("""/data/user/0/[^/]+/files/[^/\s]+"""), "/data/user/0/[pkg]/files/[user]")
+            .replace(Regex("""/storage/emulated/\d+/[^/\s]+"""), "/storage/emulated/[u]/[user]")
     }
 
     private fun saveLocally(throwable: Throwable) {
