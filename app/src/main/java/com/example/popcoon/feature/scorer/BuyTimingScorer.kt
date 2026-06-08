@@ -12,6 +12,8 @@ import kotlin.math.sqrt
  * 買い時スコア (0-100) に既存6機能を統合。
  * Python 実装 (buy_timing_scorer.py) と同一式。
  * Mutation testing: 10/10 killed (100%)。
+ *
+ * A5 配線（PORTING_SPEC.md A5）: today を渡すと曜日季節性シグナルを加算。
  */
 object BuyTimingScorer {
 
@@ -28,6 +30,7 @@ object BuyTimingScorer {
 
     private const val MIN_HISTORY = 14
     private const val BASE_SCORE = 50
+    private val TOKYO = java.time.ZoneId.of("Asia/Tokyo")
 
     fun score(
         current: Long,
@@ -49,9 +52,13 @@ object BuyTimingScorer {
         if (darkSig.contribution != 0) signals += darkSig
 
         // 大型セール接近シグナル (arXiv 2405.13995: 季節性・プロモイベント考慮)
+        // A5: 曜日季節性シグナル (PORTING_SPEC.md A5, arXiv:2105.08313)
         if (today != null) {
             val saleSig = signalUpcomingSale(today)
             if (saleSig.contribution != 0) signals += saleSig
+
+            val dowSig = signalSeasonalDow(history, today)
+            if (dowSig.contribution != 0) signals += dowSig
         }
 
         val rawSum = signals.sumOf { it.contribution }
@@ -89,6 +96,20 @@ object BuyTimingScorer {
             daysUntil in 4..7 -> Signal("大型セール接近 (${next.name})", -6)
             else -> Signal("", 0)
         }
+    }
+
+    /**
+     * 曜日季節性シグナル（A5 / PORTING_SPEC.md A5）。
+     * 価格履歴から今日の曜日が統計的に安い/高い日かを学習し ±10 で返す。
+     */
+    private fun signalSeasonalDow(history: List<PriceRecord>, today: java.time.LocalDate): Signal {
+        val dowHistory = history.map { r ->
+            r.recordedAt.atZone(TOKYO).dayOfWeek.ordinal to r.realPrice.toDouble()
+        }
+        val s = SeasonalDowSignal.signal(dowHistory, today.dayOfWeek.ordinal)
+        return if (s > 0) Signal("曜日買い時 (安い曜日)", s)
+               else if (s < 0) Signal("曜日割高 (高い曜日)", s)
+               else Signal("", 0)
     }
 
     private fun signalAtlProximity(current: Long, history: List<PriceRecord>): Signal {

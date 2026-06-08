@@ -10,6 +10,10 @@ import kotlin.math.min
  * Python 実装 (popcoon_core.py::predict_price) と完全に同一ロジック。
  *
  * 予測値の整合性は Differential testing (test_differential.py) で保証。
+ *
+ * 後続強化（PORTING_SPEC.md 配線）:
+ *   - predictionMargin: RMSE → Conformal 区間（分布自由な被覆保証、A6）
+ *   - seasonalForecast7d: DLinear 風季節分解予測を並走（A1）
  */
 object PricePredictionEngine {
 
@@ -23,8 +27,10 @@ object PricePredictionEngine {
         val historicLow: Long,
         val historicHigh: Long,
         val confidence: Confidence,
-        /** 予測区間の半幅 (±この値、残差標準偏差ベース)。0 = 算出不能 */
+        /** 予測区間の半幅（±この値）。Conformal margin (90% 被覆保証)。0 = 算出不能。 */
         val predictionMargin: Long = 0,
+        /** 季節分解（DLinear 風）による 7 日後予測。0 = 算出不能。 */
+        val seasonalForecast7d: Long = 0,
     )
 
     private const val MIN_RECORDS = 14
@@ -42,10 +48,15 @@ object PricePredictionEngine {
         val pred7 = max(0L, (level + trend * 7).toLong())
         val pred30 = max(0L, (level + trend * 30).toLong())
 
-        // 予測区間: ワンステップ予測残差の標準偏差から算出
-        // (arXiv: Holt-Winters は解釈可能な区間推定が可能。
-        //  68% 区間 ≈ ±1σ を採用し UI で「±¥Y」と提示)
-        val margin = predictionMargin(cleaned)
+        // A6: Conformal 予測区間（PORTING_SPEC.md A6, arXiv:2505.08158）
+        val residuals = holtResiduals(cleaned)
+        val margin = if (residuals.isNotEmpty())
+            ConformalInterval.conformalMargin(residuals).toLong()
+        else 0L
+
+        // A1: 季節分解予測（PORTING_SPEC.md A1, arXiv:2403.14587）
+        val seasonalSeries = SeasonalDecompForecast.forecast(cleaned, 7, 7)
+        val seasonalF7d = if (seasonalSeries.size == 7) max(0L, seasonalSeries[6].toLong()) else 0L
 
         val current = records.last().realPrice  // ← Python port の真のバグ修正後
         val low = cleaned.min().toLong()
@@ -71,31 +82,27 @@ object PricePredictionEngine {
             historicHigh = high,
             confidence = confidence,
             predictionMargin = margin,
+            seasonalForecast7d = seasonalF7d,
         )
     }
 
     /**
-     * ワンステップ予測残差の標準偏差を予測区間の半幅とする。
-     * Holt's linear で各時点を1期先予測し、実測との差の RMSE を返す。
+     * Holt 1期先予測の残差列。ConformalInterval への入力に使う。
      */
-    private fun predictionMargin(data: List<Double>): Long {
-        if (data.size < 3) return 0L
+    private fun holtResiduals(data: List<Double>): List<Double> {
+        if (data.size < 3) return emptyList()
         var level = data[0]
         var trend = if (data.size >= 2) data[1] - data[0] else 0.0
-        var sumSq = 0.0
-        var count = 0
+        val result = mutableListOf<Double>()
         for (i in 1 until data.size) {
-            val forecast = level + trend  // 1期先予測
+            val forecast = level + trend
             val y = data[i]
-            val err = y - forecast
-            sumSq += err * err
-            count++
+            result += y - forecast
             val prevLevel = level
             level = ALPHA * y + (1 - ALPHA) * (level + trend)
             trend = BETA * (level - prevLevel) + (1 - BETA) * trend
         }
-        if (count == 0) return 0L
-        return kotlin.math.sqrt(sumSq / count).toLong()
+        return result
     }
 
     private fun holtLinear(data: List<Double>): Pair<Double, Double> {
