@@ -92,6 +92,15 @@
     <string name="watchlist_empty_hint">상품 상세에서 저장을 눌러 추가</string>
     <string name="watchlist_add">저장</string>
     <string name="watchlist_remove">삭제</string>
+    <string name="watchlist_undo_removed">\"%1$s\"을(를) 삭제했습니다</string>
+    <string name="watchlist_undo_action">실행 취소</string>
+    <string name="target_price_button">목표 가격</string>
+    <string name="target_price_set">목표 %1$s</string>
+    <string name="target_price_reached">목표 달성</string>
+    <string name="target_price_dialog_title">목표 가격 설정</string>
+    <string name="target_price_dialog_desc">이 가격 이하가 되면 할인율과 관계없이 알려드립니다.</string>
+    <string name="target_price_hint">목표 가격(엔)</string>
+    <string name="target_price_clear">해제</string>
 
     <string name="sale_calendar">세일 캘린더</string>
     <string name="sale_active_now">진행 중</string>

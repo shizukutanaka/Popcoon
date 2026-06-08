@@ -10,6 +10,8 @@ import androidx.room.Query
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
@@ -34,6 +36,12 @@ data class WatchlistItem(
     val url: String,
     val imageUrl: String?,
     val addedAt: Long = Instant.now().toEpochMilli(),
+    /**
+     * ユーザー設定の目標価格（円）。null = 未設定。
+     * 同期時にこの価格以下になったら、値下がり率に関係なくアラートを送る。
+     * (v2 で追加 — MIGRATION_1_2)
+     */
+    val targetPrice: Long? = null,
 )
 
 // ── Entity: SearchHistory ───────────────────────────────────────────────────
@@ -77,6 +85,10 @@ interface WatchlistDao {
 
     @Query("DELETE FROM watchlist WHERE productKey = :key")
     suspend fun delete(key: String)
+
+    /** 目標価格を設定 / 解除（null で解除）。 */
+    @Query("UPDATE watchlist SET targetPrice = :target WHERE productKey = :key")
+    suspend fun setTargetPrice(key: String, target: Long?)
 
     @Query("SELECT COUNT(*) FROM watchlist")
     suspend fun count(): Int
@@ -122,7 +134,7 @@ interface PriceCacheDao {
 // ── Database ────────────────────────────────────────────────────────────────
 @Database(
     entities = [WatchlistItem::class, SearchHistoryEntry::class, PriceCacheEntry::class],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(InstantConverter::class)
@@ -133,5 +145,17 @@ abstract class PopcoonDatabase : RoomDatabase() {
 
     companion object {
         const val DB_NAME = "popcoon.db"
+
+        /**
+         * v1 → v2: watchlist に目標価格カラムを追加（希望価格アラート機能）。
+         * nullable で追加するため既存行はそのまま（targetPrice = NULL = 未設定）。
+         * release ビルドでは破壊的フォールバックを無効化しているため、
+         * このマイグレーションでユーザーのウォッチリストを保全する。
+         */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE watchlist ADD COLUMN targetPrice INTEGER")
+            }
+        }
     }
 }

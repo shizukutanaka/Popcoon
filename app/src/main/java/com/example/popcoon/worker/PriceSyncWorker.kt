@@ -10,12 +10,14 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.example.popcoon.core.CurrencyFormatter
 import com.example.popcoon.core.PopcoonLogger
 import com.example.popcoon.data.db.WatchlistDao
 import com.example.popcoon.data.db.WatchlistItem
 import com.example.popcoon.data.repository.BackendClient
 import com.example.popcoon.data.repository.IProductRepository
 import com.example.popcoon.feature.notification.LocalNotificationManager
+import com.example.popcoon.feature.notification.PriceAlertEvaluator
 import com.example.popcoon.feature.retention.ReviewPrompter
 import com.example.popcoon.feature.scorer.BuyTimingScorer
 import com.example.popcoon.widget.WidgetUpdater
@@ -63,8 +65,14 @@ class PriceSyncWorker @AssistedInject constructor(
 
         // arXiv (PMC8523513) の知見: 過剰な通知は割り込み負荷となりUXを損なう。
         // 1回の同期で送る通知を上限 MAX_NOTIFICATIONS 件に制限し、
-        // 値下がり率が大きい順に優先する。
-        data class Drop(val item: WatchlistItem, val latest: Long, val prev: Long, val pct: Int)
+        // 目標価格到達 → 値下がり率が大きい順、で優先する。
+        data class Drop(
+            val item: WatchlistItem,
+            val latest: Long,
+            val prev: Long,
+            val pct: Int,
+            val targetReached: Boolean,
+        )
         val drops = mutableListOf<Drop>()
 
         watchlist.forEach { item ->
@@ -77,14 +85,23 @@ class PriceSyncWorker @AssistedInject constructor(
 
                 watchlistDao.upsert(item.copy(realPrice = latest.realPrice))
 
-                // 値下がり検出 → 候補に追加 (即時通知しない)
-                // 微小な値下がり (閾値未満) は通知ノイズになるため除外
-                // (arXiv 2509.02458: 経験的閾値で頻度制御)
-                if (latest.realPrice < previousPrice && previousPrice > 0) {
-                    val dropPct = ((previousPrice - latest.realPrice) * 100 / previousPrice).toInt()
-                    if (dropPct >= MIN_DROP_PERCENT) {
-                        drops += Drop(item, latest.realPrice, previousPrice, dropPct)
-                    }
+                // 目標価格到達 / 有意な値下がりを純関数で判定。
+                // 目標到達は率に関係なく最優先で通知（ユーザーが明示的に求めた情報）。
+                // (arXiv 2509.02458: 経験的閾値で値下がり通知の頻度を制御)
+                val alert = PriceAlertEvaluator.evaluate(
+                    previousPrice = previousPrice,
+                    latestPrice = latest.realPrice,
+                    targetPrice = item.targetPrice,
+                    minDropPercent = MIN_DROP_PERCENT,
+                )
+                if (alert.shouldNotify) {
+                    drops += Drop(
+                        item = item,
+                        latest = latest.realPrice,
+                        prev = previousPrice,
+                        pct = alert.dropPercent,
+                        targetReached = alert.kind == PriceAlertEvaluator.Kind.TARGET_REACHED,
+                    )
                 }
 
                 BuyTimingScorer.score(
@@ -96,15 +113,20 @@ class PriceSyncWorker @AssistedInject constructor(
             }.onFailure { PopcoonLogger.w(this, "履歴取得失敗: ${it.message}") }
         }
 
-        // 値下がり率が大きい順に最大 MAX_NOTIFICATIONS 件だけ通知
-        drops.sortedByDescending { it.pct }
+        // 目標価格到達を最優先、次に値下がり率が大きい順。最大 MAX_NOTIFICATIONS 件。
+        drops.sortedWith(compareByDescending<Drop> { it.targetReached }.thenByDescending { it.pct })
             .take(MAX_NOTIFICATIONS)
             .forEach { drop ->
                 priceDropCount++
+                val title = if (drop.targetReached) {
+                    "目標価格に到達 (${CurrencyFormatter.yen(drop.item.targetPrice ?: drop.latest)}以下)"
+                } else {
+                    "値下がりしました (${drop.pct}% OFF)"
+                }
                 notificationManager.sendPriceAlert(
                     context = applicationContext,
                     productKey = drop.item.productKey,
-                    title = "値下がりしました (${drop.pct}% OFF)",
+                    title = title,
                     priceText = "${drop.item.title.take(20)}\n${CurrencyFormatter.yen(drop.latest)} (前回: ${CurrencyFormatter.yen(drop.prev)})",
                 )
             }

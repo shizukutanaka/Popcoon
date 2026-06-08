@@ -92,6 +92,15 @@
     <string name="watchlist_empty_hint">Tap "Save" on a product to add it here</string>
     <string name="watchlist_add">Save</string>
     <string name="watchlist_remove">Remove</string>
+    <string name="watchlist_undo_removed">Removed \"%1$s\"</string>
+    <string name="watchlist_undo_action">Undo</string>
+    <string name="target_price_button">Target price</string>
+    <string name="target_price_set">Target %1$s</string>
+    <string name="target_price_reached">Target met</string>
+    <string name="target_price_dialog_title">Set target price</string>
+    <string name="target_price_dialog_desc">We\'ll notify you once the price drops to this level, regardless of the discount rate.</string>
+    <string name="target_price_hint">Target price (JPY)</string>
+    <string name="target_price_clear">Clear</string>
 
     <string name="sale_calendar">Sale calendar</string>
     <string name="sale_active_now">Active now</string>

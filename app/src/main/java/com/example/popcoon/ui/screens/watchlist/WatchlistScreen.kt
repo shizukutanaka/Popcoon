@@ -48,6 +48,9 @@ fun WatchlistScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
+    // 目標価格ダイアログの対象アイテム（null = 非表示）
+    var targetDialogItem by remember { mutableStateOf<WatchlistItem?>(null) }
+
     // 初回ウォッチリスト追加時に通知権限を要求 (一度だけ)
     var requestNotificationPermission by remember { mutableStateOf(false) }
     var hasRequestedPermission by remember { mutableStateOf(false) }
@@ -104,8 +107,8 @@ fun WatchlistScreen(
                             // Undo Snackbar (Apple Forgiveness 原則)
                             scope.launch {
                                 val result = snackbarHostState.showSnackbar(
-                                    message = "「${item.title.take(15)}」を削除しました",
-                                    actionLabel = "元に戻す",
+                                    message = undoRemovedMessage(context, item.title),
+                                    actionLabel = context.getString(R.string.watchlist_undo_action),
                                     duration = SnackbarDuration.Short,
                                 )
                                 if (result == SnackbarResult.ActionPerformed) {
@@ -121,16 +124,36 @@ fun WatchlistScreen(
                                 HapticFeedback.light(context)
                                 onItemClick(item.productKey)
                             },
+                            onSetTarget = { targetDialogItem = item },
                         )
                     }
                 }
             }
         }
     }
+
+    // 目標価格ダイアログ
+    targetDialogItem?.let { item ->
+        com.example.popcoon.ui.components.TargetPriceDialog(
+            currentTarget = item.targetPrice,
+            onConfirm = { target ->
+                viewModel.setTargetPrice(item.productKey, target)
+                targetDialogItem = null
+            },
+            onDismiss = { targetDialogItem = null },
+        )
+    }
 }
 
+private fun undoRemovedMessage(context: android.content.Context, title: String): String =
+    context.getString(R.string.watchlist_undo_removed, title.take(15))
+
 @Composable
-private fun WatchlistRow(item: WatchlistItem, onClick: () -> Unit) {
+private fun WatchlistRow(
+    item: WatchlistItem,
+    onClick: () -> Unit,
+    onSetTarget: () -> Unit,
+) {
     Surface(
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
         shape = RoundedCornerShape(CornerRadius.card),
@@ -162,6 +185,9 @@ private fun WatchlistRow(item: WatchlistItem, onClick: () -> Unit) {
                         )
                     }
                 }
+                // 目標価格バッジ / 設定ボタン
+                Spacer(Modifier.height(6.dp))
+                TargetPriceChip(item = item, onClick = onSetTarget)
             }
             // ← にスワイプで削除ヒント
             Text(
@@ -171,6 +197,42 @@ private fun WatchlistRow(item: WatchlistItem, onClick: () -> Unit) {
             )
         }
     }
+}
+
+/**
+ * 目標価格の状態を表示する小さなチップ。
+ *  - 未設定: 「目標価格」設定を促す控えめなボタン
+ *  - 設定済み: 「目標 ¥X」を表示
+ *  - 達成済み (現在価格 ≤ 目標): 「目標達成」を強調色で表示
+ */
+@Composable
+private fun TargetPriceChip(item: WatchlistItem, onClick: () -> Unit) {
+    val target = item.targetPrice
+    val reached = target != null && item.realPrice <= target
+    AssistChip(
+        onClick = onClick,
+        label = {
+            Text(
+                when {
+                    reached -> stringResource(R.string.target_price_reached)
+                    target != null -> stringResource(
+                        R.string.target_price_set,
+                        com.example.popcoon.core.CurrencyFormatter.yen(target),
+                    )
+                    else -> stringResource(R.string.target_price_button)
+                },
+                style = MaterialTheme.typography.labelSmall,
+            )
+        },
+        colors = if (reached) {
+            AssistChipDefaults.assistChipColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        } else {
+            AssistChipDefaults.assistChipColors()
+        },
+    )
 }
 
 /**
@@ -196,7 +258,7 @@ private fun WatchlistEmptyState(
         ) {
             Text("⭐", style = MaterialTheme.typography.displayLarge)
             Text(
-                "ウォッチリストは空",
+                stringResource(R.string.watchlist_empty),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
             )

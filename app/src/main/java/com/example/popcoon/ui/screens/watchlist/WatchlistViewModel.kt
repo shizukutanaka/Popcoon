@@ -47,6 +47,17 @@ class WatchlistViewModel @Inject constructor(
         }
     }
 
+    /**
+     * 目標価格を設定 / 解除する。
+     * 次回の価格同期で、この価格以下になったら値下がり率に関係なく通知される。
+     * @param target null で解除。
+     */
+    fun setTargetPrice(productKey: String, target: Long?) {
+        viewModelScope.launch {
+            dao.setTargetPrice(productKey, target)
+        }
+    }
+
     private suspend fun updateWidget() {
         val current = items.first()
         WidgetUpdater.update(context, current)

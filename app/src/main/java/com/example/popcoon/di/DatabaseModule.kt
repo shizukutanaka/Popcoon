@@ -23,10 +23,12 @@ object DatabaseModule {
         return Room.databaseBuilder(
             context, PopcoonDatabase::class.java, PopcoonDatabase.DB_NAME,
         )
+            // 明示マイグレーションでユーザーデータを保全する。
+            // 新スキーマ導入時はここに .addMigrations(MIGRATION_x_y) を追加すること。
+            .addMigrations(PopcoonDatabase.MIGRATION_1_2)
             // debug のみ破壊的フォールバックを許可。
             // release ではスキーマ変更時に明示 Migration を必須化し、
             // ユーザーのウォッチリスト/価格履歴を黙って消さない (クラッシュで検知)。
-            // 新スキーマ導入時はここに .addMigrations(MIGRATION_x_y) を追加すること。
             .apply { if (BuildConfig.DEBUG) fallbackToDestructiveMigration() }
             .build()
     }

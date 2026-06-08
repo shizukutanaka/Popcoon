@@ -166,6 +166,17 @@
     <string name="watchlist_empty_hint">商品詳細から「保存」を押すとここに表示</string>
     <string name="watchlist_add">保存</string>
     <string name="watchlist_remove">削除</string>
+    <string name="watchlist_undo_removed">「%1$s」を削除しました</string>
+    <string name="watchlist_undo_action">元に戻す</string>
+
+    <!-- 目標価格アラート -->
+    <string name="target_price_button">目標価格</string>
+    <string name="target_price_set">目標 %1$s</string>
+    <string name="target_price_reached">目標達成</string>
+    <string name="target_price_dialog_title">目標価格を設定</string>
+    <string name="target_price_dialog_desc">この価格以下になったら、値下がり率に関係なく通知します。</string>
+    <string name="target_price_hint">目標価格（円）</string>
+    <string name="target_price_clear">解除</string>
 
     <!-- セールカレンダー -->
     <string name="sale_calendar">セールカレンダー</string>

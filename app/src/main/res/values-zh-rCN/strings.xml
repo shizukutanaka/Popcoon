@@ -92,6 +92,15 @@
     <string name="watchlist_empty_hint">在商品详情点击"保存"添加到此处</string>
     <string name="watchlist_add">保存</string>
     <string name="watchlist_remove">删除</string>
+    <string name="watchlist_undo_removed">已删除\"%1$s\"</string>
+    <string name="watchlist_undo_action">撤销</string>
+    <string name="target_price_button">目标价格</string>
+    <string name="target_price_set">目标 %1$s</string>
+    <string name="target_price_reached">已达目标</string>
+    <string name="target_price_dialog_title">设置目标价格</string>
+    <string name="target_price_dialog_desc">价格降到此水平时，无论折扣率如何都会通知您。</string>
+    <string name="target_price_hint">目标价格（日元）</string>
+    <string name="target_price_clear">清除</string>
 
     <string name="sale_calendar">促销日历</string>
     <string name="sale_active_now">进行中</string>
