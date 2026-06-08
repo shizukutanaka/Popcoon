@@ -79,6 +79,13 @@
     <string name="barcode_hint">将相机对准条形码</string>
     <string name="barcode_invalid">无效条形码</string>
 
+    <string name="smart_cart_title">智能购物车优化</string>
+    <string name="smart_cart_total">合计 %1$s</string>
+    <string name="smart_cart_saving">节省 %1$s</string>
+    <string name="smart_cart_shipping">运费 %1$s</string>
+    <string name="smart_cart_coupon">优惠券 −%1$s</string>
+    <string name="smart_cart_greedy">估算</string>
+
     <string name="watchlist_title">收藏</string>
     <string name="watchlist_empty">收藏列表为空</string>
     <string name="watchlist_empty_hint">在商品详情点击"保存"添加到此处</string>

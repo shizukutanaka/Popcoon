@@ -151,6 +151,14 @@
     <string name="barcode_hint">バーコードにカメラを向けてください</string>
     <string name="barcode_invalid">無効なバーコード</string>
 
+    <!-- スマートカート最適化 -->
+    <string name="smart_cart_title">スマートカート最適化</string>
+    <string name="smart_cart_total">合計 %1$s</string>
+    <string name="smart_cart_saving">%1$s お得</string>
+    <string name="smart_cart_shipping">送料 %1$s</string>
+    <string name="smart_cart_coupon">クーポン −%1$s</string>
+    <string name="smart_cart_greedy">概算</string>
+
     <!-- ウォッチリスト -->
     <string name="watchlist_title">お気に入り</string>
     <string name="watchlist_empty">ウォッチリストは空</string>

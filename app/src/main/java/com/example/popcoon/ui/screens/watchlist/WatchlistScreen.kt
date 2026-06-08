@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.popcoon.R
 import com.example.popcoon.data.db.WatchlistItem
+import com.example.popcoon.ui.components.SmartCartCard
 import com.example.popcoon.ui.components.SwipeToDelete
 import com.example.popcoon.feature.notification.NotificationPermissionHelper
 import com.example.popcoon.feature.notification.RequestNotificationPermission
@@ -42,6 +43,7 @@ fun WatchlistScreen(
     viewModel: WatchlistViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
     val items by viewModel.items.collectAsState(initial = emptyList())
+    val smartCart by viewModel.smartCart.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -87,6 +89,12 @@ fun WatchlistScreen(
                 modifier = Modifier.padding(padding).padding(Spacing.ml),
                 verticalArrangement = Arrangement.spacedBy(Spacing.ml),
             ) {
+                // スマートカート最適化カード（2件以上ある場合のみ）
+                smartCart?.let { result ->
+                    item(key = "smart_cart") {
+                        SmartCartCard(cartResult = result)
+                    }
+                }
                 items(items, key = { it.productKey }) { item ->
                     SwipeToDelete(
                         onDelete = {

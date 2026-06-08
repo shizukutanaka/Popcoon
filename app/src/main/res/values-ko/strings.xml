@@ -79,6 +79,13 @@
     <string name="barcode_hint">바코드에 카메라를 맞추세요</string>
     <string name="barcode_invalid">잘못된 바코드</string>
 
+    <string name="smart_cart_title">스마트 카트 최적화</string>
+    <string name="smart_cart_total">합계 %1$s</string>
+    <string name="smart_cart_saving">%1$s 절약</string>
+    <string name="smart_cart_shipping">배송비 %1$s</string>
+    <string name="smart_cart_coupon">쿠폰 −%1$s</string>
+    <string name="smart_cart_greedy">추정</string>
+
     <string name="watchlist_title">즐겨찾기</string>
     <string name="watchlist_empty">즐겨찾기가 비어 있습니다</string>
     <string name="watchlist_empty_hint">상품 상세에서 저장을 눌러 추가</string>

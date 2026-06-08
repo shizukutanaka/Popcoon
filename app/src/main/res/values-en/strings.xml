@@ -79,6 +79,13 @@
     <string name="barcode_hint">Point camera at barcode</string>
     <string name="barcode_invalid">Invalid barcode</string>
 
+    <string name="smart_cart_title">Smart Cart Optimizer</string>
+    <string name="smart_cart_total">Total %1$s</string>
+    <string name="smart_cart_saving">Save %1$s</string>
+    <string name="smart_cart_shipping">Shipping %1$s</string>
+    <string name="smart_cart_coupon">Coupon −%1$s</string>
+    <string name="smart_cart_greedy">Estimate</string>
+
     <string name="watchlist_title">Watchlist</string>
     <string name="watchlist_empty">Watchlist is empty</string>
     <string name="watchlist_empty_hint">Tap "Save" on a product to add it here</string>

@@ -5,11 +5,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.popcoon.data.db.WatchlistDao
 import com.example.popcoon.data.db.WatchlistItem
+import com.example.popcoon.feature.cart.SmartCartService
 import com.example.popcoon.widget.WidgetUpdater
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -20,6 +24,14 @@ class WatchlistViewModel @Inject constructor(
 ) : ViewModel() {
 
     val items: Flow<List<WatchlistItem>> = dao.observeAll()
+
+    /**
+     * ウォッチリスト全体の横断カート最適化結果。
+     * 2件以上あれば自動計算（純関数 → 高速、ブロックなし）。
+     */
+    val smartCart = items
+        .map { list -> if (list.size >= 2) SmartCartService.optimize(list) else null }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun remove(productKey: String) {
         viewModelScope.launch {
