@@ -1,10 +1,16 @@
 package com.example.popcoon.feature
 
+import com.example.popcoon.data.db.WatchlistItem
 import com.example.popcoon.data.model.PriceRecord
+import com.example.popcoon.feature.cart.CrossMallCartOptimizer
+import com.example.popcoon.feature.cart.SmartCartService
 import com.example.popcoon.feature.crossborder.CustomsSimulator
+import com.example.popcoon.feature.darkpattern.DarkPatternTextDetector
+import com.example.popcoon.feature.prediction.PricePredictionEngine
 import com.example.popcoon.feature.scorer.BuyTimingScorer
 import com.example.popcoon.feature.tco.TCOCalculator
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -150,5 +156,54 @@ class IntegrationTests : StringSpec({
         // 安定価格・十分なレビュー → confidence HIGH
         score.confidence shouldBe "HIGH"
         rt.trust shouldBe com.example.popcoon.feature.review.ReviewTrustScorer.Trust.HIGH
+    }
+
+    // ── 新機能統合テスト (PORTING_SPEC.md 配線) ───────────────────────────────
+
+    "A6 配線: Conformal margin は変動系列で正、安定系列でほぼゼロ" {
+        val stable = history(List(30) { 1000L })
+        val volatile = history((0 until 30).map { if (it % 2 == 0) 1000L else 2000L })
+        val ps = PricePredictionEngine.predict(stable)!!
+        val pv = PricePredictionEngine.predict(volatile)!!
+        (ps.predictionMargin <= 10L) shouldBe true
+        (pv.predictionMargin > 0L) shouldBe true
+    }
+
+    "A1 配線: 週次季節性がある系列で seasonalForecast7d が返る" {
+        // 平日(月-金)=1000、週末=800 の 28日履歴
+        val seasonal = history((0 until 28).map { if (it % 7 in 0..4) 1000L else 800L })
+        val p = PricePredictionEngine.predict(seasonal)!!
+        // 季節分解が有効に動作している → 非ゼロ
+        (p.seasonalForecast7d > 0L) shouldBe true
+    }
+
+    "DarkPatternTextDetector: 5カテゴリを複合検出できる" {
+        val text = "本日限り！残り3点。8人がカートに入れました"
+        val signals = DarkPatternTextDetector.detect(text)
+        val cats = signals.map { it.category }.toSet()
+        DarkPatternTextDetector.Category.URGENCY in cats shouldBe true
+        DarkPatternTextDetector.Category.SCARCITY in cats shouldBe true
+        DarkPatternTextDetector.Category.SOCIAL_PROOF in cats shouldBe true
+        // category 昇順保証
+        signals.map { it.category } shouldBe signals.map { it.category }.sorted()
+    }
+
+    "SmartCart: 2商品を amazon に集約して送料無料ライン到達" {
+        val malls = mapOf(
+            "amazon" to CrossMallCartOptimizer.MallConfig(shipping = 800.0, freeThreshold = 2000.0),
+            "rakuten" to CrossMallCartOptimizer.MallConfig(shipping = 800.0, freeThreshold = 5000.0),
+        )
+        fun watchItem(key: String, title: String, mall: String, price: Long) = WatchlistItem(
+            productKey = key, sku = key, title = title, platform = mall,
+            realPrice = price, listPrice = price + 500, url = "", imageUrl = null,
+        )
+        val items = listOf(
+            watchItem("a:1", "完全ワイヤレスイヤホン X1", "amazon", 1000),
+            watchItem("a:2", "スマートウォッチ Y2 ブラック", "amazon", 1000),
+        )
+        val r = SmartCartService.optimize(items, malls).shouldNotBeNull()
+        // 合計 2000 >= free threshold 2000 → 送料 0
+        r.optimized.shippingTotal shouldBe (0.0 plusOrMinus 1e-9)
+        r.optimized.total shouldBe (2000.0 plusOrMinus 1e-9)
     }
 })
