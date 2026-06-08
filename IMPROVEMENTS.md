@@ -15,10 +15,23 @@ CI) を調査した結果と、適用した改善・今後のバックログ。
 | 6 | **PopcoonLogger の秘密情報リダクション強化** (旧 regex はマルチパラメータ URL で API キーを伏せ損ねる) | `core/PopcoonLogger.kt` + test |
 | 7 | **ハードコード日本語 UI 文字列をリソース化** (en/ko/zh で日本語露出) | `ui/components/*`, `res/values*/strings.xml` |
 
+## 適用済み (Tier 2: 競合調査ベースの機能・基盤)
+
+GitHub 上の同種 OSS 価格追跡アプリ (CamelCamelCamel, Keepa, ShopSense, Pricewise,
+jeevandhakal/price_comparison, edent/Amazon-Wishlist-Pricedrop-Alert 等) を調査し、
+Popcoon に欠けていた最も普遍的な機能と、その検証基盤を実装した。
+
+| # | 内容 | 主な変更 |
+|---|------|----------|
+| 8 | **希望価格 (target price) アラート**: 競合が普遍的に持つ「指定価格まで下がったら通知」。従来は相対値下がり率のみで、予算までの緩やかな下落を取りこぼしていた。目標到達は率の閾値を無視し最優先で通知。純関数 `PriceAlertEvaluator` (18 テスト) + Room v1→v2 マイグレーション + ウォッチリスト UI (チップ/ダイアログ) | `feature/notification/PriceAlertEvaluator.kt`, `data/db/PopcoonDatabase.kt`, `di/DatabaseModule.kt`, `worker/PriceSyncWorker.kt`, `ui/components/TargetPriceDialog.kt`, `ui/screens/watchlist/*`, `res/values*/strings.xml` |
+| 9 | **CI ワークフロー新設**: TDD 重視の設計にも関わらず CI が存在せず、ローカル Android SDK も無いため Kotlin が一度もコンパイル検証されていなかった。detekt/lint/単体テスト/assemble + Python オラクルを実行。App の `workflows` 権限制約のため `ci/` にテンプレートとして配置 (管理者が 1 行で有効化) | `ci/android.yml`, `ci/README.md` |
+| 10 | **潜在コンパイルエラー修正**: `PriceSyncWorker` が `CurrencyFormatter` を import せず参照していた (HEAD でも壊れていた) | `worker/PriceSyncWorker.kt` |
+
 ## 検証
-- Python TDD: `cd popcoon-tdd && python3 -m pytest -q` (236 passed)。
-- Kotlin: 本リポジトリの GitHub Actions (`.github/workflows/android.yml`: lint / detekt /
-  `testDebugUnitTest` / build) で検証。
+- Python TDD: `cd popcoon-tdd && python3 -m pytest -q` (290 passed, 1 skipped)。
+- Kotlin: ローカルに Android SDK が無いため inspection で担保。`ci/android.yml` を
+  `.github/workflows/` に配置すると lint / detekt / `testDebugUnitTest` / assemble が
+  自動検証する (有効化手順は `ci/README.md`)。
 
 ## 今後のバックログ (未適用)
 
@@ -28,8 +41,20 @@ CI) を調査した結果と、適用した改善・今後のバックログ。
 - 検索の in-flight キャンセル (古いクエリ結果の上書き防止) と SearchScreen のリトライ UI。
 - AdviceCache の TTL / 退避テスト、`put` の同期化 (上限超過の競合)。
 - ProductDetailViewModel / WatchlistViewModel / SettingsViewModel の単体テスト追加。
-- CI: detekt / Kover カバレッジをマージゲート化、baseline profile 検証。
-- a11y 文字列 (`ui/a11y/AccessibilityExt.kt`, `VerdictBadge.kt` 等) の i18n。
+- CI: ~~ワークフロー新設~~ (#9 で実装、要有効化) → 次は detekt / Kover カバレッジを
+  マージゲート化、baseline profile 検証。
+- a11y 文字列: ~~`VerdictBadge.kt` の i18n~~ (実装済み) → 残りは `AccessibilityExt.kt`
+  (Context 引数が必要な非 Composable のため要設計)。
+
+### 競合調査バックログ (同種 OSS 価格追跡アプリ由来、未適用)
+GitHub 調査で確認した、競合にあり Popcoon に未実装の機能。インパクト順:
+- **ウォッチリストの整理**: 優先度/カテゴリ/店舗でのソート・タグ付け・並べ替え (Karma 等)。
+- **クーポン/プロモコード集約**と決済前の自動適用 (Honey, Karma の中核機能)。
+- **URL 貼り付けで追加**: 共有インテント (`ACTION_SEND`) を受けて商品 URL から登録。
+- **在庫アラート**: 再入荷/在庫切れ通知 (現状は価格のみ)。
+- **「追加時からの変動」表示**: ウォッチ追加時価格を基準に下落幅を可視化 (CamelCamelCamel)。
+- **値下がりフィード**: ウォッチ外の急落商品を一覧する発見導線。
+- **多通貨対応**: 越境購入 (CustomsSimulator) と整合する通貨換算表示。
 
 ### アルゴリズム (Tier 3)
 - 価格予測を Holt 線形から Holt-Winters (季節性) へ。
