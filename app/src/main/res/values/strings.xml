@@ -60,6 +60,7 @@
     <string name="nav_watchlist">お気に入り</string>
     <string name="nav_settings">設定</string>
     <string name="nav_back">戻る</string>
+    <string name="a11y_warning">警告</string>
 
     <!-- オンボーディング -->
     <string name="onboarding_skip">スキップ</string>

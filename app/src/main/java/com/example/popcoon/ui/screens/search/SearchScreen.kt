@@ -77,7 +77,7 @@ fun SearchScreen(
                 leadingIcon = { Icon(Icons.Default.Search, null) },
                 trailingIcon = {
                     IconButton(onClick = onBarcode) {
-                        Icon(Icons.Default.PhotoCamera, contentDescription = "バーコードスキャン")
+                        Icon(Icons.Default.PhotoCamera, contentDescription = stringResource(R.string.barcode_scan))
                     }
                 },
                 modifier = Modifier.weight(1f),

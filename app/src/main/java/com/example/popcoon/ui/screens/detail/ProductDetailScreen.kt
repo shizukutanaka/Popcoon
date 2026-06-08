@@ -34,6 +34,7 @@ fun ProductDetailScreen(
     LaunchedEffect(productKey) { viewModel.load(productKey) }
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
+    val warningDesc = stringResource(R.string.a11y_warning)
 
     Scaffold(
         topBar = {
@@ -86,7 +87,7 @@ fun ProductDetailScreen(
                             modifier = Modifier.padding(Spacing.xxxl),
                         ) {
                             Text("⚠️", style = MaterialTheme.typography.displayMedium,
-                                modifier = Modifier.semantics { contentDescription = "警告" })
+                                modifier = Modifier.semantics { contentDescription = warningDesc })
                             Text(
                                 s.msg,
                                 style = MaterialTheme.typography.bodyMedium,

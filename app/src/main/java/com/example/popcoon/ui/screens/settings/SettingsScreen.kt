@@ -35,7 +35,7 @@ fun SettingsScreen(
                 title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "戻る")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.nav_back))
                     }
                 },
             )
@@ -46,29 +46,29 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.ml),
         ) {
             // ── プライバシー設定 ─────────────────────────
-            SectionCard("プライバシー") {
+            SectionCard(stringResource(R.string.settings_privacy)) {
                 ToggleRow(
                     title = stringResource(R.string.settings_crash_optin),
-                    description = "匿名化したスタックトレースのみ送信",
+                    description = stringResource(R.string.settings_crash_desc),
                     checked = state.crashOptin,
                     onCheckedChange = viewModel::setCrashOptin,
                 )
                 ToggleRow(
                     title = stringResource(R.string.settings_ai_optin),
-                    description = "Claude API に商品情報を送信 (個人情報なし)",
+                    description = stringResource(R.string.settings_ai_desc),
                     checked = state.aiOptin,
                     onCheckedChange = viewModel::setAiOptin,
                 )
                 ToggleRow(
                     title = stringResource(R.string.settings_affiliate_optin),
-                    description = "OFF にすると素の URL を使用 (収益発生せず)",
+                    description = stringResource(R.string.settings_affiliate_desc),
                     checked = state.affiliateOptin,
                     onCheckedChange = viewModel::setAffiliateOptin,
                 )
             }
 
             // ── データ ─────────────────────────────────
-            SectionCard("データ") {
+            SectionCard(stringResource(R.string.settings_data)) {
                 if (state.isPremium) {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.settings_export_csv)) },
@@ -90,7 +90,7 @@ fun SettingsScreen(
                 ListItem(
                     headlineContent = {
                         Text(
-                            "全データ削除 (GDPR Article 17)",
+                            stringResource(R.string.settings_delete_all),
                             color = MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.SemiBold,
                         )
@@ -103,7 +103,7 @@ fun SettingsScreen(
             }
 
             // ── サブスク ───────────────────────────────
-            SectionCard(if (state.isPremium) "Premium" else "アップグレード") {
+            SectionCard(stringResource(if (state.isPremium) R.string.settings_premium else R.string.settings_upgrade)) {
                 if (state.isPremium) {
                     Text(stringResource(R.string.settings_premium_active), Modifier.padding(Spacing.ml))
                 } else {
@@ -118,14 +118,14 @@ fun SettingsScreen(
                             onClick = { activity?.let { viewModel.launchPurchase(it) } },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text("¥480/月 または ¥3,800/年")
+                            Text(stringResource(R.string.settings_premium_price))
                         }
                     }
                 }
             }
 
             // ── 情報 ───────────────────────────────────
-            SectionCard("情報") {
+            SectionCard(stringResource(R.string.settings_info)) {
                 ListItem(
                     headlineContent = { Text(stringResource(R.string.settings_version)) },
                     trailingContent = { Text(state.appVersion) },

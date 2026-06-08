@@ -55,6 +55,7 @@
     <string name="eco_alternative">대체품 검토</string>
 
     <string name="nav_back">뒤로</string>
+    <string name="a11y_warning">경고</string>
     <string name="nav_settings">설정</string>
 
     <!-- ソートオプション -->

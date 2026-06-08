@@ -55,6 +55,7 @@
     <string name="eco_alternative">Consider alternative</string>
 
     <string name="nav_back">Back</string>
+    <string name="a11y_warning">Warning</string>
     <string name="nav_settings">Settings</string>
 
     <!-- ソートオプション -->
