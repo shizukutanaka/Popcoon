@@ -202,6 +202,7 @@
     <string name="prediction_confidence">信頼度: %1$s</string>
     <string name="prediction_7d">7日後の予測</string>
     <string name="prediction_30d">30日後の予測</string>
+    <string name="prediction_seasonal_7d">季節予測(7日後)</string>
     <string name="prediction_historic_low">過去最安 %1$s</string>
     <string name="prediction_historic_high">過去最高 %1$s</string>
     <string name="tco_title">総保有コスト (%1$d年)</string>

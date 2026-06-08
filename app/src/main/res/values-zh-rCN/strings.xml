@@ -181,6 +181,7 @@
     <string name="prediction_confidence">置信度: %1$s</string>
     <string name="prediction_7d">7天后预测</string>
     <string name="prediction_30d">30天后预测</string>
+    <string name="prediction_seasonal_7d">季节预测（7天后）</string>
     <string name="prediction_historic_low">历史最低 %1$s</string>
     <string name="prediction_historic_high">历史最高 %1$s</string>
     <string name="tco_title">总拥有成本 (%1$d年)</string>

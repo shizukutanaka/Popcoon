@@ -68,6 +68,14 @@ fun PricePredictionCard(
                 price = prediction.predicted30d,
                 margin = prediction.predictionMargin,
             )
+            // A1: 季節分解予測（週次パターンがある商品で精度向上、PORTING_SPEC.md A1）
+            if (prediction.seasonalForecast7d > 0L) {
+                PredictionRow(
+                    label = stringResource(R.string.prediction_seasonal_7d),
+                    price = prediction.seasonalForecast7d,
+                    margin = 0L,
+                )
+            }
 
             // 過去レンジも併記
             Row(

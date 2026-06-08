@@ -186,6 +186,7 @@
     <string name="prediction_confidence">Confidence: %1$s</string>
     <string name="prediction_7d">In 7 days</string>
     <string name="prediction_30d">In 30 days</string>
+    <string name="prediction_seasonal_7d">Seasonal Forecast (7d)</string>
     <string name="prediction_historic_low">Lowest %1$s</string>
     <string name="prediction_historic_high">Highest %1$s</string>
     <string name="tco_title">Total Cost of Ownership (%1$d yr)</string>

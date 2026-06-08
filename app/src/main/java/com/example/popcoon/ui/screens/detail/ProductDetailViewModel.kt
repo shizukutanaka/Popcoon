@@ -8,6 +8,7 @@ import com.example.popcoon.data.model.Product
 import com.example.popcoon.data.repository.IProductRepository
 import com.example.popcoon.feature.ai.BuyingAdvisor
 import com.example.popcoon.feature.darkpattern.DarkPatternDetector
+import com.example.popcoon.feature.darkpattern.DarkPatternTextDetector
 import com.example.popcoon.feature.prediction.PricePredictionEngine
 import com.example.popcoon.feature.bundle.BundlePackDetector
 import com.example.popcoon.feature.review.ReviewTrustScorer
@@ -89,20 +90,22 @@ class ProductDetailViewModel @Inject constructor(
                 )
 
                 // 4. ダークパターン検出 (pure function — fast)
-                //    価格系 (履歴ベース) + テキスト系 (fake-scarcity/urgency, arXiv 2411.07441)
+                //    価格系 (履歴ベース) + テキスト系 5カテゴリ (PORTING_SPEC.md #5, arXiv 2411.07441)
                 val priceWarnings = DarkPatternDetector.detect(
                     currentPrice = product.totalPrice,
                     listPrice = product.listPrice.takeIf { it > 0 },
                     history = history,
                 )
-                val textWarnings = DarkPatternDetector.detectInText(product.title)
                 val dripWarning = DarkPatternDetector.detectDripPricing(
                     basePrice = product.realPrice,
                     totalPrice = product.totalPrice,
                 )
-                val warnings = (priceWarnings + textWarnings + listOfNotNull(dripWarning))
+                // テキスト系: 5カテゴリ検出器（URGENCY/SCARCITY/SOCIAL_PROOF/MISDIRECTION/FORCED_ACTION）
+                val textSignals = DarkPatternTextDetector.detect(product.title)
+                val warnings = (priceWarnings + listOfNotNull(dripWarning))
                     .map { "${it.label} (${it.severity.name})" }
                     .toMutableList()
+                warnings += textSignals.map { "${it.evidence} (${it.severity.name})" }
 
                 // レビュー信頼性: LOW なら警告に追加 (サクラ・サンプル不足の注意喚起)
                 val reviewTrust = ReviewTrustScorer.evaluate(product.rating, product.reviewCount)
