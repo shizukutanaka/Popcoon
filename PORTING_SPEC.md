@@ -53,19 +53,24 @@
 - 参照: `popcoon-tdd/proto_cross_mall_cart.py::optimize_basket` / `basket_savings`
 - 仕様: `UNIVERSAL_CART_SPEC.md`。実質単価は `PointSimulator`、同一商品束ねは `ProductMatcher`。
   全探索（`brute_cap` 以下）で厳密最適、超で貪欲。タイブレーク=配送回数最小→決定的。
+- **状態: 移植済み** — `feature/cart/CrossMallCartOptimizer.kt` ＋ `CrossMallCartOptimizerTest.kt`
+  （ゴールデンベクタ）。UX 統合（カート画面、PointSimulator / ProductMatcher との配線）は後続。
 - **パリティ**: items a{amazon:1000, rakuten:900}, b{amazon:1000, rakuten:1300}、
   malls amazon{ship800, free2000}, rakuten{ship800, free5000}:
   → assignment `{0:amazon, 1:amazon}`, total **2000.0**, num_malls **1**, shipping **0**, coupon **0**。
   （単品最安は両方 rakuten 寄りだが、amazon 集約で送料無料ラインに到達して総額最小）
 
-## 5. ダークパターン UIテキスト検出 → `feature/darkpattern/DarkPatternDetector.kt`
+## 5. ダークパターン UIテキスト検出 → `feature/darkpattern/DarkPatternTextDetector.kt`
 - 参照: `popcoon-tdd/proto_darkpattern_signals.py::detect_dark_patterns`
-- 仕様: `DARKPATTERN_EXPOSE_SPEC.md`。価格系（既存）にテキスト系（URGENCY/SCARCITY/
-  SOCIAL_PROOF/MISDIRECTION/FORCED_ACTION）を合流。出力は category 昇順・各カテゴリ最大1件。
-  `ui/a11y/AccessibilityExt.kt` に新カテゴリの a11y ラベルを追加。
+- 仕様: `DARKPATTERN_EXPOSE_SPEC.md`。価格系（既存 DarkPatternDetector）とは独立した新クラスで
+  テキスト系（URGENCY/SCARCITY/SOCIAL_PROOF/MISDIRECTION/FORCED_ACTION）を実装。
+  出力は category 昇順・各カテゴリ最大1件。
+- **状態: 移植済み** — `feature/darkpattern/DarkPatternTextDetector.kt` ＋
+  `DarkPatternTextDetectorTest.kt`（ゴールデンベクタ）。
+  既存 DarkPatternDetector への合流・a11y ラベル追加は後続。
 - **パリティ**（入力 `"本日限り！残り3点。8人がカートに入れました"`）:
   ```
-  [ {SCARCITY, "残り3点", HIGH}, {SOCIAL_PROOF, "8人がカート", MEDIUM}, {URGENCY, "本日限り", MEDIUM} ]
+  [ {SCARCITY, "残り3点", HIGH}, {SOCIAL_PROOF, "8人がカートに入れました", MEDIUM}, {URGENCY, "本日限り", MEDIUM} ]
   ```
 
 ---
