@@ -1,7 +1,6 @@
 package com.example.popcoon.ui.screens.detail
 
 import com.example.popcoon.data.model.Product
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 画面間で Product を受け渡すためのインメモリキャッシュ。
@@ -20,15 +19,16 @@ import java.util.concurrent.ConcurrentHashMap
  *    - 取得後は削除しメモリリーク防止
  *    - キャッシュミス時は productKey からフォールバック構築 (既存ロジック)
  *
- * スレッド安全性: ConcurrentHashMap で複数遷移を保護。
+ * スレッド安全性:
+ *  @Synchronized で check-then-act を原子化。LinkedHashMap で挿入順 FIFO を保証。
  */
 object ProductNavCache {
-    private val cache = ConcurrentHashMap<String, Product>()
+    private val cache = LinkedHashMap<String, Product>()
     private const val MAX_ENTRIES = 20
 
     /** 遷移前に Product を登録 */
+    @Synchronized
     fun put(product: Product) {
-        // 上限超過時は最古を捨てる (FIFO 近似、厳密 LRU 不要)
         if (cache.size >= MAX_ENTRIES) {
             cache.keys.firstOrNull()?.let { cache.remove(it) }
         }
@@ -36,8 +36,10 @@ object ProductNavCache {
     }
 
     /** 遷移後に取り出し、同時に削除 (1 回限り) */
+    @Synchronized
     fun consume(key: String): Product? = cache.remove(key)
 
     /** テスト用 */
+    @Synchronized
     fun clear() = cache.clear()
 }

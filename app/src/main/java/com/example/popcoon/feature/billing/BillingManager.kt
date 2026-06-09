@@ -77,6 +77,7 @@ class BillingManager(private val context: Context) {
 
         return suspendCancellableCoroutine { cont ->
             billingClient.queryProductDetailsAsync(params) { result, details ->
+                if (!cont.isActive) return@queryProductDetailsAsync
                 if (result.responseCode == BillingClient.BillingResponseCode.OK) {
                     cont.resume(details)
                 } else {

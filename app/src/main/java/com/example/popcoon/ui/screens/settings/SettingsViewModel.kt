@@ -90,7 +90,7 @@ class SettingsViewModel @Inject constructor(
             } ?: offers.firstOrNull()
 
             if (monthlyOffer != null) {
-                b.launchBillingFlow(activity, monthlyOffer)
+                b.launchPurchase(activity, monthlyOffer)
             }
         }
     }

@@ -12,6 +12,7 @@ import com.example.popcoon.feature.matching.ProductMatcher
 import com.example.popcoon.feature.scorer.BuyTimingScorer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -59,6 +60,9 @@ class SearchViewModel @Inject constructor(
 
     private val queryFlow = MutableStateFlow("")
 
+    /** 進行中の検索ジョブ。新しいクエリで前の検索をキャンセルする。 */
+    private var searchJob: Job? = null
+
     init {
         // バーコードスキャン結果受け取り
         savedStateHandle.get<String>("barcode_query")?.let { barcodeQuery ->
@@ -80,7 +84,8 @@ class SearchViewModel @Inject constructor(
             .distinctUntilChanged()
             .onEach { q ->
                 updateSuggestions(q)
-                performSearch(q)
+                searchJob?.cancel()
+                searchJob = viewModelScope.launch { performSearch(q) }
             }
             .launchIn(viewModelScope)
     }

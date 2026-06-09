@@ -42,7 +42,7 @@ class MainActivity : ComponentActivity() {
             Intent.ACTION_SEND -> {
                 if (intent.type == "text/plain") {
                     val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: return
-                    val url = UrlClassifier.extractUrl(text) ?: text
+                    val url = UrlClassifier.extractUrl(text) ?: return
                     val classified = UrlClassifier.classify(url) ?: return
                     _intentEvent.value = IntentEvent.OpenProduct(
                         productKey = "${classified.platform.id}:${classified.sku}",

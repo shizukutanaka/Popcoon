@@ -2,7 +2,6 @@ package com.example.popcoon.feature.ai
 
 import com.example.popcoon.data.model.Product
 import com.example.popcoon.feature.scorer.BuyTimingScorer
-import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -31,7 +30,7 @@ class AdviceCache @Inject constructor() {
         val createdAt: Long = System.currentTimeMillis(),
     )
 
-    private val cache = ConcurrentHashMap<String, Entry>()
+    private val cache = HashMap<String, Entry>()
     private val maxSize = 100
     private val ttlMillis = 24L * 60 * 60 * 1000  // 24時間
 
@@ -45,6 +44,7 @@ class AdviceCache @Inject constructor() {
         return "${product.key}|$scoreBucket|$verdict"
     }
 
+    @Synchronized
     fun get(product: Product, score: BuyTimingScorer.Score): String? {
         val key = keyOf(product, score)
         val entry = cache[key] ?: return null
@@ -55,18 +55,14 @@ class AdviceCache @Inject constructor() {
         return entry.advice
     }
 
+    @Synchronized
     fun put(product: Product, score: BuyTimingScorer.Score, advice: String) {
         val key = keyOf(product, score)
         cache[key] = Entry(advice = advice)
-        evictIfNeeded()
-    }
-
-    @Synchronized
-    private fun evictIfNeeded() {
-        if (cache.size <= maxSize) return
-        // 最も古いエントリを削除 (LRU 近似)
-        val oldest = cache.entries.minByOrNull { it.value.createdAt } ?: return
-        cache.remove(oldest.key)
+        if (cache.size > maxSize) {
+            val oldest = cache.entries.minByOrNull { it.value.createdAt } ?: return
+            cache.remove(oldest.key)
+        }
     }
 
     fun clear() {

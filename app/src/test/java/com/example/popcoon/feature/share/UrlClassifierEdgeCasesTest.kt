@@ -92,4 +92,17 @@ class UrlClassifierEdgeCasesTest : StringSpec({
         // 小文字含む → 不一致
         UrlClassifier.classify("https://www.amazon.co.jp/dp/b0lower1234").shouldBeNull()
     }
+
+    "extractUrl: 2049文字の URL は上限 2048 文字で切り詰められる" {
+        val longUrl = "https://www.amazon.co.jp/dp/B0TEST1234/" + "x".repeat(2100)
+        val extracted = UrlClassifier.extractUrl(longUrl)
+        // 上限 2048 文字: 先頭 "https://..." から最大 2048 文字の \S+ にマッチ
+        extracted?.length shouldBe 2048
+    }
+
+    "extractUrl: URL なしテキストは null (raw-text フォールバックなし)" {
+        UrlClassifier.extractUrl("これは商品説明です。URLはありません。").shouldBeNull()
+        UrlClassifier.extractUrl("").shouldBeNull()
+        UrlClassifier.extractUrl("ランダム文字列1234").shouldBeNull()
+    }
 })

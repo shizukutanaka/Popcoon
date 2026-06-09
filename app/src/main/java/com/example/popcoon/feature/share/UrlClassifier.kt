@@ -84,10 +84,8 @@ object UrlClassifier {
      * 共有された文字列から URL を抽出 (テキストに混じった URL を救出)。
      * Twitter共有などでは「商品名 + URL」形式の場合あり。
      */
-    fun extractUrl(text: String): String? {
-        val pattern = Regex("""https?://[^\s]+""")
-        return pattern.find(text)?.value
-    }
+    fun extractUrl(text: String): String? =
+        Regex("""https?://\S{1,2048}""").find(text)?.value
 
     private fun String.removeQuery(): String =
         substringBefore('?').substringBefore('#')
