@@ -4,8 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.WifiOff
+import com.example.popcoon.ui.theme.AppIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,6 +17,7 @@ import com.example.popcoon.ui.theme.Spacing
 import com.example.popcoon.ui.theme.IconSize
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.example.popcoon.ui.util.ConnectivityObserver
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,7 +37,7 @@ import javax.inject.Inject
  */
 @Composable
 fun OfflineBanner(viewModel: OfflineBannerViewModel = hiltViewModel()) {
-    val isOffline by viewModel.isOffline.collectAsState()
+    val isOffline by viewModel.isOffline.collectAsStateWithLifecycle()
 
     AnimatedVisibility(
         visible = isOffline,
@@ -54,7 +54,7 @@ fun OfflineBanner(viewModel: OfflineBannerViewModel = hiltViewModel()) {
                 horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
                 Icon(
-                    Icons.Default.WifiOff,
+                    AppIcons.Offline,
                     contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier.size(IconSize.sm),

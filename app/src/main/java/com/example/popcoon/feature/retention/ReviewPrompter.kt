@@ -28,15 +28,22 @@ import java.util.concurrent.TimeUnit
 class ReviewPrompter @Inject constructor(
     private val prefs: UserPreferences,
 ) {
-    private val minSuccessCount = 5
-    private val reCooldownMs = TimeUnit.DAYS.toMillis(90)
+    companion object {
+        const val MIN_SUCCESS_COUNT = 5
+        val COOLDOWN_MS: Long = TimeUnit.DAYS.toMillis(90)
+
+        /** Context 非依存の純関数 — テストで直接呼ぶ。 */
+        fun shouldRequestNow(successCount: Int, lastReviewMs: Long, nowMs: Long): Boolean {
+            if (successCount < MIN_SUCCESS_COUNT) return false
+            if (nowMs - lastReviewMs < COOLDOWN_MS) return false
+            return true
+        }
+    }
 
     suspend fun shouldRequest(): Boolean {
         val count = prefs.successCount.first()
-        if (count < minSuccessCount) return false
         val last = prefs.lastReviewRequest.first()
-        if (System.currentTimeMillis() - last < reCooldownMs) return false
-        return true
+        return shouldRequestNow(count, last, System.currentTimeMillis())
     }
 
     /**

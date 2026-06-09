@@ -163,7 +163,7 @@ class PriceSyncWorker @AssistedInject constructor(
     }
 
     companion object {
-        private const val WORK_NAME = "price_sync_daily"
+        internal const val WORK_NAME = "price_sync_daily"
         /** 1回の同期で送る通知の上限 (過剰通知防止 — arXiv PMC8523513) */
         private const val MAX_NOTIFICATIONS = 3
         /** 通知する最小値下がり率 (微小変動のノイズ通知を抑制 — arXiv 2509.02458) */

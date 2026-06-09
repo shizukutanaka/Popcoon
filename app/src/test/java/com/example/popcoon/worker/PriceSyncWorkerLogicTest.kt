@@ -1,71 +1,75 @@
 package com.example.popcoon.worker
 
+import com.example.popcoon.feature.notification.PriceAlertEvaluator
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 
 /**
- * PriceSyncWorker のロジックテスト。
+ * PriceSyncWorker が使う PriceAlertEvaluator の仕様テスト。
  *
- * Context 依存部分は Instrumentation テストに委ね、
- * ここでは純計算ロジックのみを検証。
+ * 本番コード (PriceAlertEvaluator.evaluate) を直接呼ぶことで、
+ * 閾値やロジック変更時の回帰を確実に検出する。
+ * Context 依存部分 (WorkManager 制約・バックオフ) は Instrumentation テストに委ねる。
  */
 class PriceSyncWorkerLogicTest : StringSpec({
 
-    "値下がり率計算: 5000→4000 = 20%" {
-        val prev = 5000L
-        val current = 4000L
-        val dropPct = ((prev - current) * 100 / prev).toInt()
-        dropPct shouldBe 20
-    }
-
-    "値下がり率計算: 1000→999 = 0% (整数 floor)" {
-        val prev = 1000L
-        val current = 999L
-        val dropPct = ((prev - current) * 100 / prev).toInt()
-        dropPct shouldBe 0
-    }
-
-    "値上がり時は dropPct 負 — 通知しない" {
-        val prev = 4000L
-        val current = 5000L
-        val isDropped = current < prev
-        isDropped shouldBe false
-    }
-
-    "同価格: 変化なし" {
-        val prev = 3000L
-        val current = 3000L
-        val isDropped = current < prev
-        isDropped shouldBe false
-    }
-
-    "WORK_NAME は一意識別子" {
-        // Worker の重複登録防止用定数が非空であること
-        val name = "price_sync_daily"  // companion object の値と同じ
-        name.isNotEmpty() shouldBe true
-    }
-
-    "制約: Wi-Fi Only + Battery Not Low + Storage Not Low" {
-        // 制約がコードに正しく設定されていることの文書化テスト
-        // 実際の Constraints はビルド時に検証される
-        // ここでは設計意図の文書化
-        val constraints = mapOf(
-            "networkType" to "UNMETERED",
-            "batteryNotLow" to true,
-            "storageNotLow" to true,
+    "5000→4000 (20%) は MIN_DROP=3% を超えるため PRICE_DROP" {
+        val alert = PriceAlertEvaluator.evaluate(
+            previousPrice = 5000L,
+            latestPrice = 4000L,
+            targetPrice = null,
+            minDropPercent = 3,
         )
-        constraints["networkType"] shouldBe "UNMETERED"
-        constraints["batteryNotLow"] shouldBe true
-        constraints["storageNotLow"] shouldBe true
+        alert.kind shouldBe PriceAlertEvaluator.Kind.PRICE_DROP
+        alert.dropPercent shouldBe 20
+        alert.shouldNotify shouldBe true
     }
 
-    "指数バックオフ: 30s → 60s → 120s" {
-        val baseMs = 30_000L
-        val first = baseMs * 1        // 30s
-        val second = baseMs * 2       // 60s
-        val third = baseMs * 4        // 120s
-        first shouldBe 30_000L
-        second shouldBe 60_000L
-        third shouldBe 120_000L
+    "1000→999 (0%, 整数 floor) は MIN_DROP=3% 未満 → NONE" {
+        val alert = PriceAlertEvaluator.evaluate(
+            previousPrice = 1000L,
+            latestPrice = 999L,
+            targetPrice = null,
+            minDropPercent = 3,
+        )
+        alert.kind shouldBe PriceAlertEvaluator.Kind.NONE
+        alert.shouldNotify shouldBe false
+    }
+
+    "値上がり → NONE (通知しない)" {
+        val alert = PriceAlertEvaluator.evaluate(
+            previousPrice = 4000L,
+            latestPrice = 5000L,
+            targetPrice = null,
+            minDropPercent = 3,
+        )
+        alert.kind shouldBe PriceAlertEvaluator.Kind.NONE
+        alert.shouldNotify shouldBe false
+    }
+
+    "同価格 → NONE" {
+        val alert = PriceAlertEvaluator.evaluate(
+            previousPrice = 3000L,
+            latestPrice = 3000L,
+            targetPrice = null,
+            minDropPercent = 3,
+        )
+        alert.kind shouldBe PriceAlertEvaluator.Kind.NONE
+        alert.shouldNotify shouldBe false
+    }
+
+    "targetPrice 到達は dropPercent 未満でも TARGET_REACHED (優先)" {
+        val alert = PriceAlertEvaluator.evaluate(
+            previousPrice = 5000L,
+            latestPrice = 4900L,
+            targetPrice = 5000L,  // 目標を下回った
+            minDropPercent = 10,  // 2% 値下がりだが 10% 未満
+        )
+        alert.kind shouldBe PriceAlertEvaluator.Kind.TARGET_REACHED
+        alert.shouldNotify shouldBe true
+    }
+
+    "WORK_NAME は一意識別子 (非空)" {
+        PriceSyncWorker.WORK_NAME.isNotEmpty() shouldBe true
     }
 })

@@ -24,6 +24,7 @@ import com.example.popcoon.ui.theme.AppIcons
 import com.example.popcoon.ui.theme.CornerRadius
 import com.example.popcoon.ui.theme.Spacing
 import com.example.popcoon.ui.util.HapticFeedback
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 
 /**
@@ -43,9 +44,9 @@ fun WatchlistScreen(
     onGoSearch: () -> Unit = {},
     viewModel: WatchlistViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
-    val items by viewModel.items.collectAsState(initial = emptyList())
-    val smartCart by viewModel.smartCart.collectAsState()
-    val sortMode by viewModel.sortMode.collectAsState(initial = WatchlistSort.Mode.ADDED_DESC)
+    val items by viewModel.items.collectAsStateWithLifecycle(initialValue = emptyList())
+    val smartCart by viewModel.smartCart.collectAsStateWithLifecycle()
+    val sortMode by viewModel.sortMode.collectAsStateWithLifecycle(initialValue = WatchlistSort.Mode.ADDED_DESC)
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current

@@ -10,13 +10,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
+import com.example.popcoon.ui.theme.AppIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -48,10 +46,10 @@ fun SearchScreen(
     onBarcode: () -> Unit = {},
     viewModel: SearchViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
-    val vmQuery by viewModel.currentQuery.collectAsState()
-    val suggestions by viewModel.suggestions.collectAsState()
-    val recentSearches by viewModel.recentSearches.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val vmQuery by viewModel.currentQuery.collectAsStateWithLifecycle()
+    val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
+    val recentSearches by viewModel.recentSearches.collectAsStateWithLifecycle()
     var query by remember { mutableStateOf("") }
     var showSuggestions by remember { mutableStateOf(false) }
 
@@ -74,10 +72,10 @@ fun SearchScreen(
                     showSuggestions = true
                 },
                 placeholder = { Text(stringResource(R.string.search_hint)) },
-                leadingIcon = { Icon(Icons.Default.Search, null) },
+                leadingIcon = { Icon(AppIcons.Search, null) },
                 trailingIcon = {
                     IconButton(onClick = onBarcode) {
-                        Icon(Icons.Default.PhotoCamera, contentDescription = stringResource(R.string.barcode_scan))
+                        Icon(AppIcons.Barcode, contentDescription = stringResource(R.string.barcode_scan))
                     }
                 },
                 modifier = Modifier.weight(1f),
@@ -85,7 +83,7 @@ fun SearchScreen(
             )
             Spacer(Modifier.width(Spacing.ml))
             IconButton(onClick = onWatchlist) {
-                Icon(Icons.Default.Star, contentDescription = stringResource(R.string.nav_watchlist))
+                Icon(AppIcons.Save, contentDescription = stringResource(R.string.nav_watchlist))
             }
         }
 

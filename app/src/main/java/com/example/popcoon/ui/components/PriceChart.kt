@@ -62,11 +62,10 @@ fun PriceChart(
         return
     }
 
-    val sorted = records.sortedBy { it.recordedAt }
-    val prices = sorted.map { it.realPrice }
-    val minPrice = prices.min()
-    val maxPrice = prices.max()
-    val range = (maxPrice - minPrice).coerceAtLeast(1L)
+    val sorted = remember(records) { records.sortedBy { it.recordedAt } }
+    val minPrice = remember(sorted) { sorted.minOf { it.realPrice } }
+    val maxPrice = remember(sorted) { sorted.maxOf { it.realPrice } }
+    val range = remember(minPrice, maxPrice) { (maxPrice - minPrice).coerceAtLeast(1L) }
 
     Surface(
         modifier = modifier.fillMaxWidth().height(Spacing.chart),

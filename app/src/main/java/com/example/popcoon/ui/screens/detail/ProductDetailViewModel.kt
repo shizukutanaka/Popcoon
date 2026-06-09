@@ -19,6 +19,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -157,12 +158,13 @@ class ProductDetailViewModel @Inject constructor(
 
                 // 6. AI advice をキャッシュ確認 → 必要なら背景取得
                 if (score != null) {
-                    // キャッシュヒット → 即時反映
                     val cached = adviceCache.get(product, score)
                     if (cached != null) {
-                        val cur = _state.value
-                        if (cur is DetailUiState.Loaded) {
-                            _state.value = cur.copy(aiAdvice = cached)
+                        // キャッシュヒット → 即時反映 (_state.update で productKey 一致確認)
+                        _state.update { cur ->
+                            if (cur is DetailUiState.Loaded && cur.product.key == product.key) {
+                                cur.copy(aiAdvice = cached)
+                            } else cur
                         }
                     } else {
                         // キャッシュミス → API call (UI ブロックなし)
@@ -171,9 +173,10 @@ class ProductDetailViewModel @Inject constructor(
                                 advisor.advise(product, score)
                             }.getOrDefault("AI 助言取得失敗")
                             adviceCache.put(product, score, advice)
-                            val cur = _state.value
-                            if (cur is DetailUiState.Loaded) {
-                                _state.value = cur.copy(aiAdvice = advice)
+                            _state.update { cur ->
+                                if (cur is DetailUiState.Loaded && cur.product.key == product.key) {
+                                    cur.copy(aiAdvice = advice)
+                                } else cur
                             }
                         }
                     }

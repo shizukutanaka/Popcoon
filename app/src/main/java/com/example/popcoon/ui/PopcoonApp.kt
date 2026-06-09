@@ -32,6 +32,7 @@ import com.example.popcoon.feature.settings.UserPreferences
 import com.example.popcoon.ui.screens.onboarding.OnboardingScreen
 import com.example.popcoon.ui.theme.PopcoonTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -56,8 +57,8 @@ fun PopcoonApp(
     viewModel: AppRootViewModel = hiltViewModel(),
 ) {
     PopcoonTheme {
-        val state by viewModel.state.collectAsState()
-        val event by initialEvent.collectAsState()
+        val state by viewModel.state.collectAsStateWithLifecycle()
+        val event by initialEvent.collectAsStateWithLifecycle()
 
         Surface(modifier = Modifier.fillMaxSize()) {
             // アニメーション付き状態切り替え (Apple 原則: 状態遷移はスムーズに)

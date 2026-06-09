@@ -5,42 +5,42 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 
 /**
- * 通知ロジックの pure 関数テスト。
+ * LocalNotificationManager の純関数テスト。
  *
- * Android NotificationManager は Context 必須のため Instrumentation に委ね、
- * ここでは ID 衝突防止 / テキスト生成ロジックのみ検証。
+ * 本番コード (LocalNotificationManager.Companion.*) を直接呼ぶことで
+ * フォーマットやリンク形式の変更を確実に検出する。
+ * NotificationManager 本体は Context 依存なので Instrumentation テストに委ねる。
  */
 class NotificationLogicTest : StringSpec({
 
     "異なる productKey は異なる notification ID" {
-        val id1 = "amazon:B0TEST001".hashCode()
-        val id2 = "rakuten:shop:item-123".hashCode()
-        id1 shouldNotBe id2
+        LocalNotificationManager.notificationId("amazon:B0TEST001") shouldNotBe
+            LocalNotificationManager.notificationId("rakuten:shop:item-123")
     }
 
     "同じ productKey は同じ notification ID (更新で上書き)" {
         val key = "amazon:B0SAME"
-        key.hashCode() shouldBe key.hashCode()
+        LocalNotificationManager.notificationId(key) shouldBe
+            LocalNotificationManager.notificationId(key)
     }
 
-    "値下がりテキスト生成: タイトル 20 文字切り詰め" {
-        val title = "これは非常に長い商品タイトルで20文字を超えています"
-        val truncated = title.take(20)
-        truncated.length shouldBe 20
+    "値下がりテキスト: 5000→4000 の形式確認" {
+        LocalNotificationManager.priceAlertText(4000L, 5000L) shouldBe
+            "¥4,000 (前回: ¥5,000)"
     }
 
-    "値下がり率テキスト: 5000→4000" {
-        val prev = 5000L
-        val current = 4000L
-        val dropPct = ((prev - current) * 100 / prev).toInt()
-        val text = "¥${"%,d".format(current)} (前回: ¥${"%,d".format(prev)})"
-        text shouldBe "¥4,000 (前回: ¥5,000)"
-        dropPct shouldBe 20
+    "値下がりテキスト: 3桁区切り" {
+        LocalNotificationManager.priceAlertText(99_800L, 120_000L) shouldBe
+            "¥99,800 (前回: ¥120,000)"
     }
 
-    "Deep Link URI 形式" {
-        val key = "amazon:B0TEST001"
-        val uri = "popcoon://product/$key"
-        uri shouldBe "popcoon://product/amazon:B0TEST001"
+    "Deep Link URI 形式: popcoon://product/{productKey}" {
+        LocalNotificationManager.deepLinkUri("amazon:B0TEST001") shouldBe
+            "popcoon://product/amazon:B0TEST001"
+    }
+
+    "Deep Link URI: platform:sku 形式を維持" {
+        LocalNotificationManager.deepLinkUri("rakuten:shop:item-123") shouldBe
+            "popcoon://product/rakuten:shop:item-123"
     }
 })

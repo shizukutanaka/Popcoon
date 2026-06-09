@@ -3,6 +3,28 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 適用済み (Tier 5: ライフサイクル・テスト品質・UI一貫性・性能の第3回監査)
+
+ライフサイクル/購読・テスト品質・UI アイコン一貫性・再描画性能の 4 観点で再監査。
+
+| # | カテゴリ | 内容 | 重大度 |
+|---|---------|------|--------|
+| 33 | ライフサイクル | `collectAsState` → `collectAsStateWithLifecycle` (6画面・12箇所): バックグラウンド時の購読停止。`lifecycle-runtime-compose 2.8.7` 依存追加 + 全6ファイル移行 | MED |
+| 34 | 並行性/correctness | `ProductDetailViewModel` AI 助言上書きが check-then-set 競合 → `_state.update { cur -> if (cur is Loaded && cur.product.key == product.key) ... }` でアトミック化 | MED |
+| 35 | 性能/Compose | `PriceChart` の `sortedBy`/`min`/`max` がリコンポジション毎に再計算 → `remember(records)` / `remember(sorted)` で key 変化時のみ再計算 | MED |
+| 36 | テスト品質 | `ReviewPrompterLogicTest` がテスト内でロジックを再実装 (回帰検出不能) → `ReviewPrompter.shouldRequestNow()` companion 純関数を抽出してテストが本番呼び出しに | MED |
+| 37 | テスト品質 | `NotificationLogicTest` が通知 ID・テキスト・URI をテスト内で再実装 → `LocalNotificationManager.{notificationId, priceAlertText, deepLinkUri}()` companion 純関数を抽出 | MED |
+| 38 | テスト品質 | `PriceSyncWorkerLogicTest` が値下がり率を直接計算してテスト — `PriceAlertEvaluator.evaluate()` を直接呼ぶテストに書き換え + `WORK_NAME` を `internal` 公開 | LOW |
+| 39 | UI一貫性 | `SearchSuggestions`/`OfflineBanner`/`ProductDetailScreen`/`SearchScreen`/`SettingsScreen` が `Icons.Default.*` を直参照 (AppIcons 方針違反) → 全5ファイルを `AppIcons` 経由に統一 | LOW |
+
+### 今後のバックログ (round 3 で確認、未適用)
+- `HapticFeedbackTest` / `BillingManagerTest`: 定数のみ検証でロジック保護なし。
+  `HapticFeedback` の vibration効果定数は Android API 由来で変更困難。
+  `BillingManager` のSKU/価格はサービス仕様変更時の意図的変更のため現状維持で可。
+- `AccessibilityExt.kt` の `verdictA11yLabel` / `darkPatternA11yLabel`: 現状は
+  Kotlin 文字列定数で多言語非対応。非 Composable 関数のため `Context.getString()` を
+  呼ぶ設計変更が必要 (シグネチャ破壊あり) — 要設計検討。
+
 ## 適用済み (Tier 4: 並行性・性能・テスト品質の徹底監査)
 
 ビルド/マニフェスト/セキュリティ設定・並行性/ライフサイクル/性能・テスト網羅の

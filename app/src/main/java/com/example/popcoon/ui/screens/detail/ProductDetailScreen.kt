@@ -6,13 +6,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import com.example.popcoon.ui.theme.CornerRadius
 import com.example.popcoon.ui.theme.Spacing
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
+import com.example.popcoon.ui.theme.AppIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalContext
@@ -32,7 +30,7 @@ fun ProductDetailScreen(
     viewModel: ProductDetailViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
     LaunchedEffect(productKey) { viewModel.load(productKey) }
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val warningDesc = stringResource(R.string.a11y_warning)
 
@@ -42,7 +40,7 @@ fun ProductDetailScreen(
                 title = { Text(stringResource(R.string.detail_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.nav_back))
+                        Icon(AppIcons.Back, stringResource(R.string.nav_back))
                     }
                 },
                 actions = {
@@ -54,10 +52,7 @@ fun ProductDetailScreen(
                             viewModel.toggleWatchlist(cur.product)
                         }) {
                             Icon(
-                                if (cur.isInWatchlist)
-                                    Icons.Default.Star
-                                else
-                                    Icons.Default.StarBorder,
+                                if (cur.isInWatchlist) AppIcons.Save else AppIcons.Unsave,
                                 contentDescription = if (cur.isInWatchlist)
                                     stringResource(R.string.detail_saved)
                                 else stringResource(R.string.detail_save),

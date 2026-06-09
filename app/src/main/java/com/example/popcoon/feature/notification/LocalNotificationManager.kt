@@ -25,6 +25,14 @@ import javax.inject.Singleton
 @Singleton
 class LocalNotificationManager @Inject constructor() {
 
+    companion object {
+        /** Context 非依存の純関数 — テストで直接呼ぶ。 */
+        fun notificationId(productKey: String): Int = productKey.hashCode()
+        fun deepLinkUri(productKey: String): String = "popcoon://product/$productKey"
+        fun priceAlertText(currentPrice: Long, previousPrice: Long): String =
+            "¥${"%,d".format(currentPrice)} (前回: ¥${"%,d".format(previousPrice)})"
+    }
+
     fun sendPriceAlert(
         context: Context,
         productKey: String,
