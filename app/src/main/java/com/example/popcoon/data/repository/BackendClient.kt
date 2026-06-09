@@ -16,6 +16,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -73,7 +74,10 @@ class BackendClient @Inject constructor() {
             client.get("$baseUrl/v1/history") {
                 parameter("key", productKey)
             }.body<HistoryResponse>().records
-        }.getOrDefault(emptyList())
+        }.getOrElse { e ->
+            if (e is CancellationException) throw e
+            emptyList()
+        }
     }
 
     /**
@@ -85,7 +89,10 @@ class BackendClient @Inject constructor() {
             client.delete("$baseUrl/v1/device") {
                 header("x-device-token", deviceToken)
             }.status.isSuccess()
-        }.getOrDefault(false)
+        }.getOrElse { e ->
+            if (e is CancellationException) throw e
+            false
+        }
     }
 
     @Serializable
