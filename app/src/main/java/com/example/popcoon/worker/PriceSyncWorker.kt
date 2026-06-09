@@ -25,6 +25,7 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Semaphore
@@ -116,8 +117,9 @@ class PriceSyncWorker @AssistedInject constructor(
                             } else {
                                 null
                             }
-                        }.onFailure {
-                            PopcoonLogger.w(this@PriceSyncWorker, "履歴取得失敗: ${it.message}")
+                        }.onFailure { e ->
+                            if (e is CancellationException) throw e
+                            PopcoonLogger.w(this@PriceSyncWorker, "履歴取得失敗: ${e.message}")
                         }
                     }
                 }
@@ -145,9 +147,13 @@ class PriceSyncWorker @AssistedInject constructor(
             }
 
         // ウィジェット更新
-        runCatching {
+        try {
             val updated = watchlistDao.observeAll().first()
             WidgetUpdater.update(applicationContext, updated)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            PopcoonLogger.w(this, "ウィジェット更新失敗: ${e.message}")
         }
 
         // 値下がりがあれば成功イベントを記録 (ReviewPrompter 用)
