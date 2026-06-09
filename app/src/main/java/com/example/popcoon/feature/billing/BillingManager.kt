@@ -122,7 +122,14 @@ class BillingManager(private val context: Context) {
         if (!purchase.isAcknowledged) {
             val params = AcknowledgePurchaseParams.newBuilder()
                 .setPurchaseToken(purchase.purchaseToken).build()
-            billingClient.acknowledgePurchase(params) { _status.value = PremiumStatus.ACTIVE }
+            billingClient.acknowledgePurchase(params) { result ->
+                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                    _status.value = PremiumStatus.ACTIVE
+                } else {
+                    // ack 失敗 — PENDING のまま次回起動で再試行
+                    _status.value = PremiumStatus.PENDING
+                }
+            }
         } else {
             _status.value = PremiumStatus.ACTIVE
         }

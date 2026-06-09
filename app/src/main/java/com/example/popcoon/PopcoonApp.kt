@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.os.Build
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.example.popcoon.core.PopcoonLogger
 import com.example.popcoon.feature.crash.PrivacyCrashReporter
 import com.example.popcoon.feature.settings.UserPreferences
 import dagger.hilt.android.HiltAndroidApp
@@ -42,6 +43,7 @@ class PopcoonApp : Application(), Configuration.Provider {
             .onEach { enabled ->
                 crashReporter.enabled = enabled
                 if (enabled) runCatching { crashReporter.uploadPendingCrashes() }
+                    .onFailure { PopcoonLogger.w(this@PopcoonApp, "クラッシュレポート送信失敗: ${it.message}") }
             }
             .launchIn(appScope)
     }

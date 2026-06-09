@@ -81,6 +81,8 @@ suspend inline fun <T> apiCallSuspend(crossinline block: suspend () -> T): ApiRe
         ApiResult.Failure(ApiError.Network(e))
     } catch (e: kotlinx.serialization.SerializationException) {
         ApiResult.Failure(ApiError.ParseFailed(e))
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e  // コルーチンのキャンセルは上位に伝播させる (捕捉してはならない)
     } catch (e: Exception) {
         ApiResult.Failure(ApiError.Unknown(e))
     }
