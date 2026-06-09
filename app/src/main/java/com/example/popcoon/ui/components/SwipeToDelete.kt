@@ -51,6 +51,7 @@ fun SwipeToDelete(
         label = "swipeOffset",
     )
     var visible by remember { mutableStateOf(true) }
+    var deleteTriggered by remember { mutableStateOf(false) }
 
     AnimatedVisibility(
         visible = visible,
@@ -85,11 +86,12 @@ fun SwipeToDelete(
                             offsetX = (offsetX + delta).coerceIn(threshold, 0f)
                         },
                         onDragStopped = {
-                            if (offsetX < threshold / 2) {
-                                // 閾値超えで削除実行
+                            if (offsetX < threshold / 2 && !deleteTriggered) {
+                                // 閾値超えで削除実行 (二重発火ガード付き)
+                                deleteTriggered = true
                                 visible = false
                                 onDelete()
-                            } else {
+                            } else if (!deleteTriggered) {
                                 // 戻す
                                 offsetX = 0f
                             }

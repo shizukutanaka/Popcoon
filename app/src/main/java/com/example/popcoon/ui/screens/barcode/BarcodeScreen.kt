@@ -54,7 +54,7 @@ fun BarcodeScreen(
         scanner.bind(activity)
         scanState = ScanState.Scanning
 
-        val task = scanner.startScan() ?: run {
+        val task = runCatching { scanner.startScan() }.getOrElse {
             scanState = ScanState.Error(context.getString(R.string.barcode_unavailable))
             return@LaunchedEffect
         }

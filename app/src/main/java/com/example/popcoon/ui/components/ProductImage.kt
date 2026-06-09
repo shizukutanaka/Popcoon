@@ -34,6 +34,7 @@ fun ProductImage(
     platformEmoji: String = "🛒",
     size: Dp = 60.dp,
     cornerRadius: Dp = CornerRadius.card,
+    contentDescription: String? = null,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -49,7 +50,7 @@ fun ProductImage(
         } else {
             SubcomposeAsyncImage(
                 model = imageUrl,
-                contentDescription = null,
+                contentDescription = contentDescription,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
             ) {

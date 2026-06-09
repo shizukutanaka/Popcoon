@@ -176,6 +176,9 @@ class PrivacyCrashReporter(
                     setBody(report)
                 }
             }.onSuccess { file.delete() }
+             .onFailure { e ->
+                 if (e is kotlinx.coroutines.CancellationException) throw e
+             }
         }
     }
 
