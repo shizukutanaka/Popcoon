@@ -6,20 +6,10 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldStartWith
 
 /**
- * CSV エクスポートのエスケープロジックをリフレクションでテスト。
+ * CSV エクスポートのエスケープロジックをテスト (生産コードを直接呼び出す)。
  * Context 不要な純粋ロジック部分のみを検証する。
  */
 class CsvEscapeTest : StringSpec({
-
-    // PriceHistoryCsvExporter.csvEscape() は private なので
-    // 同じロジックをここで再現してテスト (=仕様の文書化)
-
-    val formulaTriggers = "=+-@\t\r"
-    fun String.csvEscape(): String {
-        val guarded = if (isNotEmpty() && first() in formulaTriggers) "'$this" else this
-        val escaped = guarded.replace("\"", "\"\"")
-        return "\"$escaped\""
-    }
 
     "通常文字列はクォートで囲む" {
         "テスト商品".csvEscape() shouldBe "\"テスト商品\""

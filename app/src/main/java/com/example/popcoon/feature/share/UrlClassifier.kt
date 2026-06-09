@@ -69,7 +69,8 @@ object UrlClassifier {
         // Yahoo!ショッピング
         YAHOO_PATTERN.find(url)?.let { m ->
             val store = m.groupValues[1]
-            val code = m.groupValues[2]
+            // .html 拡張子を除去: canonical URL で再付与するためキャプチャ群に含めない
+            val code = m.groupValues[2].removeSuffix(".html")
             return ClassifiedUrl(
                 platform = Platform.YAHOO,
                 sku = "$store:$code",

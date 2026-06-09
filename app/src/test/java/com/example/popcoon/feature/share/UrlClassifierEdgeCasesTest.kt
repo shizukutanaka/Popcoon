@@ -15,22 +15,22 @@ import io.kotest.property.checkAll
  */
 class UrlClassifierEdgeCasesTest : StringSpec({
 
-    "Amazon モバイル URL: m.amazon.co.jp" {
-        // モバイル版でも正規表現は amazon.co.jp で一致する
+    "Amazon モバイル URL: m.amazon.co.jp もマッチする" {
+        // regex は amazon.co.jp をサブストリングとして検索するため m. prefix も一致する
         val result = UrlClassifier.classify(
             "https://m.amazon.co.jp/dp/B0CTEST9999"
         )
-        // m.amazon.co.jp は現在のregex で対象外なので null
-        // (本番ではmobile prefix を扱うか確認)
-        result?.platform shouldBe result?.platform  // 任意でOK
+        result.shouldNotBeNull()
+        result.platform shouldBe Platform.AMAZON
+        result.sku shouldBe "B0CTEST9999"
     }
 
-    "Amazon URL with スマホ国際版" {
+    "Amazon URL: www. なしでもマッチする" {
         val result = UrlClassifier.classify(
             "https://amazon.co.jp/dp/B0SMARTPHONE"
         )
-        // www. がない場合: 現在のregex で動作するか
-        result?.sku shouldBe result?.sku  // 動作する場合は B0SMARTPHONE
+        result.shouldNotBeNull()
+        result.sku shouldBe "B0SMARTPHONE"
     }
 
     "楽天 URL: 末尾スラッシュなし" {
@@ -49,12 +49,23 @@ class UrlClassifierEdgeCasesTest : StringSpec({
         r.sku shouldBe "myshop:item-99"
     }
 
-    "Yahoo 既存 URL バリエーション" {
+    "Yahoo URL: .html 拡張子は SKU に含まれない (double-.html regression)" {
         val r = UrlClassifier.classify(
             "https://store.shopping.yahoo.co.jp/teststore/abc-123.html"
         )
         r.shouldNotBeNull()
         r.platform shouldBe Platform.YAHOO
+        r.sku shouldBe "teststore:abc-123"
+        r.canonicalUrl shouldBe "https://store.shopping.yahoo.co.jp/teststore/abc-123.html"
+    }
+
+    "Yahoo URL: 拡張子なし商品コードもそのまま取得できる" {
+        val r = UrlClassifier.classify(
+            "https://store.shopping.yahoo.co.jp/myshop/item-456"
+        )
+        r.shouldNotBeNull()
+        r.sku shouldBe "myshop:item-456"
+        r.canonicalUrl shouldBe "https://store.shopping.yahoo.co.jp/myshop/item-456.html"
     }
 
     "Twitter共有テキスト: 商品名 + URL の混在" {

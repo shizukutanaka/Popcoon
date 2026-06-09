@@ -38,7 +38,6 @@ class DatabaseIntegrityTest : StringSpec({
             // addedAt をデフォルト値 (現在時刻) で生成
         )
         // addedAt は Instant.now() なので now 以上のはず
-        item.addedAt shouldBe item.addedAt  // non-null
         (item.addedAt >= now - 1000L) shouldBe true
         // v2/v3 で追加したカラムの既定値
         (item.targetPrice == null) shouldBe true
