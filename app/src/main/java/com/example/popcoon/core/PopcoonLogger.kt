@@ -43,13 +43,19 @@ object PopcoonLogger {
 
     private fun log(level: Level, tag: String, message: String, throwable: Throwable?) {
         if (level.priority < minLevel.priority) return
-        val sanitized = sanitize(message)
+        // throwable のスタックトレース/例外メッセージにも PII/秘密が混入し得るため、
+        // 生の Throwable を渡さず、サニタイズしたテキストとして連結する。
+        val sanitized = if (throwable != null) {
+            sanitize(message) + "\n" + sanitize(throwable.stackTraceToString())
+        } else {
+            sanitize(message)
+        }
         when (level) {
-            Level.VERBOSE -> Log.v(tag, sanitized, throwable)
-            Level.DEBUG -> Log.d(tag, sanitized, throwable)
-            Level.INFO -> Log.i(tag, sanitized, throwable)
-            Level.WARN -> Log.w(tag, sanitized, throwable)
-            Level.ERROR -> Log.e(tag, sanitized, throwable)
+            Level.VERBOSE -> Log.v(tag, sanitized)
+            Level.DEBUG -> Log.d(tag, sanitized)
+            Level.INFO -> Log.i(tag, sanitized)
+            Level.WARN -> Log.w(tag, sanitized)
+            Level.ERROR -> Log.e(tag, sanitized)
         }
     }
 

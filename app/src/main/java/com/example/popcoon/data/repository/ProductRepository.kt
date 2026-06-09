@@ -10,7 +10,6 @@ import com.example.popcoon.data.network.YahooClient
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import javax.inject.Inject
-import javax.inject.Singleton
 import com.example.popcoon.core.PopcoonLogger
 
 /**
@@ -22,12 +21,14 @@ import com.example.popcoon.core.PopcoonLogger
  *  - エラー時は他プラットフォーム結果を返す
  *  - 価格履歴を backend (Cloudflare Workers) に追記
  */
-@Singleton
 /**
  * ProductRepository のインターフェース。
  *
  * テスト時に FakeProductRepository で差し替え可能にする。
  * (Robert C. Martin: 依存性逆転の原則)
+ *
+ * スコープ (@Singleton) は NetworkModule.provideProductRepository 側で付与する。
+ * インターフェースに @Singleton を付けても無意味なため置かない。
  */
 interface IProductRepository {
     suspend fun search(keyword: String, limit: Int = 10): List<Product>
