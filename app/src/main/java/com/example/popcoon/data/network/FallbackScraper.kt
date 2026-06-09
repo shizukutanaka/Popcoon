@@ -155,7 +155,7 @@ class FallbackScraper {
         )
     }
 
-    private fun extractJsonString(json: String, key: String): String? {
+    internal fun extractJsonString(json: String, key: String): String? {
         // キーごとに Regex を 1 度だけコンパイルしてキャッシュする (name/price/image 等の固定キー)。
         // (?:[^"\\]|\\.)*: バックスラッシュエスケープ (\", \\) を含む値に対応。
         // [^"\\] (シングルクォートを除外しない) により "John's Store" のようなアポストロフィ入り値も正しく抽出。

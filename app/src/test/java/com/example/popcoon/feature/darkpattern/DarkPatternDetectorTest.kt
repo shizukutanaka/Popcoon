@@ -37,6 +37,20 @@ class DarkPatternDetectorTest : StringSpec({
         w.any { it.type == DarkPatternDetector.WarningType.ALWAYS_ON_DISCOUNT } shouldBe false
     }
 
+    "ちょうど90%が定価未満 → 常設セール非検出 (境界値: > 0.90 なので90%は対象外 / Python oracle 一致)" {
+        val prices = List(27) { 3000L } + List(3) { 5000L }  // 27/30 = 0.90 ぴったり
+        val h = history(prices, listPrice = 5000L)
+        val w = DarkPatternDetector.detect(3000L, 5000L, h)
+        w.any { it.type == DarkPatternDetector.WarningType.ALWAYS_ON_DISCOUNT } shouldBe false
+    }
+
+    "91%超が定価未満 → 常設セール検出 (境界値超え)" {
+        val prices = List(28) { 3000L } + List(2) { 5000L }  // 28/30 = 93.3%
+        val h = history(prices, listPrice = 5000L)
+        val w = DarkPatternDetector.detect(3000L, 5000L, h)
+        w.any { it.type == DarkPatternDetector.WarningType.ALWAYS_ON_DISCOUNT } shouldBe true
+    }
+
     "履歴29件以下 → 常設セール判定しない" {
         val h = history(List(29) { 3000L }, listPrice = 5000L)
         val w = DarkPatternDetector.detect(3000L, 5000L, h)
