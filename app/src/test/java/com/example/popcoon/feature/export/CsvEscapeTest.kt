@@ -14,8 +14,10 @@ class CsvEscapeTest : StringSpec({
     // PriceHistoryCsvExporter.csvEscape() は private なので
     // 同じロジックをここで再現してテスト (=仕様の文書化)
 
+    val formulaTriggers = "=+-@\t\r"
     fun String.csvEscape(): String {
-        val escaped = replace("\"", "\"\"")
+        val guarded = if (isNotEmpty() && first() in formulaTriggers) "'$this" else this
+        val escaped = guarded.replace("\"", "\"\"")
         return "\"$escaped\""
     }
 
@@ -56,5 +58,21 @@ class CsvEscapeTest : StringSpec({
 
     "Amazon の ASIN をそのままキーとして使える" {
         "amazon:B0CTEST001".csvEscape() shouldBe "\"amazon:B0CTEST001\""
+    }
+
+    // ── CSV インジェクション対策 (数式起動文字の前置クォート) ──────────────────
+    "= で始まる商品名は ' を前置 (数式実行を防止)" {
+        "=HYPERLINK(\"evil\")".csvEscape() shouldStartWith "\"'="
+    }
+
+    "+ - @ で始まるフィールドも ' を前置" {
+        "+1".csvEscape() shouldBe "\"'+1\""
+        "-cmd".csvEscape() shouldBe "\"'-cmd\""
+        "@SUM".csvEscape() shouldBe "\"'@SUM\""
+    }
+
+    "数式起動文字を含まない通常フィールドは前置しない" {
+        "テスト商品".csvEscape() shouldBe "\"テスト商品\""
+        "amazon:B0X".csvEscape() shouldBe "\"amazon:B0X\""
     }
 })

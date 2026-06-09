@@ -11,10 +11,6 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -61,7 +57,7 @@ class PrivacyCrashReporter(
         }
     }
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val json = Json { ignoreUnknownKeys = true; explicitNulls = false }
     private val sessionId = generateSessionId()
 
     /** ユーザーが設定で有効化した場合のみ true */
@@ -70,19 +66,37 @@ class PrivacyCrashReporter(
     /**
      * インストール時の Application.onCreate() で呼ぶ。
      * UncaughtExceptionHandler を仕掛ける。
+     *
+     * 設計: クラッシュ時点ではプロセスがほぼ即座に終了するため、ネットワーク送信を
+     * fire-and-forget しても完了しない。代わりに構造化レポート (CrashReport JSON) を
+     * ローカルに永続化し、次回起動時の `uploadPendingCrashes()` で確実に送る
+     * (業界標準の永続化→次回起動送信パターン)。
      */
     fun install() {
         val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            // 1. ローカルにファイル保存 (オプトアウト時もデバッグ用に保持)
+            // クラッシュレポートをローカルに永続化 (オプトアウト時もデバッグ用に保持)。
+            // 送信は次回起動時の uploadPendingCrashes() に委ねる。
             saveLocally(throwable)
-            // 2. オプトイン時のみサーバー送信
-            if (enabled) {
-                reportToServer(throwable)
-            }
-            // 3. 既存の handler に委譲 (システムのクラッシュダイアログ表示)
+            // 既存の handler に委譲 (システムのクラッシュダイアログ表示)
             previousHandler?.uncaughtException(thread, throwable)
         }
+    }
+
+    /** throwable から送信用の構造化レポートを組み立てる (PII はサニタイズ済み)。 */
+    private fun buildReport(throwable: Throwable): CrashReport {
+        val sw = StringWriter()
+        throwable.printStackTrace(PrintWriter(sw))
+        return CrashReport(
+            app_version = BuildConfig.VERSION_NAME ?: "unknown",
+            android_version = Build.VERSION.SDK_INT,
+            device_model = "${Build.MANUFACTURER} ${Build.MODEL}",
+            timestamp = Instant.now().toString(),
+            exception_class = throwable::class.qualifiedName ?: "Unknown",
+            sanitized_stack = sanitize(sw.toString()).take(8000),
+            build_type = if (BuildConfig.DEBUG) "debug" else "release",
+            session_id = sessionId,
+        )
     }
 
     private fun sanitize(stack: String): String = sanitizeStack(stack)
@@ -120,37 +134,13 @@ class PrivacyCrashReporter(
     private fun saveLocally(throwable: Throwable) {
         runCatching {
             val dir = File(context.filesDir, "crashes").apply { mkdirs() }
-            val file = File(dir, "crash_${System.currentTimeMillis()}.log")
-            val writer = StringWriter()
-            throwable.printStackTrace(PrintWriter(writer))
-            file.writeText(sanitize(writer.toString()))
+            // 構造化レポート (CrashReport JSON) として保存。次回起動時にそのまま送信できる。
+            val file = File(dir, "crash_${System.currentTimeMillis()}.json")
+            file.writeText(json.encodeToString(CrashReport.serializer(), buildReport(throwable)))
             // 30件以上は古い順に削除 (ストレージ消費抑制)
             val files = dir.listFiles()?.sortedBy { it.lastModified() } ?: return@runCatching
             if (files.size > 30) {
                 files.take(files.size - 30).forEach { it.delete() }
-            }
-        }
-    }
-
-    private fun reportToServer(throwable: Throwable) {
-        val sw = StringWriter()
-        throwable.printStackTrace(PrintWriter(sw))
-        val report = CrashReport(
-            app_version = BuildConfig.VERSION_NAME ?: "unknown",
-            android_version = Build.VERSION.SDK_INT,
-            device_model = "${Build.MANUFACTURER} ${Build.MODEL}",
-            timestamp = Instant.now().toString(),
-            exception_class = throwable::class.qualifiedName ?: "Unknown",
-            sanitized_stack = sanitize(sw.toString()).take(8000),
-            build_type = if (BuildConfig.DEBUG) "debug" else "release",
-            session_id = sessionId,
-        )
-        scope.launch {
-            runCatching {
-                client.post("$backendUrl/v1/crash") {
-                    contentType(ContentType.Application.Json)
-                    setBody(report)
-                }
             }
         }
     }
@@ -164,18 +154,28 @@ class PrivacyCrashReporter(
         return (1..16).map { chars.random() }.joinToString("")
     }
 
-    /** ユーザーが設定で「ローカルクラッシュログを共有」を ON にした時に呼ぶ */
+    /**
+     * 永続化済みのクラッシュレポートを送信する。
+     * オプトイン時、Application 起動時に呼ぶ (前回セッションのクラッシュを確実に送る)。
+     * 各ファイルは CrashReport JSON。デコードに失敗したファイル (旧形式等) は破棄する。
+     */
     suspend fun uploadPendingCrashes() {
         if (!enabled) return
         val dir = File(context.filesDir, "crashes")
-        dir.listFiles()?.forEach { file ->
+        dir.listFiles { f -> f.extension == "json" }?.forEach { file ->
+            val report = runCatching {
+                json.decodeFromString(CrashReport.serializer(), file.readText())
+            }.getOrNull()
+            if (report == null) {
+                file.delete() // 壊れた/旧形式のファイルは再送し続けないよう破棄
+                return@forEach
+            }
             runCatching {
                 client.post("$backendUrl/v1/crash") {
                     contentType(ContentType.Application.Json)
-                    setBody(file.readText())
+                    setBody(report)
                 }
-                file.delete()
-            }
+            }.onSuccess { file.delete() }
         }
     }
 

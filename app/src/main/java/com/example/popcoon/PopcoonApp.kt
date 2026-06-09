@@ -35,9 +35,14 @@ class PopcoonApp : Application(), Configuration.Provider {
         crashReporter.install()
         createNotificationChannels()
 
-        // ユーザー設定の opt-in 状態を CrashReporter に同期
+        // ユーザー設定の opt-in 状態を CrashReporter に同期。
+        // オプトイン時は前回セッションで永続化されたクラッシュを送信する
+        // (クラッシュ時点ではプロセス終了が早くネットワーク送信が完了しないため)。
         prefs.crashReportOptin
-            .onEach { enabled -> crashReporter.enabled = enabled }
+            .onEach { enabled ->
+                crashReporter.enabled = enabled
+                if (enabled) runCatching { crashReporter.uploadPendingCrashes() }
+            }
             .launchIn(appScope)
     }
 

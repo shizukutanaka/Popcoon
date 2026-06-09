@@ -98,8 +98,17 @@ class PriceHistoryCsvExporter @Inject constructor(
     }
 
     private fun String.csvEscape(): String {
-        // ダブルクォートをエスケープしてフィールドをクォート
-        val escaped = replace("\"", "\"\"")
+        // CSV インジェクション対策 (1): 数式起動文字で始まるフィールドは ' を前置し、
+        // Excel/Google Sheets が数式として実行するのを防ぐ。クォートだけでは数式実行は
+        // 防げない。商品名はスクレイピング由来でユーザー制御外のため必須。
+        val guarded = if (isNotEmpty() && first() in FORMULA_TRIGGERS) "'$this" else this
+        // CSV インジェクション対策 (2): ダブルクォートをエスケープしてフィールドをクォート。
+        val escaped = guarded.replace("\"", "\"\"")
         return "\"$escaped\""
+    }
+
+    companion object {
+        /** 表計算ソフトで数式として解釈され得る先頭文字。 */
+        private const val FORMULA_TRIGGERS = "=+-@\t\r"
     }
 }
