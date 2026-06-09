@@ -33,7 +33,7 @@ object DarkPatternDetector {
     ): List<Warning> {
         val warnings = mutableListOf<Warning>()
 
-        // 1. 常設セール: 30日中90%以上が listPrice 未満
+        // 1. 常設セール: 30日中90%超が listPrice 未満 (Python oracle と一致)
         if (listPrice != null && listPrice > currentPrice && history.size >= 30) {
             val belowRate = history.count { it.realPrice < listPrice }.toDouble() / history.size
             if (belowRate > 0.90) {
