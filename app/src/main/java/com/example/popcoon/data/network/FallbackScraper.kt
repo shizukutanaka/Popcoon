@@ -42,9 +42,18 @@ class FallbackScraper {
     // robots.txt 本文のホスト別キャッシュ (取得不能時は "" を格納 = 全許可扱い)。
     private val robotsCache = java.util.concurrent.ConcurrentHashMap<String, String>()
 
+    // キー別の抽出用 Regex キャッシュ (呼び出しごとの再コンパイルを回避)。
+    private val keyPatternCache = java.util.concurrent.ConcurrentHashMap<String, Regex>()
+
     companion object {
         const val USER_AGENT =
             "Popcoon-Fallback/0.1 (+https://github.com/shizukutanaka/popcoon)"
+
+        // JSON-LD 抽出パターンは定数なので 1 度だけコンパイルする。
+        private val JSON_LD_PATTERN = Regex(
+            """<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>""",
+            RegexOption.DOT_MATCHES_ALL,
+        )
     }
 
     /**
@@ -56,11 +65,14 @@ class FallbackScraper {
         val host = uri.host ?: return null
         val path = uri.rawPath?.ifEmpty { "/" } ?: "/"
 
-        // レート制限を先に適用 (robots.txt 取得もこのゲートの内側に収める)
+        // レート制限を先に適用 (robots.txt 取得もこのゲートの内側に収める)。
+        // read-check-write を compute で atomic に行い、同一ホストへの同時アクセスが
+        // 両方ゲートを通過してしまう競合を防ぐ。
         val now = System.currentTimeMillis()
-        val last = lastAccessMs[host] ?: 0L
-        if (now - last < minIntervalMs) return null
-        lastAccessMs[host] = now
+        val updated = lastAccessMs.compute(host) { _, last ->
+            if (last == null || now - last >= minIntervalMs) now else last
+        }
+        if (updated != now) return null  // 直近アクセスが近すぎる → スキップ
 
         // robots.txt を尊重 (取得不能時は許可、明示 Disallow は遵守)
         if (!isPathAllowedByRobots(uri, path)) return null
@@ -98,12 +110,8 @@ class FallbackScraper {
      * 正規表現: Compose 時代でも基本 regex で十分。
      */
     private fun extractJsonLd(html: String): String? {
-        val pattern = Regex(
-            """<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>""",
-            RegexOption.DOT_MATCHES_ALL,
-        )
         // 複数ある場合は最初の Product schema を優先
-        for (match in pattern.findAll(html)) {
+        for (match in JSON_LD_PATTERN.findAll(html)) {
             val content = match.groupValues[1].trim()
             if (content.contains("\"@type\"") &&
                 (content.contains("Product") || content.contains("IndividualProduct"))) {
@@ -138,7 +146,10 @@ class FallbackScraper {
     }
 
     private fun extractJsonString(json: String, key: String): String? {
-        val pattern = Regex("""["']${key}["']\s*:\s*["']([^"']+)["']""")
+        // キーごとに Regex を 1 度だけコンパイルしてキャッシュする (name/price/image 等の固定キー)。
+        val pattern = keyPatternCache.getOrPut(key) {
+            Regex("""["']${key}["']\s*:\s*["']([^"']+)["']""")
+        }
         return pattern.find(json)?.groupValues?.get(1)
     }
 }

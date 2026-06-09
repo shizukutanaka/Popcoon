@@ -11,10 +11,12 @@ import com.example.popcoon.feature.watchlist.WatchlistSort
 import com.example.popcoon.widget.WidgetUpdater
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -42,11 +44,13 @@ class WatchlistViewModel @Inject constructor(
 
     /**
      * ウォッチリスト全体の横断カート最適化結果。
-     * 2件以上あれば自動計算（純関数 → 高速、ブロックなし）。
+     * 2件以上あれば自動計算。最適化は総当たり (最大 200k 通り) になり得るため
+     * Dispatchers.Default に逃がし、メインスレッドをブロックしない。
      * 並べ替え順は最適化結果に影響しないため raw を使う。
      */
     val smartCart = rawItems
         .map { list -> if (list.size >= 2) SmartCartService.optimize(list) else null }
+        .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun setSortMode(mode: WatchlistSort.Mode) {

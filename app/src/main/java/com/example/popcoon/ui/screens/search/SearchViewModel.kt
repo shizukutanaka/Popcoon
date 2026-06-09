@@ -12,6 +12,9 @@ import com.example.popcoon.feature.matching.ProductMatcher
 import com.example.popcoon.feature.scorer.BuyTimingScorer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -107,7 +110,11 @@ class SearchViewModel @Inject constructor(
             // 名寄せ: 同一商品をグループ化し、各グループの最安値を代表とする
             // (arXiv 2512.07232 Rough Filtering — 重複排除で価格比較を明確化)
             val groups = ProductMatcher.groupByIdentity(products)
-            val rows = groups.map { group ->
+            // 各グループの価格履歴取得は独立した backend 往復なので並列化する
+            // (従来は逐次で、結果数ぶん直列にネットワーク待ちしていた)。
+            val rows = coroutineScope {
+                groups.map { group ->
+                    async {
                 val product = group.first()  // 最安値 (groupByIdentity がソート済み)
                 val alternatives = group.drop(1)  // 他モールの同一商品
                 val history = runCatching {
@@ -140,6 +147,8 @@ class SearchViewModel @Inject constructor(
                     score = score?.total ?: 0,
                     alternatives = alternatives,
                 )
+                    }
+                }.awaitAll()
             }
             // 検索履歴を保存し Trie に登録 (次回からオートコンプリートに使用)
             viewModelScope.launch {
