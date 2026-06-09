@@ -12,6 +12,7 @@ import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
@@ -46,15 +47,22 @@ class BackendClient @Inject constructor() {
     private val asyncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /**
-     * 価格を fire-and-forget で送信。
-     * 失敗しても UI に影響させない。
+     * 価格履歴をまとめて fire-and-forget で送信。失敗しても UI に影響させない。
+     *
+     * 1 検索の全結果 (数十件) を **1 つのコルーチン内で順次** 送る。
+     * 以前は結果 1 件ごとに launch しており、検索のたびに数十の無制限な並行 POST が
+     * never-cancelled な singleton scope 上に積まれていた (fan-out)。
+     * レスポンスは bodyAsText() で消費してコネクションを解放する。
      */
-    fun postPriceAsync(record: PriceRecord) {
+    fun postPricesAsync(records: List<PriceRecord>) {
+        if (records.isEmpty()) return
         asyncScope.launch {
-            runCatching {
-                client.post("$baseUrl/v1/history") {
-                    contentType(ContentType.Application.Json)
-                    setBody(record)
+            records.forEach { record ->
+                runCatching {
+                    client.post("$baseUrl/v1/history") {
+                        contentType(ContentType.Application.Json)
+                        setBody(record)
+                    }.bodyAsText()
                 }
             }
         }

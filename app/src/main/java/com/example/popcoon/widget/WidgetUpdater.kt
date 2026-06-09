@@ -25,22 +25,27 @@ object WidgetUpdater {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var pendingJob: Job? = null
     private val DEBOUNCE_MS = 500L
+    // pendingJob は Main (VM) と Worker スレッドの双方から触るため、
+    // check-then-act (cancel→再代入) を lock で atomic にする。
+    private val lock = Any()
 
     /**
      * 即時更新が必要な場合に呼ぶ (例: ユーザーが ★ ボタンを押した瞬間)。
      * 連続呼び出しは末尾の値だけが反映される (デバウンス)。
      */
     fun update(context: Context, items: List<WatchlistItem>) {
-        pendingJob?.cancel()
-        pendingJob = scope.launch {
-            delay(DEBOUNCE_MS)
-            applyUpdate(context, items)
+        synchronized(lock) {
+            pendingJob?.cancel()
+            pendingJob = scope.launch {
+                delay(DEBOUNCE_MS)
+                applyUpdate(context, items)
+            }
         }
     }
 
     /** デバウンスなしで即実行 (Worker などからの呼び出し用) */
     suspend fun updateImmediate(context: Context, items: List<WatchlistItem>) {
-        pendingJob?.cancel()
+        synchronized(lock) { pendingJob?.cancel() }
         applyUpdate(context, items)
     }
 

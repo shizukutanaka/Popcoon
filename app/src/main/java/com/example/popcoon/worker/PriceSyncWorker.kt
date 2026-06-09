@@ -19,11 +19,15 @@ import com.example.popcoon.data.repository.IProductRepository
 import com.example.popcoon.feature.notification.LocalNotificationManager
 import com.example.popcoon.feature.notification.PriceAlertEvaluator
 import com.example.popcoon.feature.retention.ReviewPrompter
-import com.example.popcoon.feature.scorer.BuyTimingScorer
 import com.example.popcoon.widget.WidgetUpdater
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import java.util.concurrent.TimeUnit
 
 /**
@@ -73,45 +77,52 @@ class PriceSyncWorker @AssistedInject constructor(
             val pct: Int,
             val targetReached: Boolean,
         )
-        val drops = mutableListOf<Drop>()
+        // 各アイテムを並列取得 (最大 MAX_CONCURRENCY 並列)。従来は逐次で、
+        // 件数ぶん直列にネットワーク待ちしていた。Result で成否を追跡する。
+        val semaphore = Semaphore(MAX_CONCURRENCY)
+        val outcomes: List<kotlin.Result<Drop?>> = coroutineScope {
+            watchlist.map { item ->
+                async {
+                    semaphore.withPermit {
+                        runCatching {
+                            val history = backend.getPriceHistory(item.productKey)
+                            if (history.isEmpty()) return@runCatching null
 
-        watchlist.forEach { item ->
-            runCatching {
-                val history = backend.getPriceHistory(item.productKey)
-                if (history.isEmpty()) return@runCatching
+                            val latest = history.first()
+                            val previousPrice = item.realPrice
 
-                val latest = history.first()
-                val previousPrice = item.realPrice
+                            watchlistDao.upsert(item.copy(realPrice = latest.realPrice))
 
-                watchlistDao.upsert(item.copy(realPrice = latest.realPrice))
-
-                // 目標価格到達 / 有意な値下がりを純関数で判定。
-                // 目標到達は率に関係なく最優先で通知（ユーザーが明示的に求めた情報）。
-                // (arXiv 2509.02458: 経験的閾値で値下がり通知の頻度を制御)
-                val alert = PriceAlertEvaluator.evaluate(
-                    previousPrice = previousPrice,
-                    latestPrice = latest.realPrice,
-                    targetPrice = item.targetPrice,
-                    minDropPercent = MIN_DROP_PERCENT,
-                )
-                if (alert.shouldNotify) {
-                    drops += Drop(
-                        item = item,
-                        latest = latest.realPrice,
-                        prev = previousPrice,
-                        pct = alert.dropPercent,
-                        targetReached = alert.kind == PriceAlertEvaluator.Kind.TARGET_REACHED,
-                    )
+                            // 目標価格到達 / 有意な値下がりを純関数で判定。
+                            // 目標到達は率に関係なく最優先で通知（ユーザーが明示的に求めた情報）。
+                            // (arXiv 2509.02458: 経験的閾値で値下がり通知の頻度を制御)
+                            val alert = PriceAlertEvaluator.evaluate(
+                                previousPrice = previousPrice,
+                                latestPrice = latest.realPrice,
+                                targetPrice = item.targetPrice,
+                                minDropPercent = MIN_DROP_PERCENT,
+                            )
+                            if (alert.shouldNotify) {
+                                Drop(
+                                    item = item,
+                                    latest = latest.realPrice,
+                                    prev = previousPrice,
+                                    pct = alert.dropPercent,
+                                    targetReached =
+                                        alert.kind == PriceAlertEvaluator.Kind.TARGET_REACHED,
+                                )
+                            } else {
+                                null
+                            }
+                        }.onFailure {
+                            PopcoonLogger.w(this@PriceSyncWorker, "履歴取得失敗: ${it.message}")
+                        }
+                    }
                 }
-
-                BuyTimingScorer.score(
-                    current = latest.realPrice,
-                    listPrice = latest.listPrice,
-                    history = history,
-                    today = java.time.LocalDate.now(),
-                )
-            }.onFailure { PopcoonLogger.w(this, "履歴取得失敗: ${it.message}") }
+            }.awaitAll()
         }
+        val drops = outcomes.mapNotNull { it.getOrNull() }
+        val failureCount = outcomes.count { it.isFailure }
 
         // 目標価格到達を最優先、次に値下がり率が大きい順。最大 MAX_NOTIFICATIONS 件。
         drops.sortedWith(compareByDescending<Drop> { it.targetReached }.thenByDescending { it.pct })
@@ -142,7 +153,13 @@ class PriceSyncWorker @AssistedInject constructor(
             repeat(priceDropCount) { reviewPrompter.recordSuccess() }
         }
 
-        return Result.success()
+        // 全件失敗 (backend ダウン等の一過性障害) のときだけ retry し、指数バックオフに乗せる。
+        // 一部成功時は upsert 済みのため再実行すると重複通知の恐れ → success で次回日次に委ねる。
+        return if (failureCount == watchlist.size && runAttemptCount < MAX_RETRY_ATTEMPTS) {
+            Result.retry()
+        } else {
+            Result.success()
+        }
     }
 
     companion object {
@@ -151,6 +168,10 @@ class PriceSyncWorker @AssistedInject constructor(
         private const val MAX_NOTIFICATIONS = 3
         /** 通知する最小値下がり率 (微小変動のノイズ通知を抑制 — arXiv 2509.02458) */
         private const val MIN_DROP_PERCENT = 3
+        /** 価格取得の最大並列数 (backend への thundering herd 抑制) */
+        private const val MAX_CONCURRENCY = 8
+        /** 全件失敗時の最大 retry 回数 (指数バックオフ) */
+        private const val MAX_RETRY_ATTEMPTS = 3
 
         /**
          * 日次同期をスケジュール (アプリ起動時に呼ぶ)。

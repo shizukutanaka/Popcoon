@@ -56,16 +56,18 @@ open class ProductRepository @Inject constructor(
         val results = listOf(amazonJob.await(), rakutenJob.await(), yahooJob.await())
             .flatten()
 
-        // 非同期で backend に価格履歴を投稿 (UI をブロックしない)
-        results.forEach { product ->
-            backend.postPriceAsync(PriceRecord(
-                productKey = product.key,
-                platform = product.platform.id,
-                listPrice = product.listPrice,
-                realPrice = product.realPrice,
-                recordedAt = java.time.Instant.now(),
-            ))
-        }
+        // 非同期で backend に価格履歴をまとめて投稿 (UI をブロックしない、1 コルーチン)
+        backend.postPricesAsync(
+            results.map { product ->
+                PriceRecord(
+                    productKey = product.key,
+                    platform = product.platform.id,
+                    listPrice = product.listPrice,
+                    realPrice = product.realPrice,
+                    recordedAt = java.time.Instant.now(),
+                )
+            },
+        )
 
         // 安い順にソート (送料込み実質合計)
         results.sortedBy { it.totalPrice }
