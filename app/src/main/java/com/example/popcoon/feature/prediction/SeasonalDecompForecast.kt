@@ -70,7 +70,8 @@ object SeasonalDecompForecast {
         val sx = xs.sum()
         val sy = ys.sum()
         val sxx = xs.sumOf { it * it }
-        val sxy = xs.indices.sumOf { xs[it] * ys[it] }
+        // Python の zip() と同じく短い方に合わせて切り詰める (parity + IOOBE 防止)。
+        val sxy = xs.zip(ys).sumOf { (x, y) -> x * y }
         val denom = n * sxx - sx * sx
         if (denom == 0.0) return 0.0 to (if (n > 0) sy / n else 0.0)
         val a = (n * sxy - sx * sy) / denom
