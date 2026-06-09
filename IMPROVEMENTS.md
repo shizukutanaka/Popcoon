@@ -46,15 +46,25 @@ Popcoon に欠けていた最も普遍的な機能と、その検証基盤を実
 - a11y 文字列: ~~`VerdictBadge.kt` の i18n~~ (実装済み) → 残りは `AccessibilityExt.kt`
   (Context 引数が必要な非 Composable のため要設計)。
 
-### 競合調査バックログ (同種 OSS 価格追跡アプリ由来、未適用)
-GitHub 調査で確認した、競合にあり Popcoon に未実装の機能。インパクト順:
-- **ウォッチリストの整理**: 優先度/カテゴリ/店舗でのソート・タグ付け・並べ替え (Karma 等)。
+### 競合調査バックログ (同種 OSS 価格追跡アプリ由来)
+GitHub 調査で確認した、競合にあり Popcoon に未実装だった機能。インパクト順:
+- ~~**ウォッチリストの整理**: ソート・並べ替え~~ → 実装済み (#11 `WatchlistSort`:
+  追加/価格/割引率/名前/目標到達順、永続化 + 並べ替えメニュー)。タグ付け/
+  カテゴリ分けは未着手。
+- ~~**URL 貼り付けで追加**: 共有インテント (`ACTION_SEND`)~~ → 既存 (`feature/share/
+  UrlClassifier`, MainActivity で配線済み)。
 - **クーポン/プロモコード集約**と決済前の自動適用 (Honey, Karma の中核機能)。
-- **URL 貼り付けで追加**: 共有インテント (`ACTION_SEND`) を受けて商品 URL から登録。
-- **在庫アラート**: 再入荷/在庫切れ通知 (現状は価格のみ)。
-- **「追加時からの変動」表示**: ウォッチ追加時価格を基準に下落幅を可視化 (CamelCamelCamel)。
-- **値下がりフィード**: ウォッチ外の急落商品を一覧する発見導線。
+- **在庫アラート**: 再入荷/在庫切れ通知 (現状は価格のみ)。`Product.stockCount` は
+  あるが追跡・通知導線がない。
+- **「追加時からの変動」表示**: ウォッチ追加時価格を基準に下落幅を可視化
+  (CamelCamelCamel)。要 `addedPrice` カラム (Room v2→v3 マイグレーション)。
+- **値下がりフィード**: ウォッチ外の急落商品を一覧する発見導線 (要 backend)。
 - **多通貨対応**: 越境購入 (CustomsSimulator) と整合する通貨換算表示。
+
+### 配線中に発見・修正した潜在バグ (CI 不在で未検出だったコンパイルエラー)
+- `PriceSyncWorker` が `CurrencyFormatter` を import せず参照 (#10 で修正)。
+- `UserPreferences` が `@Inject constructor` と `SettingsModule.@Provides` の二重
+  バインディング (Hilt コンパイルエラー)。冗長な module provider を削除 (#11)。
 
 ### アルゴリズム (Tier 3)
 - 価格予測を Holt 線形から Holt-Winters (季節性) へ。
