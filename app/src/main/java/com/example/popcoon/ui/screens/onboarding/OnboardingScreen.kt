@@ -112,7 +112,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                 },
                 modifier = Modifier.fillMaxWidth().padding(Spacing.ml),
             ) {
-                Text(pages[pagerState.currentPage].cta)
+                Text(pages.getOrNull(pagerState.currentPage)?.cta ?: "")
             }
         }
     }

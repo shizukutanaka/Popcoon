@@ -21,13 +21,12 @@ import com.example.popcoon.ui.theme.PopcoonTheme
  */
 @Composable
 fun ReviewTrustBadge(result: ReviewTrustScorer.Result) {
-    if (result.trust == ReviewTrustScorer.Trust.UNKNOWN) return
-
+    // UNKNOWN は評価データなし → 何も描画しない。when 分岐で処理しコンパイラが網羅性を保証。
     val trustLabel = when (result.trust) {
         ReviewTrustScorer.Trust.HIGH -> stringResource(R.string.confidence_high)
         ReviewTrustScorer.Trust.MEDIUM -> stringResource(R.string.confidence_medium)
         ReviewTrustScorer.Trust.LOW -> stringResource(R.string.confidence_low)
-        ReviewTrustScorer.Trust.UNKNOWN -> stringResource(R.string.confidence_unknown)
+        ReviewTrustScorer.Trust.UNKNOWN -> return
     }
     val reasonText = when (result.reasonKey) {
         "review_trust_few_reviews" -> " (${stringResource(R.string.review_trust_few_reviews)})"
