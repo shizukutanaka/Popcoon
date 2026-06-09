@@ -15,6 +15,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -102,6 +103,7 @@ class BuyingAdvisor @Inject constructor(
             body.content.firstOrNull { it.type == "text" }?.text
                 ?: run { isError = true; "アドバイス取得失敗" }
         }.getOrElse { e ->
+            if (e is CancellationException) throw e
             PopcoonLogger.w("BuyingAdvisor", "API 呼び出し失敗", e)
             isError = true
             "ネットワークエラー: ${e.message?.take(50)}"
