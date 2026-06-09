@@ -32,12 +32,14 @@ class RakutenClient(
     suspend fun search(keyword: String, hits: Int = 30): List<Product> {
         if (appId.isBlank()) return emptyList()
         val resp = runCatching {
-            client.get("https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601") {
+            val httpResp = client.get("https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601") {
                 parameter("format", "json")
                 parameter("applicationId", appId)
                 parameter("keyword", keyword)
                 parameter("hits", hits.coerceIn(1, 30))
-            }.body<RakutenResponse>()
+            }
+            check(httpResp.status.isSuccess()) { "Rakuten API error: ${httpResp.status}" }
+            httpResp.body<RakutenResponse>()
         }.getOrNull() ?: return emptyList()
 
         return resp.Items.map { it.Item }.map { i ->

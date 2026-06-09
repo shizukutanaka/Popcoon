@@ -25,6 +25,7 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -84,6 +85,7 @@ class PriceSyncWorker @AssistedInject constructor(
             watchlist.map { item ->
                 async {
                     semaphore.withPermit {
+                        ensureActive()
                         runCatching {
                             val history = backend.getPriceHistory(item.productKey)
                             if (history.isEmpty()) return@runCatching null

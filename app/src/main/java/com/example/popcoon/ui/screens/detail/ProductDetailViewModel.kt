@@ -216,7 +216,7 @@ class ProductDetailViewModel @Inject constructor(
             runCatching {
                 val items = kotlinx.coroutines.flow.first(watchlistDao.observeAll())
                 com.example.popcoon.widget.WidgetUpdater.update(context, items)
-            }
+            }.onFailure { PopcoonLogger.w(this@ProductDetailViewModel, "Widget update failed: ${it.message}") }
         }
     }
 

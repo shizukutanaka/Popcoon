@@ -32,11 +32,13 @@ class YahooClient(
     suspend fun search(keyword: String, results: Int = 30): List<Product> {
         if (appId.isBlank()) return emptyList()
         val resp = runCatching {
-            client.get("https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch") {
+            val httpResp = client.get("https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch") {
                 parameter("appid", appId)
                 parameter("query", keyword)
                 parameter("results", results.coerceIn(1, 50))
-            }.body<YahooResponse>()
+            }
+            check(httpResp.status.isSuccess()) { "Yahoo API error: ${httpResp.status}" }
+            httpResp.body<YahooResponse>()
         }.getOrNull() ?: return emptyList()
 
         return resp.hits.map { hit ->

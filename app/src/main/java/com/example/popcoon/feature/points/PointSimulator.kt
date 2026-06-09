@@ -161,8 +161,9 @@ object PointSimulator {
         p: Product, ctx: UserContext, out: MutableList<PointSource>,
     ) {
         // Amazon は商品ごとにポイント設定 (固定還元なし) → product.pointsBack を使う
-        if (p.pointsBack > 0) {
-            val rate = p.pointsBack.toDouble() / max(1L, p.realPrice) * 100
+        // realPrice > 0 でなければ率の計算が無意味 (無料商品や価格不明)
+        if (p.pointsBack > 0 && p.realPrice > 0) {
+            val rate = p.pointsBack.toDouble() / p.realPrice * 100
             out += PointSource(
                 "Amazon ポイント",
                 p.pointsBack,

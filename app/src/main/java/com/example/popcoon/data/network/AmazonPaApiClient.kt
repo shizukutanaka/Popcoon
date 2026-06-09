@@ -95,7 +95,7 @@ class AmazonPaApiClient(
                 host = HOST,
                 amzTarget = AMZ_TARGET_PREFIX + "SearchItems",
             )
-            client.post("https://$HOST/paapi5/searchitems") {
+            val httpResp = client.post("https://$HOST/paapi5/searchitems") {
                 header("host", HOST)
                 header("content-encoding", "amz-1.0")
                 header("x-amz-date", signed.amzDate)
@@ -103,7 +103,9 @@ class AmazonPaApiClient(
                 header("authorization", signed.authorizationHeader)
                 contentType(ContentType.Application.Json)
                 setBody(bodyJson)
-            }.body<SearchItemsResponse>()
+            }
+            check(httpResp.status.isSuccess()) { "PAAPI error: ${httpResp.status}" }
+            httpResp.body<SearchItemsResponse>()
         }.getOrNull() ?: return emptyList()
 
         return response.searchResult?.items.orEmpty().mapNotNull { it.toProduct() }

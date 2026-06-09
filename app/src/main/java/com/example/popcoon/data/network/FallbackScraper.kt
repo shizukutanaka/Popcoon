@@ -147,8 +147,9 @@ class FallbackScraper {
 
     private fun extractJsonString(json: String, key: String): String? {
         // キーごとに Regex を 1 度だけコンパイルしてキャッシュする (name/price/image 等の固定キー)。
+        // (?:[^"'\\]|\\.)*: バックスラッシュエスケープ (\", \\) を含む値に対応。
         val pattern = keyPatternCache.getOrPut(key) {
-            Regex("""["']${key}["']\s*:\s*["']([^"']+)["']""")
+            Regex("""["']$key["']\s*:\s*["']((?:[^"'\\]|\\.)*)["']""")
         }
         return pattern.find(json)?.groupValues?.get(1)
     }
