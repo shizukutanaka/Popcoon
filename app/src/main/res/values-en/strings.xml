@@ -79,6 +79,8 @@
     <string name="barcode_retry">Retry</string>
     <string name="barcode_hint">Point camera at barcode</string>
     <string name="barcode_invalid">Invalid barcode</string>
+    <string name="barcode_camera_failed">Failed to start camera</string>
+    <string name="barcode_unavailable">Scanner unavailable</string>
 
     <string name="smart_cart_title">Smart Cart Optimizer</string>
     <string name="smart_cart_total">Total %1$s</string>

@@ -69,7 +69,7 @@ fun SearchSuggestions(
                         )
                     }
                 }
-                items(items) { item ->
+                items(items, key = { "${it.isHistory}:${it.text}" }) { item ->
                     SuggestionRow(item = item, onSelect = onSelect)
                     HorizontalDivider(thickness = 0.5.dp)
                 }

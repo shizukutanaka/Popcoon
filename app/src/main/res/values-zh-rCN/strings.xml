@@ -79,6 +79,8 @@
     <string name="barcode_retry">重试</string>
     <string name="barcode_hint">将相机对准条形码</string>
     <string name="barcode_invalid">无效条形码</string>
+    <string name="barcode_camera_failed">相机启动失败</string>
+    <string name="barcode_unavailable">扫描器不可用</string>
 
     <string name="smart_cart_title">智能购物车优化</string>
     <string name="smart_cart_total">合计 %1$s</string>

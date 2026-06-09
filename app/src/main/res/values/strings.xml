@@ -151,6 +151,8 @@
     <string name="barcode_retry">再試行</string>
     <string name="barcode_hint">バーコードにカメラを向けてください</string>
     <string name="barcode_invalid">無効なバーコード</string>
+    <string name="barcode_camera_failed">カメラ起動に失敗しました</string>
+    <string name="barcode_unavailable">スキャナーが利用できません</string>
 
     <!-- スマートカート最適化 -->
     <string name="smart_cart_title">スマートカート最適化</string>

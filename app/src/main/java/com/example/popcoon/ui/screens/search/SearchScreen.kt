@@ -85,7 +85,7 @@ fun SearchScreen(
             )
             Spacer(Modifier.width(Spacing.ml))
             IconButton(onClick = onWatchlist) {
-                Icon(Icons.Default.Star, contentDescription = stringResource(R.string.action_save))
+                Icon(Icons.Default.Star, contentDescription = stringResource(R.string.nav_watchlist))
             }
         }
 

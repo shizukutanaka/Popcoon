@@ -48,14 +48,14 @@ fun BarcodeScreen(
 
     LaunchedEffect(Unit) {
         if (activity == null) {
-            scanState = ScanState.Error("カメラ起動に失敗しました")
+            scanState = ScanState.Error(context.getString(R.string.barcode_camera_failed))
             return@LaunchedEffect
         }
         scanner.bind(activity)
         scanState = ScanState.Scanning
 
         val task = scanner.startScan() ?: run {
-            scanState = ScanState.Error("スキャナーが利用できません")
+            scanState = ScanState.Error(context.getString(R.string.barcode_unavailable))
             return@LaunchedEffect
         }
 
@@ -69,7 +69,9 @@ fun BarcodeScreen(
                         scanState = ScanState.Success(query)
                         onQueryResult(query)
                     } else {
-                        scanState = ScanState.Error("無効なバーコード: ${result.rawValue}")
+                        scanState = ScanState.Error(
+                            "${context.getString(R.string.barcode_invalid)}: ${result.rawValue}",
+                        )
                     }
                 }
                 // URL → EC 商品ページ直接遷移
@@ -98,7 +100,7 @@ fun BarcodeScreen(
                 msg.contains("CANCELED", ignoreCase = true)) {
                 onBack()
             } else {
-                scanState = ScanState.Error("スキャン失敗: ${msg.take(40)}")
+                scanState = ScanState.Error(context.getString(R.string.barcode_error))
             }
         }
     }

@@ -139,10 +139,10 @@ private fun LoadedContent(s: DetailUiState.Loaded) {
     )
 
     // ─ 価格詳細
-    InfoCard("価格", listOf(
-        "現在" to com.example.popcoon.core.CurrencyFormatter.yen(s.product.totalPrice),
-        "定価" to com.example.popcoon.core.CurrencyFormatter.yen(s.product.listPrice),
-        "送料" to com.example.popcoon.core.CurrencyFormatter.yen(s.product.shippingFee),
+    InfoCard(stringResource(R.string.detail_price), listOf(
+        stringResource(R.string.detail_current_price) to com.example.popcoon.core.CurrencyFormatter.yen(s.product.totalPrice),
+        stringResource(R.string.detail_list_price) to com.example.popcoon.core.CurrencyFormatter.yen(s.product.listPrice),
+        stringResource(R.string.detail_shipping) to com.example.popcoon.core.CurrencyFormatter.yen(s.product.shippingFee),
     ))
 
     // ─ ポイント還元 実質価格 (ほぼやすねっと/最安値.com 対抗)

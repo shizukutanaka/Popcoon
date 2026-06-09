@@ -349,7 +349,7 @@ private fun WatchlistEmptyState(
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                "商品を検索して詳細画面の ★ を押すと\nここに価格変動を追跡できます",
+                stringResource(R.string.watchlist_empty_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,

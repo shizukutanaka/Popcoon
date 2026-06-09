@@ -42,8 +42,10 @@ object AffiliateUrlBuilder {
     private fun buildRakuten(url: String): String {
         val raAffiliateId = BuildConfig.RAKUTEN_AFFILIATE_ID ?: return url
         if (raAffiliateId.isBlank()) return url
-        // hb.afl.rakuten.co.jp 経由にラップ
-        return "https://hb.afl.rakuten.co.jp/hgc/$raAffiliateId/?pc=$url"
+        // hb.afl.rakuten.co.jp 経由にラップ。
+        // 商品 URL は pc= の値なので必ず percent-encode する。生のまま入れると
+        // 商品 URL 内の ?/&/# がラッパー URL のクエリとして解釈され、リンクが壊れる。
+        return "https://hb.afl.rakuten.co.jp/hgc/$raAffiliateId/?pc=${Uri.encode(url)}"
     }
 
     private fun buildYahoo(url: String): String {
