@@ -245,6 +245,8 @@ private fun WatchlistRow(
                         )
                     }
                 }
+                // 追加時からの変動（横ばい時は非表示）
+                SinceAddedDelta(item = item)
                 // 目標価格バッジ / 設定ボタン
                 Spacer(Modifier.height(6.dp))
                 TargetPriceChip(item = item, onClick = onSetTarget)
@@ -257,6 +259,30 @@ private fun WatchlistRow(
             )
         }
     }
+}
+
+/**
+ * ウォッチ追加時からの価格変動を小さく表示する。
+ * 値下がりは強調色、値上がりはエラー色。横ばい・基準なしは何も描画しない。
+ */
+@Composable
+private fun SinceAddedDelta(item: WatchlistItem) {
+    val delta = com.example.popcoon.feature.watchlist.WatchlistPriceDelta
+        .since(item.addedPrice, item.realPrice) ?: return
+    if (delta.direction == com.example.popcoon.feature.watchlist.WatchlistPriceDelta.Direction.FLAT) return
+
+    val down = delta.direction == com.example.popcoon.feature.watchlist.WatchlistPriceDelta.Direction.DOWN
+    val amountText = com.example.popcoon.core.CurrencyFormatter.yen(delta.absAmount)
+    Spacer(Modifier.height(4.dp))
+    Text(
+        stringResource(
+            if (down) R.string.since_added_down else R.string.since_added_up,
+            amountText,
+            delta.absPercent,
+        ),
+        style = MaterialTheme.typography.labelSmall,
+        color = if (down) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+    )
 }
 
 /**

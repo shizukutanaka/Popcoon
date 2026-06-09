@@ -108,6 +108,8 @@
     <string name="wl_sort_discount">Biggest discount</string>
     <string name="wl_sort_name">Name</string>
     <string name="wl_sort_target">Closest to target</string>
+    <string name="since_added_down">▼%1$s (%2$d%%) since added</string>
+    <string name="since_added_up">▲%1$s (%2$d%%) since added</string>
 
     <string name="sale_calendar">Sale calendar</string>
     <string name="sale_active_now">Active now</string>

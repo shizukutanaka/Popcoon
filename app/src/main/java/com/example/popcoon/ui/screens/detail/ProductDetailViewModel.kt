@@ -204,6 +204,7 @@ class ProductDetailViewModel @Inject constructor(
                         listPrice = product.listPrice,
                         url = product.url,
                         imageUrl = product.imageUrl,
+                        addedPrice = product.realPrice,  // 追加時価格を基準として固定
                     )
                 )
                 _state.value = cur.copy(isInWatchlist = true)

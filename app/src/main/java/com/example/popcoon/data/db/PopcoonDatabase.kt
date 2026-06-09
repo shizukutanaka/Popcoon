@@ -42,6 +42,12 @@ data class WatchlistItem(
      * (v2 で追加 — MIGRATION_1_2)
      */
     val targetPrice: Long? = null,
+    /**
+     * ウォッチ追加時の価格（円）。追加後は同期で上書きしない（基準として固定）。
+     * 「追加時からの変動」表示に使う。0 = 基準なし。
+     * (v3 で追加 — MIGRATION_2_3)
+     */
+    val addedPrice: Long = 0,
 )
 
 // ── Entity: SearchHistory ───────────────────────────────────────────────────
@@ -134,7 +140,7 @@ interface PriceCacheDao {
 // ── Database ────────────────────────────────────────────────────────────────
 @Database(
     entities = [WatchlistItem::class, SearchHistoryEntry::class, PriceCacheEntry::class],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(InstantConverter::class)
@@ -155,6 +161,18 @@ abstract class PopcoonDatabase : RoomDatabase() {
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE watchlist ADD COLUMN targetPrice INTEGER")
+            }
+        }
+
+        /**
+         * v2 → v3: watchlist に追加時価格カラムを追加（「追加時からの変動」表示）。
+         * NOT NULL DEFAULT 0 で追加し、既存行は現在価格を基準として埋める
+         * （= 既存ウォッチは変動 0 から計測開始）。
+         */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE watchlist ADD COLUMN addedPrice INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("UPDATE watchlist SET addedPrice = realPrice")
             }
         }
     }

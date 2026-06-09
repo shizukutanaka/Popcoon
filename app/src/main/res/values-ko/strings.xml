@@ -108,6 +108,8 @@
     <string name="wl_sort_discount">할인율 높은순</string>
     <string name="wl_sort_name">이름순</string>
     <string name="wl_sort_target">목표 근접순</string>
+    <string name="since_added_down">추가 후 ▼%1$s (%2$d%%)</string>
+    <string name="since_added_up">추가 후 ▲%1$s (%2$d%%)</string>
 
     <string name="sale_calendar">세일 캘린더</string>
     <string name="sale_active_now">진행 중</string>

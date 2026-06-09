@@ -187,6 +187,10 @@
     <string name="wl_sort_name">名前順</string>
     <string name="wl_sort_target">目標に近い順</string>
 
+    <!-- 追加時からの変動 -->
+    <string name="since_added_down">追加時から ▼%1$s (%2$d%%)</string>
+    <string name="since_added_up">追加時から ▲%1$s (%2$d%%)</string>
+
     <!-- セールカレンダー -->
     <string name="sale_calendar">セールカレンダー</string>
     <string name="sale_active_now">開催中</string>
