@@ -11,8 +11,9 @@ import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
-import io.ktor.http.contentType
+import io.ktor.http.content.TextContent
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -46,6 +47,8 @@ class AmazonPaApiClient(
         private const val ALGORITHM = "AWS4-HMAC-SHA256"
         private const val AMZ_TARGET_PREFIX =
             "com.amazon.paapi5.v1.ProductAdvertisingAPIv1."
+        /** 署名対象 (SignedHeaders) とワイヤ上の content-type を一致させるための単一定義。 */
+        private const val SIGNED_CONTENT_TYPE = "application/json; charset=utf-8"
     }
 
     private val client = HttpClient {
@@ -88,12 +91,16 @@ class AmazonPaApiClient(
             SearchItemsRequest.serializer(), request)
 
         val response = runCatching {
+            // content-type は SignedHeaders に含まれるため、署名値と実際にワイヤに乗る値を
+            // 厳密に一致させる必要がある (不一致は SignatureDoesNotMatch / 403 を招く)。
+            // 単一の定数を署名と TextContent の双方に渡して取り違えを防ぐ。
             val signed = signer.sign(
                 method = "POST",
                 path = "/paapi5/searchitems",
                 payload = bodyJson,
                 host = HOST,
                 amzTarget = AMZ_TARGET_PREFIX + "SearchItems",
+                contentType = SIGNED_CONTENT_TYPE,
             )
             val httpResp = client.post("https://$HOST/paapi5/searchitems") {
                 header("host", HOST)
@@ -101,12 +108,12 @@ class AmazonPaApiClient(
                 header("x-amz-date", signed.amzDate)
                 header("x-amz-target", AMZ_TARGET_PREFIX + "SearchItems")
                 header("authorization", signed.authorizationHeader)
-                contentType(ContentType.Application.Json)
-                setBody(bodyJson)
+                setBody(TextContent(bodyJson, ContentType.parse(SIGNED_CONTENT_TYPE)))
             }
             check(httpResp.status.isSuccess()) { "PAAPI error: ${httpResp.status}" }
             httpResp.body<SearchItemsResponse>()
-        }.getOrNull() ?: return emptyList()
+        }.onFailure { if (it is CancellationException) throw it }
+            .getOrNull() ?: return emptyList()
 
         return response.searchResult?.items.orEmpty().mapNotNull { it.toProduct() }
     }

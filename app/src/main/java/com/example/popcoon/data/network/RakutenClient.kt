@@ -10,6 +10,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -40,7 +41,8 @@ class RakutenClient(
             }
             check(httpResp.status.isSuccess()) { "Rakuten API error: ${httpResp.status}" }
             httpResp.body<RakutenResponse>()
-        }.getOrNull() ?: return emptyList()
+        }.onFailure { if (it is CancellationException) throw it }
+            .getOrNull() ?: return emptyList()
 
         return resp.Items.map { it.Item }.map { i ->
             Product(

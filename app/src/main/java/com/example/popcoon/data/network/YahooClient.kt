@@ -10,6 +10,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -39,7 +40,8 @@ class YahooClient(
             }
             check(httpResp.status.isSuccess()) { "Yahoo API error: ${httpResp.status}" }
             httpResp.body<YahooResponse>()
-        }.getOrNull() ?: return emptyList()
+        }.onFailure { if (it is CancellationException) throw it }
+            .getOrNull() ?: return emptyList()
 
         return resp.hits.map { hit ->
             val price = hit.price
