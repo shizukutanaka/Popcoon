@@ -4,6 +4,7 @@ import android.app.Activity
 import com.example.popcoon.feature.settings.UserPreferences
 import com.google.android.play.core.review.ReviewException
 import com.google.android.play.core.review.ReviewManagerFactory
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -67,8 +68,9 @@ class ReviewPrompter @Inject constructor(
                 }
             }
             prefs.markReviewRequested()
-        }
-        // ReviewException 含めて全ての例外を握りつぶす (UX 阻害禁止)
+        }.onFailure { if (it is CancellationException) throw it }
+        // ReviewException 含めて全ての例外を握りつぶす (UX 阻害禁止)。
+        // ただしコルーチンキャンセルは伝播させる。
     }
 
     /** 成功イベントが起きた時に呼ぶ。閾値到達したら自動で review 発火条件を満たす */

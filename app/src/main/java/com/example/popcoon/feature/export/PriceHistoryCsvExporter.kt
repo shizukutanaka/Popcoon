@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.core.content.FileProvider
 import com.example.popcoon.data.db.WatchlistDao
 import com.example.popcoon.data.repository.BackendClient
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import java.io.File
 import java.time.Instant
@@ -43,7 +44,8 @@ class PriceHistoryCsvExporter @Inject constructor(
     suspend fun generate(context: Context): Uri? {
         val watchlist = runCatching {
             watchlistDao.observeAll().first()
-        }.getOrDefault(emptyList())
+        }.onFailure { if (it is CancellationException) throw it }
+            .getOrDefault(emptyList())
 
         if (watchlist.isEmpty()) return null
 
@@ -53,7 +55,8 @@ class PriceHistoryCsvExporter @Inject constructor(
         for (item in watchlist) {
             val history = runCatching {
                 backend.getPriceHistory(item.productKey)
-            }.getOrDefault(emptyList())
+            }.onFailure { if (it is CancellationException) throw it }
+                .getOrDefault(emptyList())
 
             for (record in history) {
                 val dateStr = formatter.format(record.recordedAt)
