@@ -41,7 +41,9 @@ class YahooClient(
 
         return resp.hits.map { hit ->
             val price = hit.price
-            val listPrice = hit.priceLabel?.premiumPrice ?: hit.priceLabel?.defaultPrice ?: price
+            // defaultPrice = 通常価格（参考価格）。premiumPrice はプレミアム会員向けの
+            // 割引価格で realPrice より低くなり得るため list price には使わない。
+            val listPrice = hit.priceLabel?.defaultPrice ?: price
             val shipping = hit.shipping?.takeIf { it.code == 2 }?.let { 0L } ?: 500L  // 近似
             Product(
                 sku = hit.code,

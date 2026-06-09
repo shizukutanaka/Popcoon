@@ -114,24 +114,14 @@ class AmazonPaApiClient(
 
 @Serializable
 private data class SearchItemsRequest(
-    val Keywords: String,
-    val Marketplace: String,
-    val PartnerTag: String,
-    val PartnerType: String,
-    val Resources: List<String>,
-    val SearchIndex: String,
-    val ItemCount: Int,
-) {
-    constructor(
-        keywords: String, marketplace: String, partnerTag: String,
-        partnerType: String, resources: List<String>, searchIndex: String,
-        itemCount: Int,
-    ) : this(
-        Keywords = keywords, Marketplace = marketplace, PartnerTag = partnerTag,
-        PartnerType = partnerType, Resources = resources, SearchIndex = searchIndex,
-        ItemCount = itemCount,
-    )
-}
+    @kotlinx.serialization.SerialName("Keywords") val keywords: String,
+    @kotlinx.serialization.SerialName("Marketplace") val marketplace: String,
+    @kotlinx.serialization.SerialName("PartnerTag") val partnerTag: String,
+    @kotlinx.serialization.SerialName("PartnerType") val partnerType: String,
+    @kotlinx.serialization.SerialName("Resources") val resources: List<String>,
+    @kotlinx.serialization.SerialName("SearchIndex") val searchIndex: String,
+    @kotlinx.serialization.SerialName("ItemCount") val itemCount: Int,
+)
 
 @Serializable
 private data class SearchItemsResponse(

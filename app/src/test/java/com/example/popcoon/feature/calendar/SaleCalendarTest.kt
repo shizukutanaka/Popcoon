@@ -61,4 +61,17 @@ class SaleCalendarTest : StringSpec({
             sales.first().tier shouldBe SaleCalendar.Tier.MAJOR
         }
     }
+
+    // 年境界回帰: 12月後半は当年の大型セールが全て過去 → 翌年春を返すべき
+    "12月後半でも翌年の大型セールを返す (年境界)" {
+        val d = LocalDate.of(2026, 12, 20)  // サイバーマンデー(12/6)も過ぎている
+        val next = SaleCalendar.nextMajorSale(d)
+        next.shouldNotBeNull()
+        // 翌年 (2027) 3月の楽天スーパーセール春が最も近い
+        next.startDate shouldBe LocalDate.of(2027, 3, 4)
+    }
+
+    "大晦日でも null を返さない" {
+        SaleCalendar.nextMajorSale(LocalDate.of(2026, 12, 31)).shouldNotBeNull()
+    }
 })

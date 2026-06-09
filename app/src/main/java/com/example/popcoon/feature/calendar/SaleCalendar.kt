@@ -41,7 +41,9 @@ object SaleCalendar {
 
     /** 次に来る大型セール (今日以降で最も近いもの) */
     fun nextMajorSale(today: LocalDate, platform: Platform? = null): Event? {
-        return seasonalSales(today)
+        // 当年だけでなく翌年分も候補に含める。
+        // 12月後半は当年の大型セールが全て過去になるため、翌年の楽天スーパーセール春等を返す。
+        return (seasonalSales(today) + seasonalSales(today.plusYears(1)))
             .filter { it.tier == Tier.MAJOR }
             .filter { it.startDate >= today }
             .filter { platform == null || it.platform == null || it.platform == platform }

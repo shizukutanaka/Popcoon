@@ -1,8 +1,29 @@
 package com.example.popcoon.data.model
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import java.time.Instant
+
+/**
+ * kotlinx.serialization は java.time.Instant の組み込みシリアライザを持たないため、
+ * ISO-8601 文字列として直列化する。backend (Cloudflare Workers) と JSON でやり取りする。
+ */
+object InstantIso8601Serializer : KSerializer<Instant> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Instant", PrimitiveKind.STRING)
+
+    override fun serialize(encoder: Encoder, value: Instant) =
+        encoder.encodeString(value.toString())
+
+    override fun deserialize(decoder: Decoder): Instant =
+        Instant.parse(decoder.decodeString())
+}
 
 /**
  * EC プラットフォーム。`fromId` は不明IDでも AMAZON を返し NPE を防止する。
@@ -62,5 +83,6 @@ data class PriceRecord(
     val listPrice: Long,
     val realPrice: Long,
     @SerialName("recorded_at")
+    @Serializable(with = InstantIso8601Serializer::class)
     val recordedAt: Instant,
 )
