@@ -101,6 +101,13 @@
     <string name="target_price_dialog_desc">价格降到此水平时，无论折扣率如何都会通知您。</string>
     <string name="target_price_hint">目标价格（日元）</string>
     <string name="target_price_clear">清除</string>
+    <string name="watchlist_sort_label">排序</string>
+    <string name="wl_sort_added">最近添加</string>
+    <string name="wl_sort_price_asc">价格从低到高</string>
+    <string name="wl_sort_price_desc">价格从高到低</string>
+    <string name="wl_sort_discount">折扣最大</string>
+    <string name="wl_sort_name">名称</string>
+    <string name="wl_sort_target">最接近目标</string>
 
     <string name="sale_calendar">促销日历</string>
     <string name="sale_active_now">进行中</string>

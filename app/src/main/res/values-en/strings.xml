@@ -101,6 +101,13 @@
     <string name="target_price_dialog_desc">We\'ll notify you once the price drops to this level, regardless of the discount rate.</string>
     <string name="target_price_hint">Target price (JPY)</string>
     <string name="target_price_clear">Clear</string>
+    <string name="watchlist_sort_label">Sort</string>
+    <string name="wl_sort_added">Recently added</string>
+    <string name="wl_sort_price_asc">Price: low to high</string>
+    <string name="wl_sort_price_desc">Price: high to low</string>
+    <string name="wl_sort_discount">Biggest discount</string>
+    <string name="wl_sort_name">Name</string>
+    <string name="wl_sort_target">Closest to target</string>
 
     <string name="sale_calendar">Sale calendar</string>
     <string name="sale_active_now">Active now</string>

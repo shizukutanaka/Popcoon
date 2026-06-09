@@ -31,6 +31,7 @@ class UserPreferences @Inject constructor(
         private val KEY_SUCCESS_COUNT = intPreferencesKey("success_count")
         private val KEY_LAST_REVIEW_REQUEST = longPreferencesKey("last_review")
         private val KEY_LANGUAGE = intPreferencesKey("language_idx")
+        private val KEY_WATCHLIST_SORT = intPreferencesKey("watchlist_sort_idx")
     }
 
     val onboarded: Flow<Boolean> = context.dataStore.data
@@ -85,6 +86,14 @@ class UserPreferences @Inject constructor(
         context.dataStore.edit {
             it[KEY_LAST_REVIEW_REQUEST] = System.currentTimeMillis()
         }
+    }
+
+    /** ウォッチリストの並べ替えモード（WatchlistSort.Mode の ordinal）。既定 0 = ADDED_DESC。 */
+    val watchlistSortOrdinal: Flow<Int> = context.dataStore.data
+        .map { it[KEY_WATCHLIST_SORT] ?: 0 }
+
+    suspend fun setWatchlistSort(ordinal: Int) {
+        context.dataStore.edit { it[KEY_WATCHLIST_SORT] = ordinal }
     }
 
     /** GDPR Article 17 — 全データ削除 */

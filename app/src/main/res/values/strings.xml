@@ -178,6 +178,15 @@
     <string name="target_price_hint">目標価格（円）</string>
     <string name="target_price_clear">解除</string>
 
+    <!-- ウォッチリスト並べ替え -->
+    <string name="watchlist_sort_label">並べ替え</string>
+    <string name="wl_sort_added">追加が新しい順</string>
+    <string name="wl_sort_price_asc">価格が安い順</string>
+    <string name="wl_sort_price_desc">価格が高い順</string>
+    <string name="wl_sort_discount">割引率が高い順</string>
+    <string name="wl_sort_name">名前順</string>
+    <string name="wl_sort_target">目標に近い順</string>
+
     <!-- セールカレンダー -->
     <string name="sale_calendar">セールカレンダー</string>
     <string name="sale_active_now">開催中</string>

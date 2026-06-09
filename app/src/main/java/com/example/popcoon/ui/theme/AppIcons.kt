@@ -2,6 +2,8 @@ package com.example.popcoon.ui.theme
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Search
@@ -44,4 +46,8 @@ object AppIcons {
     // 状態表示
     val Offline: ImageVector = Icons.Default.WifiOff
     val History: ImageVector = Icons.Default.History
+
+    // 一覧操作
+    val Sort: ImageVector = Icons.AutoMirrored.Filled.Sort
+    val Check: ImageVector = Icons.Default.Check
 }

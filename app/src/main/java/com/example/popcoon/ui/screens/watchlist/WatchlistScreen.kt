@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.popcoon.R
 import com.example.popcoon.data.db.WatchlistItem
+import com.example.popcoon.feature.watchlist.WatchlistSort
 import com.example.popcoon.ui.components.SmartCartCard
 import com.example.popcoon.ui.components.SwipeToDelete
 import com.example.popcoon.feature.notification.NotificationPermissionHelper
@@ -44,6 +45,7 @@ fun WatchlistScreen(
 ) {
     val items by viewModel.items.collectAsState(initial = emptyList())
     val smartCart by viewModel.smartCart.collectAsState()
+    val sortMode by viewModel.sortMode.collectAsState(initial = WatchlistSort.Mode.ADDED_DESC)
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -77,6 +79,15 @@ fun WatchlistScreen(
                 title = { Text(stringResource(R.string.watchlist_title)) },
                 navigationIcon = {
                     TextButton(onClick = onBack) { Text(stringResource(R.string.nav_back)) }
+                },
+                actions = {
+                    // 2件以上ある時のみ並べ替えメニューを表示
+                    if (items.size >= 2) {
+                        WatchlistSortMenu(
+                            current = sortMode,
+                            onSelect = viewModel::setSortMode,
+                        )
+                    }
                 },
             )
         },
@@ -147,6 +158,55 @@ fun WatchlistScreen(
 
 private fun undoRemovedMessage(context: android.content.Context, title: String): String =
     context.getString(R.string.watchlist_undo_removed, title.take(15))
+
+/** WatchlistSort.Mode → 表示用文字列リソース。 */
+@Composable
+private fun sortModeLabel(mode: WatchlistSort.Mode): String = stringResource(
+    when (mode) {
+        WatchlistSort.Mode.ADDED_DESC -> R.string.wl_sort_added
+        WatchlistSort.Mode.PRICE_ASC -> R.string.wl_sort_price_asc
+        WatchlistSort.Mode.PRICE_DESC -> R.string.wl_sort_price_desc
+        WatchlistSort.Mode.DISCOUNT_DESC -> R.string.wl_sort_discount
+        WatchlistSort.Mode.NAME_ASC -> R.string.wl_sort_name
+        WatchlistSort.Mode.TARGET_PROGRESS -> R.string.wl_sort_target
+    },
+)
+
+/**
+ * 並べ替えメニュー（TopAppBar アクション）。
+ * アイコンをタップするとドロップダウンで全モードを表示し、選択中にはチェックを付ける。
+ */
+@Composable
+private fun WatchlistSortMenu(
+    current: WatchlistSort.Mode,
+    onSelect: (WatchlistSort.Mode) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(
+                AppIcons.Sort,
+                contentDescription = stringResource(R.string.watchlist_sort_label),
+            )
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            WatchlistSort.Mode.entries.forEach { mode ->
+                DropdownMenuItem(
+                    text = { Text(sortModeLabel(mode)) },
+                    onClick = {
+                        onSelect(mode)
+                        expanded = false
+                    },
+                    trailingIcon = {
+                        if (mode == current) {
+                            Icon(AppIcons.Check, contentDescription = null)
+                        }
+                    },
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun WatchlistRow(

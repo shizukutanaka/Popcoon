@@ -21,10 +21,8 @@ import com.example.popcoon.ui.util.ConnectivityObserver
 @InstallIn(SingletonComponent::class)
 object SettingsModule {
 
-    @Provides @Singleton
-    fun provideUserPreferences(
-        @ApplicationContext context: Context,
-    ): UserPreferences = UserPreferences(context)
+    // UserPreferences は @Inject constructor を持つため Hilt が直接提供できる。
+    // ここで @Provides すると二重バインディング (Dagger コンパイルエラー) になるため置かない。
 
     @Provides @Singleton
     fun providePrivacyCrashReporter(
