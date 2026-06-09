@@ -11,6 +11,7 @@ import com.example.popcoon.feature.darkpattern.DarkPatternDetector
 import com.example.popcoon.feature.matching.ProductMatcher
 import com.example.popcoon.feature.scorer.BuyTimingScorer
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -165,6 +166,7 @@ class SearchViewModel @Inject constructor(
 
             _state.value = SearchUiState.Results(rows)
         }.onFailure { e ->
+            if (e is CancellationException) throw e
             _state.value = SearchUiState.Error(e.message?.take(80) ?: "検索失敗")
         }
     }

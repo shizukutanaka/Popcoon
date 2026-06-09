@@ -2,7 +2,9 @@ package com.example.popcoon.data.network
 
 import com.example.popcoon.data.model.Platform
 import com.example.popcoon.data.model.Product
+import io.ktor.http.isSuccess
 import io.ktor.client.HttpClient
+import kotlinx.coroutines.CancellationException
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.UserAgent
 import io.ktor.client.request.get
@@ -78,10 +80,15 @@ class FallbackScraper {
         if (!isPathAllowedByRobots(uri, path)) return null
 
         val html = runCatching {
-            client.get(url) {
+            val resp = client.get(url) {
                 header("Accept", "text/html,application/xhtml+xml")
-            }.bodyAsText()
-        }.getOrNull() ?: return null
+            }
+            if (!resp.status.isSuccess()) return@runCatching null
+            resp.bodyAsText()
+        }.getOrElse { e ->
+            if (e is CancellationException) throw e
+            null
+        } ?: return null
 
         val jsonLd = extractJsonLd(html) ?: return null
         return parseProductSchema(jsonLd, url, platform)
@@ -98,7 +105,10 @@ class FallbackScraper {
             val scheme = uri.scheme ?: "https"
             val body = runCatching {
                 client.get("$scheme://$host/robots.txt").bodyAsText()
-            }.getOrNull() ?: ""
+            }.getOrElse { e ->
+                if (e is CancellationException) throw e
+                null
+            } ?: ""
             robotsCache[host] = body
             body
         }
@@ -147,9 +157,10 @@ class FallbackScraper {
 
     private fun extractJsonString(json: String, key: String): String? {
         // キーごとに Regex を 1 度だけコンパイルしてキャッシュする (name/price/image 等の固定キー)。
-        // (?:[^"'\\]|\\.)*: バックスラッシュエスケープ (\", \\) を含む値に対応。
+        // (?:[^"\\]|\\.)*: バックスラッシュエスケープ (\", \\) を含む値に対応。
+        // [^"\\] (シングルクォートを除外しない) により "John's Store" のようなアポストロフィ入り値も正しく抽出。
         val pattern = keyPatternCache.getOrPut(key) {
-            Regex("""["']$key["']\s*:\s*["']((?:[^"'\\]|\\.)*)["']""")
+            Regex("""["']$key["']\s*:\s*["']((?:[^"\\]|\\.)*)["']""")
         }
         return pattern.find(json)?.groupValues?.get(1)
     }

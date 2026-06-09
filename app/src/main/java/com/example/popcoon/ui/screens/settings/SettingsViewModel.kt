@@ -25,7 +25,7 @@ import javax.inject.Inject
 data class SettingsUiState(
     val crashOptin: Boolean = false,
     val aiOptin: Boolean = false,
-    val affiliateOptin: Boolean = true,
+    val affiliateOptin: Boolean = false,
     val isPremium: Boolean = false,
     val billingStatus: BillingManager.PremiumStatus = BillingManager.PremiumStatus.UNKNOWN,
     val appVersion: String = "0.1.0",
