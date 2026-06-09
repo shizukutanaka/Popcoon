@@ -67,25 +67,33 @@ class PopcoonWidget : GlanceAppWidget() {
     }
 
     private fun loadTodayInfo(): TodayInfo {
-        // SaleCalendar から今日のセール状況を読み取る
         val today = java.time.LocalDate.now()
-        val day = today.dayOfMonth
-        val dow = today.dayOfWeek
-        return when {
-            day == 5 || day == 15 || day == 25 ->
-                TodayInfo("Yahoo! 5のつく日 +4%", isActive = true)
-            day in listOf(5, 10, 20, 30) ->
-                TodayInfo("楽天 5と0のつく日 +1%", isActive = true)
-            dow == java.time.DayOfWeek.SUNDAY ->
-                TodayInfo("Yahoo! 日曜日 +5%", isActive = true)
-            else -> {
-                val nextEvent = nextPointDay(day)
-                TodayInfo("次回: ${nextEvent}日 ポイントUP", isActive = false)
-            }
-        }
+        return PopcoonWidgetLogic.todayInfo(today.dayOfMonth, today.dayOfWeek)
+    }
+}
+
+/**
+ * ウィジェットの「今日のセール情報」判定 (純関数、Context 非依存)。
+ * 単体テストで網羅検証する。
+ */
+internal object PopcoonWidgetLogic {
+
+    fun todayInfo(day: Int, dow: java.time.DayOfWeek): TodayInfo = when {
+        // Yahoo! 5のつく日 (5/15/25) — 共有日は高還元の Yahoo を優先表示。
+        day == 5 || day == 15 || day == 25 ->
+            TodayInfo("Yahoo! 5のつく日 +4%", isActive = true)
+        // 楽天 5と0のつく日のうち Yahoo と重ならない日 (10/20/30)。
+        // (5/15/25 は上で Yahoo に振るので、ここに 5 を入れると到達不能=デッドになる)
+        day == 10 || day == 20 || day == 30 ->
+            TodayInfo("楽天 5と0のつく日 +1%", isActive = true)
+        dow == java.time.DayOfWeek.SUNDAY ->
+            TodayInfo("Yahoo! 日曜日 +5%", isActive = true)
+        else ->
+            TodayInfo("次回: ${nextPointDay(day)}日 ポイントUP", isActive = false)
     }
 
-    private fun nextPointDay(today: Int): Int {
+    /** 今日以降で次にポイントアップする日 (5と0のつく日)。月末を越えると翌月の 5。 */
+    fun nextPointDay(today: Int): Int {
         val candidates = listOf(5, 10, 15, 20, 25, 30)
         return candidates.firstOrNull { it > today } ?: 5
     }
