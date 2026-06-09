@@ -46,7 +46,7 @@ object TCOCalculator {
             }
             "laser_printer" -> {
                 val toner = (6000 * 1.5 * intensity).toLong()
-                val drum = (8000 * 0.33).toLong()
+                val drum = (8000 * 0.33 * intensity).toLong()
                 val paper = (600 * 3.0 * intensity).toLong()
                 toner + drum + paper
             }

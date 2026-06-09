@@ -70,8 +70,15 @@ class BarcodeScanner {
      *  - Google Play Services が古い
      *  - スキャナモジュール未インストール (Play Services が自動 download)
      */
-    fun startScan(): Task<Barcode>? {
-        return scanner?.startScan()
+    fun startScan(): Task<Barcode> {
+        return checkNotNull(scanner) { "BarcodeScanner not bound. Call bind(activity) first." }
+            .startScan()
+    }
+
+    /** Activity 参照を解放する。onStop / DisposableEffect の onDispose で呼ぶ。 */
+    fun unbind() {
+        scanner = null
+        activity = null
     }
 
     companion object {

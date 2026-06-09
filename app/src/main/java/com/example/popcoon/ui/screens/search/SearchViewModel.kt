@@ -157,9 +157,7 @@ class SearchViewModel @Inject constructor(
             }
             // 検索履歴を保存し Trie に登録 (次回からオートコンプリートに使用)
             viewModelScope.launch {
-                historyDao.insert(SearchHistoryEntry(query = query))
-                historyDao.deduplicate(query)
-                historyDao.trim(50)
+                historyDao.insertAndDeduplicate(SearchHistoryEntry(query = query))
                 _recentSearches.value = historyDao.observeRecent(10).first().map { it.query }
             }
             // 商品タイトルを Trie に追加

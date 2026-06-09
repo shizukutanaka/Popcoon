@@ -84,13 +84,13 @@ class BackendClient @Inject constructor() {
         return runCatching {
             client.delete("$baseUrl/v1/device") {
                 header("x-device-token", deviceToken)
-            }
-        }.isSuccess
+            }.status.isSuccess()
+        }.getOrDefault(false)
     }
 
     @Serializable
     private data class HistoryResponse(
-        val product_key: String,
+        @kotlinx.serialization.SerialName("product_key") val productKey: String,
         val count: Int,
         val records: List<PriceRecord>,
     )

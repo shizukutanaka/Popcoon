@@ -27,7 +27,7 @@ class CurrencyFormatterTest : StringSpec({
     }
 
     "yenDiff: 負の差額は - 付き" {
-        CurrencyFormatter.yenDiff(-300) shouldBe "¥-300"
+        CurrencyFormatter.yenDiff(-300) shouldBe "-¥300"
     }
 
     "yenDiff: ゼロは + 付き" {

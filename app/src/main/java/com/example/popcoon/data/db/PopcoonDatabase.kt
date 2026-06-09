@@ -3,11 +3,13 @@ package com.example.popcoon.data.db
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.RoomDatabase
+import androidx.room.Transaction
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
@@ -25,7 +27,10 @@ import java.time.Instant
  */
 
 // ── Entity: Watchlist (お気に入り) ──────────────────────────────────────────
-@Entity(tableName = "watchlist")
+@Entity(
+    tableName = "watchlist",
+    indices = [Index(value = ["addedAt"])],
+)
 data class WatchlistItem(
     @PrimaryKey val productKey: String,
     val sku: String,
@@ -44,14 +49,17 @@ data class WatchlistItem(
     val targetPrice: Long? = null,
     /**
      * ウォッチ追加時の価格（円）。追加後は同期で上書きしない（基準として固定）。
-     * 「追加時からの変動」表示に使う。0 = 基準なし。
+     * 「追加時からの変動」表示に使う。0 = 基準なし（v2 以前に追加されたアイテム）。
      * (v3 で追加 — MIGRATION_2_3)
      */
     val addedPrice: Long = 0,
 )
 
 // ── Entity: SearchHistory ───────────────────────────────────────────────────
-@Entity(tableName = "search_history")
+@Entity(
+    tableName = "search_history",
+    indices = [Index(value = ["query"]), Index(value = ["timestamp"])],
+)
 data class SearchHistoryEntry(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val query: String,
@@ -96,6 +104,10 @@ interface WatchlistDao {
     @Query("UPDATE watchlist SET targetPrice = :target WHERE productKey = :key")
     suspend fun setTargetPrice(key: String, target: Long?)
 
+    /** 現在価格のみ更新。upsert の全フィールド書き換えを避け addedPrice を保全する。 */
+    @Query("UPDATE watchlist SET realPrice = :price WHERE productKey = :key")
+    suspend fun updatePrice(key: String, price: Long)
+
     @Query("SELECT COUNT(*) FROM watchlist")
     suspend fun count(): Int
 
@@ -120,6 +132,14 @@ interface SearchHistoryDao {
 
     @Query("DELETE FROM search_history")
     suspend fun deleteAll()
+
+    /** insert + deduplicate + trim を 1 トランザクションでアトミックに実行。 */
+    @Transaction
+    suspend fun insertAndDeduplicate(entry: SearchHistoryEntry, keep: Int = 50) {
+        insert(entry)
+        deduplicate(entry.query)
+        trim(keep)
+    }
 }
 
 @Dao
@@ -140,7 +160,7 @@ interface PriceCacheDao {
 // ── Database ────────────────────────────────────────────────────────────────
 @Database(
     entities = [WatchlistItem::class, SearchHistoryEntry::class, PriceCacheEntry::class],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(InstantConverter::class)
@@ -155,8 +175,6 @@ abstract class PopcoonDatabase : RoomDatabase() {
         /**
          * v1 → v2: watchlist に目標価格カラムを追加（希望価格アラート機能）。
          * nullable で追加するため既存行はそのまま（targetPrice = NULL = 未設定）。
-         * release ビルドでは破壊的フォールバックを無効化しているため、
-         * このマイグレーションでユーザーのウォッチリストを保全する。
          */
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -166,13 +184,26 @@ abstract class PopcoonDatabase : RoomDatabase() {
 
         /**
          * v2 → v3: watchlist に追加時価格カラムを追加（「追加時からの変動」表示）。
-         * NOT NULL DEFAULT 0 で追加し、既存行は現在価格を基準として埋める
-         * （= 既存ウォッチは変動 0 から計測開始）。
+         * NOT NULL DEFAULT 0 で追加。既存行は addedPrice = 0 (基準なし) のままとし、
+         * UI 側で 0 を「データなし」として扱う。
          */
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE watchlist ADD COLUMN addedPrice INTEGER NOT NULL DEFAULT 0")
-                db.execSQL("UPDATE watchlist SET addedPrice = realPrice")
+            }
+        }
+
+        /**
+         * v3 → v4: パフォーマンス改善のため検索用インデックスを追加。
+         * watchlist.addedAt: 登録日時降順一覧の ORDER BY に使用。
+         * search_history.query: 重複排除の WHERE query = ? に使用。
+         * search_history.timestamp: 最新順取得の ORDER BY に使用。
+         */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_watchlist_addedAt` ON `watchlist` (`addedAt`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_search_history_query` ON `search_history` (`query`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_search_history_timestamp` ON `search_history` (`timestamp`)")
             }
         }
     }

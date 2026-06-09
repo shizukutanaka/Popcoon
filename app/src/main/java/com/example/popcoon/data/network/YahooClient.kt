@@ -78,8 +78,8 @@ private data class YahooResponse(val hits: List<Hit>) {
         val shipping: Shipping? = null,
     )
     @Serializable data class PriceLabel(val defaultPrice: Int? = null, val premiumPrice: Int? = null)
-    @Serializable data class Review(val rate: Float, val count: Int)
-    @Serializable data class Image(val medium: String)
+    @Serializable data class Review(val rate: Float? = null, val count: Int? = null)
+    @Serializable data class Image(val medium: String? = null)
     @Serializable data class Brand(val name: String)
     @Serializable data class Shipping(val code: Int)
 }

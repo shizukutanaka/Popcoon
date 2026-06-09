@@ -71,8 +71,10 @@ class PriceHistoryCsvExporter @Inject constructor(
             }
         }
 
-        // キャッシュディレクトリに書き込み
+        // キャッシュディレクトリに書き込み。古い CSV ファイルを先にクリーンアップ。
         val dir = File(context.cacheDir, "exports").apply { mkdirs() }
+        val cutoff = System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000
+        dir.listFiles()?.forEach { f -> if (f.lastModified() < cutoff) f.delete() }
         val fileName = "popcoon_history_${System.currentTimeMillis()}.csv"
         val file = File(dir, fileName)
         file.writeText(sb.toString(), Charsets.UTF_8)

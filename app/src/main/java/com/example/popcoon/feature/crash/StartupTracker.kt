@@ -65,7 +65,8 @@ class StartupTracker @Inject constructor() {
             StartupMetrics(
                 totalDurationMs = total,
                 launchedFromForegroundProcess =
-                    recent.reason == android.app.ApplicationStartInfo.REASON_OTHER,
+                    recent.reason == android.app.ApplicationStartInfo.REASON_LAUNCHER ||
+                    recent.reason == android.app.ApplicationStartInfo.REASON_LAUNCHER_ACTIVITY,
                 startType = startType,
             )
         }.getOrNull()

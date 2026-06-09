@@ -1,5 +1,8 @@
 package com.example.popcoon.core
 
+import java.util.Locale
+import kotlin.math.abs
+
 /**
  * 通貨フォーマット。
  *
@@ -7,19 +10,20 @@ package com.example.popcoon.core
  * → 将来の多通貨対応 (USD/EUR) や小数点処理が困難。
  *
  * 解決: 1 箇所に集約。全 UI はこの関数を呼ぶ。
+ * Locale.US を明示して EU ロケール端末での小数点/桁区切り反転を防ぐ。
  */
 object CurrencyFormatter {
 
     /** 日本円フォーマット (例: "¥1,234") */
-    fun yen(amount: Long): String = "¥${"%,d".format(amount)}"
+    fun yen(amount: Long): String = "¥${String.format(Locale.US, "%,d", amount)}"
 
     /** 日本円フォーマット + 「円」付き (例: "1,234円") — TalkBack 読み上げ用 */
-    fun yenAccessible(amount: Long): String = "${"%,d".format(amount)}円"
+    fun yenAccessible(amount: Long): String = "${String.format(Locale.US, "%,d", amount)}円"
 
-    /** 差額表示 (例: "-¥500" or "+¥200") */
+    /** 差額表示 (例: "-¥300" or "+¥200") */
     fun yenDiff(diff: Long): String {
-        val sign = if (diff >= 0) "+" else ""
-        return "$sign¥${"%,d".format(diff)}"
+        val sign = if (diff >= 0) "+" else "-"
+        return "$sign¥${String.format(Locale.US, "%,d", abs(diff))}"
     }
 
     /** 割引率 (例: "20% OFF") */
@@ -31,5 +35,5 @@ object CurrencyFormatter {
 
     /** ポイント還元 (例: "+¥100 (1.0%)") */
     fun pointsBack(amount: Long, rateStr: String): String =
-        "+¥${"%,d".format(amount)} ($rateStr)"
+        "+¥${String.format(Locale.US, "%,d", amount)} ($rateStr)"
 }

@@ -78,6 +78,13 @@ class TCOCalculatorTest : StringSpec({
         (heavy.consumablesTotal > normal.consumablesTotal) shouldBe true
     }
 
+    "レーザープリンター intensity 2.0: ドラムも intensity に比例 (drum bug regression)" {
+        val normal = TCOCalculator.calculate(25_000, "laser_printer", 1, intensity = 1.0)
+        val heavy = TCOCalculator.calculate(25_000, "laser_printer", 1, intensity = 2.0)
+        // 全消耗品 (toner/drum/paper) が intensity に比例するので 2倍になる
+        heavy.consumablesTotal shouldBe normal.consumablesTotal * 2
+    }
+
     "tcoPerMonth は totalTco / (years × 12)" {
         val r = TCOCalculator.calculate(12_000, "laptop", 2)
         r.tcoPerMonth shouldBe r.totalTco / (2 * 12)

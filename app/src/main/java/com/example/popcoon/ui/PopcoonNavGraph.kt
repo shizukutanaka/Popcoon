@@ -59,7 +59,11 @@ fun PopcoonNavGraph(
         }
 
         composable("detail/{productKey}") { entry ->
-            val key = entry.arguments?.getString("productKey") ?: return@composable
+            val key = entry.arguments?.getString("productKey")
+            if (key == null) {
+                navController.popBackStack()
+                return@composable
+            }
             ProductDetailScreen(
                 productKey = key,
                 onBack = { navController.popBackStack() },

@@ -62,10 +62,11 @@ object CustomsSimulator {
 
         val verdict = when {
             japanBestPrice == null -> Verdict.CHEAPER
+            // 食品・化粧品は衛生/検疫リスクにより価格によらず非推奨
+            category == "食品" || category == "化粧品" -> Verdict.NOT_RECOMMENDED
             isExempt && total < japanBestPrice * 0.7 -> Verdict.CHEAPER
             total >= japanBestPrice -> Verdict.MORE_EXPENSIVE
             total >= japanBestPrice * 0.9 -> Verdict.COMPARABLE
-            category == "食品" || category == "化粧品" -> Verdict.NOT_RECOMMENDED
             else -> Verdict.CHEAPER
         }
 
