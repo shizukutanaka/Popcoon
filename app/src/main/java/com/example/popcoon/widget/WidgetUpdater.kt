@@ -69,6 +69,7 @@ object WidgetUpdater {
             PopcoonWidget().updateAll(context)
             PopcoonLogger.d("WidgetUpdater", "ウィジェット更新完了 (${items.size} 件)")
         }.onFailure { e ->
+            if (e is kotlinx.coroutines.CancellationException) throw e
             PopcoonLogger.w("WidgetUpdater", "ウィジェット更新失敗", e)
         }
     }
