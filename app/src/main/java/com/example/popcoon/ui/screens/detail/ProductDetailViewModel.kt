@@ -15,6 +15,7 @@ import com.example.popcoon.feature.review.ReviewTrustScorer
 import com.example.popcoon.feature.scorer.BuyTimingScorer
 import com.example.popcoon.feature.tco.TCOCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -213,10 +214,14 @@ class ProductDetailViewModel @Inject constructor(
                 _state.value = cur.copy(isInWatchlist = true)
             }
             // ウィジェット更新 (ホーム画面の最安値リストを最新化)
-            runCatching {
+            try {
                 val items = kotlinx.coroutines.flow.first(watchlistDao.observeAll())
                 com.example.popcoon.widget.WidgetUpdater.update(context, items)
-            }.onFailure { PopcoonLogger.w(this@ProductDetailViewModel, "Widget update failed: ${it.message}") }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                PopcoonLogger.w(this@ProductDetailViewModel, "Widget update failed: ${e.message}")
+            }
         }
     }
 

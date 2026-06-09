@@ -90,6 +90,7 @@ class BuyingAdvisor @Inject constructor(
             messages = listOf(ClaudeMessage("user", userPrompt)),
         )
 
+        var isError = false
         val advice = runCatching {
             val response = client.post("https://api.anthropic.com/v1/messages") {
                 header("x-api-key", apiKey)
@@ -99,14 +100,15 @@ class BuyingAdvisor @Inject constructor(
             }
             val body = response.body<ClaudeResponse>()
             body.content.firstOrNull { it.type == "text" }?.text
-                ?: "アドバイス取得失敗"
+                ?: run { isError = true; "アドバイス取得失敗" }
         }.getOrElse { e ->
             PopcoonLogger.w("BuyingAdvisor", "API 呼び出し失敗", e)
+            isError = true
             "ネットワークエラー: ${e.message?.take(50)}"
         }
 
         // 2. キャッシュ保存 (エラーはキャッシュしない)
-        if (!advice.contains("エラー") && !advice.contains("失敗")) {
+        if (!isError) {
             cache.put(product, score, advice)
         }
 

@@ -56,7 +56,7 @@ class UserPreferences @Inject constructor(
     }
 
     val affiliateOptin: Flow<Boolean> = context.dataStore.data
-        .map { it[KEY_AFFILIATE_OPTIN] ?: true }   // デフォルト ON (収益源、明示開示)
+        .map { it[KEY_AFFILIATE_OPTIN] ?: false }   // デフォルト OFF (クラス方針: 全項目 opt-in)
 
     suspend fun setAffiliateOptin(value: Boolean) {
         context.dataStore.edit { it[KEY_AFFILIATE_OPTIN] = value }
