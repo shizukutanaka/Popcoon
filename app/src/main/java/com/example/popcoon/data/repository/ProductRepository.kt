@@ -7,6 +7,7 @@ import com.example.popcoon.data.network.AmazonPaApiClient
 import com.example.popcoon.data.network.FallbackScraper
 import com.example.popcoon.data.network.RakutenClient
 import com.example.popcoon.data.network.YahooClient
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import javax.inject.Inject
@@ -49,9 +50,21 @@ open class ProductRepository @Inject constructor(
      * fire-and-forget で backend に価格を送信 (ユーザー体感を阻害しない)。
      */
     override suspend fun search(keyword: String, limit: Int = 10): List<Product> = coroutineScope {
-        val amazonJob = async { runCatching { amazon.searchItems(keyword, limit) }.onFailure { PopcoonLogger.w("ProductRepository", "Amazon 検索失敗", it) }.getOrDefault(emptyList()) }
-        val rakutenJob = async { runCatching { rakuten.search(keyword, limit) }.onFailure { PopcoonLogger.w("ProductRepository", "楽天 検索失敗", it) }.getOrDefault(emptyList()) }
-        val yahooJob = async { runCatching { yahoo.search(keyword, limit) }.onFailure { PopcoonLogger.w("ProductRepository", "Yahoo 検索失敗", it) }.getOrDefault(emptyList()) }
+        val amazonJob = async {
+            try { amazon.searchItems(keyword, limit) }
+            catch (e: CancellationException) { throw e }
+            catch (e: Exception) { PopcoonLogger.w("ProductRepository", "Amazon 検索失敗", e); emptyList() }
+        }
+        val rakutenJob = async {
+            try { rakuten.search(keyword, limit) }
+            catch (e: CancellationException) { throw e }
+            catch (e: Exception) { PopcoonLogger.w("ProductRepository", "楽天 検索失敗", e); emptyList() }
+        }
+        val yahooJob = async {
+            try { yahoo.search(keyword, limit) }
+            catch (e: CancellationException) { throw e }
+            catch (e: Exception) { PopcoonLogger.w("ProductRepository", "Yahoo 検索失敗", e); emptyList() }
+        }
 
         val results = listOf(amazonJob.await(), rakutenJob.await(), yahooJob.await())
             .flatten()
@@ -79,14 +92,19 @@ open class ProductRepository @Inject constructor(
      */
     override suspend fun refresh(product: Product): Product? {
         val url = product.url.ifEmpty { return null }
-        return runCatching {
+        return try {
             fallback.fetchProduct(url, product.platform)
-        }.getOrNull() ?: product
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            null
+        } ?: product
     }
 
     /** 商品の価格履歴を backend から取得 */
     override suspend fun getPriceHistory(productKey: String): List<PriceRecord> {
-        return runCatching { backend.getPriceHistory(productKey) }
-            .getOrDefault(emptyList())
+        return try { backend.getPriceHistory(productKey) }
+        catch (e: CancellationException) { throw e }
+        catch (e: Exception) { emptyList() }
     }
 }
