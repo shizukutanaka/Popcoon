@@ -227,6 +227,15 @@
     <string name="bundle_title">세트 실질 단가</string>
     <string name="bundle_pack_count">%1$d개 세트</string>
 
+    <!-- 친환경·윤리 점수 (EcoEthicsScorer) -->
+    <string name="ethics_title">환경·윤리 점수</string>
+    <string name="ethics_overall">종합 점수</string>
+    <string name="ethics_co2">환경 부하 (CO2)</string>
+    <string name="ethics_labor">노동 환경</string>
+    <string name="ethics_co2_estimate">예상 CO2 약 %1$s kg</string>
+    <string name="ethics_origin">원산지 %1$s</string>
+    <string name="ethics_green_alt">국산·인근 생산 대체품이라면 CO2를 줄일 수 있습니다</string>
+
     <!-- 공통 UI 라벨 -->
     <string name="action_delete">삭제</string>
     <string name="action_collapse">닫기</string>

@@ -232,6 +232,15 @@
     <string name="bundle_title">Effective unit price</string>
     <string name="bundle_pack_count">Pack of %1$d</string>
 
+    <!-- Eco-ethics score (EcoEthicsScorer) -->
+    <string name="ethics_title">Eco &amp; Ethics Score</string>
+    <string name="ethics_overall">Overall</string>
+    <string name="ethics_co2">Carbon footprint (CO2)</string>
+    <string name="ethics_labor">Labor conditions</string>
+    <string name="ethics_co2_estimate">Est. CO2 ~%1$s kg</string>
+    <string name="ethics_origin">Origin: %1$s</string>
+    <string name="ethics_green_alt">A domestic or nearby-made alternative could cut CO2</string>
+
     <!-- Common UI labels -->
     <string name="action_delete">Delete</string>
     <string name="action_collapse">Close</string>

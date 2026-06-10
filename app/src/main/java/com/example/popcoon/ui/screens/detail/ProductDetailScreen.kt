@@ -175,6 +175,15 @@ private fun LoadedContent(s: DetailUiState.Loaded) {
         com.example.popcoon.ui.components.TCOCard(result = tco)
     }
 
+    // ─ 環境・倫理スコア (原産国の CO2/労働指標 — 競合非搭載の差別化機能)
+    s.ethics?.let { ethics ->
+        Spacer(Modifier.height(Spacing.md))
+        com.example.popcoon.ui.components.EthicsCard(
+            score = ethics,
+            origin = s.product.originCountry,
+        )
+    }
+
     // ─ 警告 (ダークパターン)
     if (s.warnings.isNotEmpty()) {
         Card(Modifier.fillMaxWidth(),

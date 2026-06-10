@@ -255,6 +255,15 @@
     <string name="bundle_title">セット販売の実質単価</string>
     <string name="bundle_pack_count">%1$d個セット</string>
 
+    <!-- エコ倫理スコア (EcoEthicsScorer) -->
+    <string name="ethics_title">環境・倫理スコア</string>
+    <string name="ethics_overall">総合スコア</string>
+    <string name="ethics_co2">環境負荷 (CO2)</string>
+    <string name="ethics_labor">労働環境</string>
+    <string name="ethics_co2_estimate">推定CO2 約%1$s kg</string>
+    <string name="ethics_origin">原産国 %1$s</string>
+    <string name="ethics_green_alt">国産・近隣産の代替品ならCO2を削減できます</string>
+
     <!-- 共通 UI ラベル -->
     <string name="action_delete">削除</string>
     <string name="action_collapse">閉じる</string>

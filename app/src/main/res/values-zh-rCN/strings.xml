@@ -227,6 +227,15 @@
     <string name="bundle_title">套装实际单价</string>
     <string name="bundle_pack_count">%1$d个装</string>
 
+    <!-- 环保伦理评分 (EcoEthicsScorer) -->
+    <string name="ethics_title">环保与伦理评分</string>
+    <string name="ethics_overall">综合评分</string>
+    <string name="ethics_co2">环境负荷 (CO2)</string>
+    <string name="ethics_labor">劳工环境</string>
+    <string name="ethics_co2_estimate">预计CO2 约%1$s kg</string>
+    <string name="ethics_origin">原产国 %1$s</string>
+    <string name="ethics_green_alt">选择国产或就近生产的替代品可减少CO2</string>
+
     <!-- 通用 UI 标签 -->
     <string name="action_delete">删除</string>
     <string name="action_collapse">收起</string>

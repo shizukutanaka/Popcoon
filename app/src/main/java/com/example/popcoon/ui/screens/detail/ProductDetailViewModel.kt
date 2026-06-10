@@ -9,6 +9,7 @@ import com.example.popcoon.data.repository.IProductRepository
 import com.example.popcoon.feature.ai.BuyingAdvisor
 import com.example.popcoon.feature.darkpattern.DarkPatternDetector
 import com.example.popcoon.feature.darkpattern.DarkPatternTextDetector
+import com.example.popcoon.feature.ethics.EcoEthicsScorer
 import com.example.popcoon.feature.prediction.PricePredictionEngine
 import com.example.popcoon.feature.bundle.BundlePackDetector
 import com.example.popcoon.feature.review.ReviewTrustScorer
@@ -42,6 +43,7 @@ sealed interface DetailUiState {
         val tco: TCOCalculator.Result? = null,
         val reviewTrust: ReviewTrustScorer.Result? = null,
         val bundle: BundlePackDetector.Analysis? = null,
+        val ethics: EcoEthicsScorer.Score? = null,
     ) : DetailUiState
 }
 
@@ -142,6 +144,14 @@ class ProductDetailViewModel @Inject constructor(
                         null
                     }
                 }
+                // エコ倫理スコア: 原産国が判明している商品でのみ算出 (不明時は意味を持たない)
+                val ethics = product.originCountry?.takeIf { it.isNotBlank() }?.let { origin ->
+                    EcoEthicsScorer.score(
+                        country = origin.uppercase(),
+                        category = inferEthicsCategory(product.title),
+                        certifications = extractCertifications(product.title),
+                    )
+                }
                 _state.value = DetailUiState.Loaded(
                     product = product,
                     score = score?.total ?: 0,
@@ -156,6 +166,7 @@ class ProductDetailViewModel @Inject constructor(
                     tco = tco,
                     reviewTrust = reviewTrust,
                     bundle = bundle,
+                    ethics = ethics,
                 )
 
                 // 6. AI advice をキャッシュ確認 → 必要なら背景取得
@@ -230,6 +241,29 @@ class ProductDetailViewModel @Inject constructor(
         }
     }
 
+    /**
+     * タイトルから EcoEthicsScorer のカテゴリ (smartphone/laptop/tv/tshirt) を推定する。
+     * 未知は "other" を返す (スコアラ側で既定 CO2 にフォールバック)。
+     */
+    private fun inferEthicsCategory(title: String): String {
+        val t = title.lowercase()
+        return when {
+            ETHICS_SMARTPHONE.containsMatchIn(t) -> "smartphone"
+            ETHICS_LAPTOP.containsMatchIn(t) -> "laptop"
+            ETHICS_TV.containsMatchIn(t) -> "tv"
+            ETHICS_TSHIRT.containsMatchIn(t) -> "tshirt"
+            else -> "other"
+        }
+    }
+
+    /** タイトルに含まれるエコ認証ワードを抽出 (CO2 スコアの加点判定に使う)。 */
+    private fun extractCertifications(title: String): List<String> {
+        val out = mutableListOf<String>()
+        if (title.contains("エコ")) out += "エコマーク"
+        if (title.lowercase().contains("green") || title.contains("オーガニック")) out += "green"
+        return out
+    }
+
     /** productKey だけで最小 Product を構築するフォールバック */
     private fun buildProductFromKey(productKey: String, history: List<PriceRecord>): Product {
         val parts = productKey.split(":", limit = 2)
@@ -245,6 +279,12 @@ class ProductDetailViewModel @Inject constructor(
         )
     }
 }
+
+// エコ倫理カテゴリ推定用のキーワード (大文字小文字非依存・日英混在対応)
+private val ETHICS_SMARTPHONE = Regex("スマホ|スマートフォン|iphone|android|smartphone|携帯電話")
+private val ETHICS_LAPTOP = Regex("ノートpc|ノートパソコン|laptop|macbook|ノートブック|ウルトラブック")
+private val ETHICS_TV = Regex("テレビ|液晶テレビ|有機el|television|\\btv\\b")
+private val ETHICS_TSHIRT = Regex("tシャツ|ティーシャツ|tshirt|t-shirt|カットソー|アパレル|衣料")
 
 /**
  * SearchScreen → ProductDetailScreen への Product 受け渡しヘルパー。
