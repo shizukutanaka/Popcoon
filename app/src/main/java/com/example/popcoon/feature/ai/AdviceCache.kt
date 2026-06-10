@@ -65,9 +65,11 @@ class AdviceCache @Inject constructor() {
         }
     }
 
+    @Synchronized
     fun clear() {
         cache.clear()
     }
 
+    @Synchronized
     fun size(): Int = cache.size
 }

@@ -55,8 +55,8 @@ class AffiliateUrlBuilderTest : StringSpec({
         // プラットフォームと URL のミスマッチ時も crash しない
         val r1 = AffiliateUrlBuilder.build(Platform.RAKUTEN, amazonUrl, optOut = false)
         val r2 = AffiliateUrlBuilder.build(Platform.YAHOO, rakutenUrl, optOut = false)
-        // 型整合性チェック — String を返すこと
-        (r1 is String) shouldBe true
-        (r2 is String) shouldBe true
+        // 認証情報なし (CI): 素のURLを返す。あり: アフィリエイトURLを生成する。
+        (r1 == amazonUrl || r1.startsWith("https://hb.afl.rakuten.co.jp")) shouldBe true
+        (r2 == rakutenUrl || r2.contains("sc_e=")) shouldBe true
     }
 })

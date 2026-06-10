@@ -44,11 +44,11 @@ class TCOCalculatorTest : StringSpec({
         r.energyTotal shouldBeGreaterThan 0L
     }
 
-    "冷蔵庫: 24時間稼働で電気代最大" {
+    "冷蔵庫は24時間稼働のため laptop(6h/45W) より電気代が高い" {
         val laptop = TCOCalculator.calculate(100_000, "laptop", 5)
         val fridge = TCOCalculator.calculate(100_000, "refrigerator", 5)
-        // 24h vs 6h — 冷蔵庫は稼働時間長いが消費電力低い(35W)
-        (fridge.energyTotal > 0L) shouldBe true
+        // 35W × 24h vs 45W × 6h — 総wh は冷蔵庫(840/日) > laptop(270/日)
+        (fridge.energyTotal > laptop.energyTotal) shouldBe true
     }
 
     "エアコン: 高消費電力" {
@@ -108,7 +108,7 @@ class TCOCalculatorTest : StringSpec({
         r.totalTco shouldBeGreaterThan 0L  // 消耗品 + 電気代がある
     }
 
-    "property: totalTco >= purchasePrice (残存価値がある場合でも)" {
+    "property: totalTco >= 0 (残存価値控除後も非負)" {
         checkAll(
             Arb.long(0L..1_000_000L),
             Arb.int(1..20),
