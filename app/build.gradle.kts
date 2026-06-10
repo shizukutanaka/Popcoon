@@ -86,7 +86,13 @@ android {
         )
     }
 
-    testOptions { unitTests.isIncludeAndroidResources = true }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        // Kotest は JUnit Platform (JUnit5) 上で動作する。これを指定しないと
+        // Android の testDebugUnitTest は JUnit4 ランナーを使い、全 Kotest spec が
+        // 「発見されず」サイレントにスキップされる (テストが 1 件も走らない)。
+        unitTests.all { it.useJUnitPlatform() }
+    }
 }
 
 dependencies {
