@@ -3,6 +3,42 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品分析 (Tier 7: 長所・短所・不足機能の洗い出しと実装)
+
+プロダクトとしての強み・弱み・不足機能を棚卸しし、価値が高く自己完結する
+ギャップを実装した。
+
+### 長所 (差別化の核心)
+- **買い時判定の独自性**: `BuyTimingScorer` (ATL近接・トレンド・変動率・季節性) +
+  `PricePredictionEngine` (Holt線形 + Conformal 区間 + 季節分解) は競合14アプリ非搭載。
+- **ダークパターン暴露**: 価格系 + テキスト5カテゴリ検出 + `ReviewTrustScorer` (統計的サクラ検出)。
+- **長期コスト可視化**: `TCOCalculator` (消耗品・電力)、`BundlePackDetector` (実質単価)、
+  `PointSimulator` (ポイント還元後実質価格)。
+- **プライバシー優先**: オンデバイス完結、レビュー本文を端末外に送らない。
+- **Python TDD オラクル**: アルゴリズムは Python 正本と差分テストでパリティ保証 (290 tests)。
+- **4ロケール対応** (ja/en/ko/zh-rCN)、ウォッチリスト + 目標価格アラート + ウィジェット + バーコード。
+
+### 短所・不足 (今回修正)
+| # | 分類 | 内容 | 対応 |
+|---|------|------|------|
+| 47 | **不足機能** | `EcoEthicsScorer` (CO2・労働権利スコア、Python パリティ・テスト済み) が UI から一切参照されず **死蔵** | 商品詳細に `EthicsCard` を新設し配線。原産国判明時のみ算出 (不明時は無意味な定数のため非表示)。スコアロジックは不変、表示のみ追加 |
+| 48 | **不足機能** | ホーム画面ウィジェットの判定が全件 `"NEUTRAL"` 固定で無意味 | `WidgetVerdict` 純関数を新設 (目標到達/追加時比±5% で BUY_NOW・WAIT・NEUTRAL を導出) + 単体テスト。完全な履歴を要する詳細画面スコアラとは別の軽量判定として明示 |
+| 49 | **テスト基盤** | `testOptions` に `useJUnitPlatform()` 不在 → Kotest spec は JUnit4 ランナーで **1件も発見されず**、Kotlin 単体テスト群 (200+) が実質未実行だった | `unitTests.all { it.useJUnitPlatform() }` を追加。これで `ci/android.yml` の単体テストジョブが初めて意味を持つ |
+| 50 | **CI** | `gradlew` の実行ビットが欠落 (100644) | `100755` に修正。`./gradlew` がフレッシュチェックアウトで動作 |
+
+### 確認した非ギャップ (誤検知防止メモ)
+- **目標価格設定 UI**: `TargetPriceDialog` / `TargetPriceChip` / VM 配線が既に存在 — 不足ではない。
+- **CI ワークフロー本体**: `ci/android.yml` テンプレートが既に存在 (GitHub App の `workflows` 権限欠如で
+  `.github/workflows/` へ push 不可、`ci/README.md` 参照)。リポジトリ管理者が `git mv` で有効化する。
+- **`PointSimulator` / `PricePredictionEngine` の整数除算疑い**: いずれも Double 演算 (Kotlin の型昇格) で
+  精度損失なし — バグではない。
+
+### 残課題 (未着手)
+- **`CustomsSimulator`**: 越境関税シミュレータも UI 未配線だが、国内中心の用途では優先度低 (要・原産国/輸入判定入力)。
+- **セールカレンダー閲覧画面**: `SaleCalendar` は検索の当日バナーのみ。将来の一覧画面化は差別化余地。
+- **CI 緑化の確認**: 上記 #49 で初めて Kotest が走るため、未実行だった spec に潜在失敗が無いか CI 有効化後に要確認
+  (ローカルは Android SDK 不在で検証不可)。
+
 ## 適用済み (Tier 6: 並行性・セキュリティ・バグの第4回監査)
 
 データ/キャッシュ・ViewModel・Share・課金 の 4 カテゴリを徹底監査。
