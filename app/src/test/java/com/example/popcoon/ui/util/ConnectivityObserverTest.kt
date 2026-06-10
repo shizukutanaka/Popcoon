@@ -1,8 +1,8 @@
 package com.example.popcoon.ui.util
 
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 
 /**
  * ConnectivityObserver のロジックテスト。
@@ -11,12 +11,13 @@ import io.kotest.matchers.shouldNotBe
  */
 class ConnectivityObserverTest : StringSpec({
 
-    "Status enum は4つの値を持つ" {
-        ConnectivityObserver.Status.entries.size shouldBe 4
-        ConnectivityObserver.Status.AVAILABLE shouldNotBe null
-        ConnectivityObserver.Status.UNAVAILABLE shouldNotBe null
-        ConnectivityObserver.Status.LOSING shouldNotBe null
-        ConnectivityObserver.Status.LOST shouldNotBe null
+    "Status enum は4つの既知の値を持つ" {
+        ConnectivityObserver.Status.entries shouldContainExactlyInAnyOrder listOf(
+            ConnectivityObserver.Status.AVAILABLE,
+            ConnectivityObserver.Status.UNAVAILABLE,
+            ConnectivityObserver.Status.LOSING,
+            ConnectivityObserver.Status.LOST,
+        )
     }
 
     "AVAILABLE のみが接続状態と判定される" {
