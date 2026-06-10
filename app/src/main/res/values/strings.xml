@@ -264,6 +264,15 @@
     <string name="ethics_origin">原産国 %1$s</string>
     <string name="ethics_green_alt">国産・近隣産の代替品ならCO2を削減できます</string>
 
+    <!-- セールカレンダー (SaleCalendar 閲覧画面) -->
+    <string name="sale_calendar_title">セールカレンダー</string>
+    <string name="sale_calendar_active">開催中</string>
+    <string name="sale_calendar_upcoming">今後の大型セール</string>
+    <string name="sale_calendar_days_until">あと%1$d日</string>
+    <string name="sale_calendar_period">%1$s〜%2$s</string>
+    <string name="sale_calendar_empty">現在予定されているセールはありません</string>
+    <string name="sale_calendar_open">カレンダーを開く</string>
+
     <!-- 共通 UI ラベル -->
     <string name="action_delete">削除</string>
     <string name="action_collapse">閉じる</string>

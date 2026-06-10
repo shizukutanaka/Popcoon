@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -44,6 +45,7 @@ fun SearchScreen(
     onSettings: () -> Unit = {},
     onWatchlist: () -> Unit = {},
     onBarcode: () -> Unit = {},
+    onSaleCalendar: () -> Unit = {},
     viewModel: SearchViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -82,6 +84,9 @@ fun SearchScreen(
                 singleLine = true,
             )
             Spacer(Modifier.width(Spacing.ml))
+            IconButton(onClick = onSaleCalendar) {
+                Icon(AppIcons.Calendar, contentDescription = stringResource(R.string.sale_calendar_open))
+            }
             IconButton(onClick = onWatchlist) {
                 Icon(AppIcons.Save, contentDescription = stringResource(R.string.nav_watchlist))
             }
@@ -102,8 +107,8 @@ fun SearchScreen(
         }
         Spacer(Modifier.height(Spacing.ml))
 
-        // ── セールバナー ──────────────────────────────────────────────────
-        SaleBanner()
+        // ── セールバナー (タップでセールカレンダー画面へ) ──────────────────
+        SaleBanner(modifier = Modifier.clickable { onSaleCalendar() })
         Spacer(Modifier.height(Spacing.ml))
 
         // ── 状態遷移 (Apple HIG: AnimatedContent でフェード) ──────────────

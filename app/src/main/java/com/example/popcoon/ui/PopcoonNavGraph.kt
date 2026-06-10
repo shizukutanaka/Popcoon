@@ -7,6 +7,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.popcoon.ui.screens.barcode.BarcodeScreen
+import com.example.popcoon.ui.screens.calendar.SaleCalendarScreen
 import com.example.popcoon.ui.screens.detail.ProductDetailScreen
 import com.example.popcoon.ui.screens.detail.navigateToDetail
 import com.example.popcoon.ui.screens.search.SearchScreen
@@ -41,7 +42,12 @@ fun PopcoonNavGraph(
                 onSettings = { navController.navigate(Tab.SETTINGS.route) },
                 onWatchlist = { navController.navigate(Tab.WATCHLIST.route) },
                 onBarcode = { navController.navigate("barcode") },
+                onSaleCalendar = { navController.navigate("sale_calendar") },
             )
+        }
+
+        composable("sale_calendar") {
+            SaleCalendarScreen(onBack = { navController.popBackStack() })
         }
 
         composable(Tab.WATCHLIST.route) {

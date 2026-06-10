@@ -236,6 +236,15 @@
     <string name="ethics_origin">원산지 %1$s</string>
     <string name="ethics_green_alt">국산·인근 생산 대체품이라면 CO2를 줄일 수 있습니다</string>
 
+    <!-- 세일 캘린더 (SaleCalendar 화면) -->
+    <string name="sale_calendar_title">세일 캘린더</string>
+    <string name="sale_calendar_active">진행 중</string>
+    <string name="sale_calendar_upcoming">다가오는 대형 세일</string>
+    <string name="sale_calendar_days_until">%1$d일 후</string>
+    <string name="sale_calendar_period">%1$s ~ %2$s</string>
+    <string name="sale_calendar_empty">현재 예정된 세일이 없습니다</string>
+    <string name="sale_calendar_open">캘린더 열기</string>
+
     <!-- 공통 UI 라벨 -->
     <string name="action_delete">삭제</string>
     <string name="action_collapse">닫기</string>

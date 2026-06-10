@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Search
@@ -36,6 +37,7 @@ object AppIcons {
     // 検索
     val Search: ImageVector = Icons.Default.Search
     val Barcode: ImageVector = Icons.Default.PhotoCamera
+    val Calendar: ImageVector = Icons.Default.DateRange
 
     // 操作
     val Save: ImageVector = Icons.Default.Star
