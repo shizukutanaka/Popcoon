@@ -50,6 +50,26 @@ object SaleCalendar {
             .minByOrNull { it.startDate }
     }
 
+    /**
+     * today より後に始まる大型・中型セールを startDate 昇順で返す (既定 120 日先まで)。
+     *
+     * セールカレンダー閲覧画面用。繰り返し日販促 (5のつく日など) は当日バナー側で扱うため
+     * RECURRING は除外する。年境界 (12月→翌年春) は当年+翌年を候補にすることで担保する。
+     */
+    fun upcomingSales(
+        today: LocalDate,
+        withinDays: Int = 120,
+        platform: Platform? = null,
+    ): List<Event> {
+        val horizon = today.plusDays(withinDays.toLong())
+        return (seasonalSales(today) + seasonalSales(today.plusYears(1)))
+            .filter { it.tier != Tier.RECURRING }
+            .filter { it.startDate > today && it.startDate <= horizon }
+            .filter { platform == null || it.platform == null || it.platform == platform }
+            .distinctBy { it.name + it.startDate }
+            .sortedBy { it.startDate }
+    }
+
     /** 月内で発生する繰り返しセール (5のつく日など) */
     private fun monthlyRecurring(d: LocalDate): List<Event> {
         val events = mutableListOf<Event>()

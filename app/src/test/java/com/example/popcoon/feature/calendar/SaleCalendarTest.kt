@@ -74,4 +74,40 @@ class SaleCalendarTest : StringSpec({
     "大晦日でも null を返さない" {
         SaleCalendar.nextMajorSale(LocalDate.of(2026, 12, 31)).shouldNotBeNull()
     }
+
+    // ── upcomingSales (閲覧画面用) ────────────────────────────────────────────
+    "upcoming: 4月時点で6月の楽天スーパーセール(MAJOR)を含み、当日RECURRINGは含まない" {
+        val d = LocalDate.of(2026, 4, 10)  // 楽天「5と0のつく日」(RECURRING) が当日活性
+        val upcoming = SaleCalendar.upcomingSales(d)
+        upcoming.any { it.name.contains("楽天スーパーセール") } shouldBe true
+        upcoming.all { it.tier != SaleCalendar.Tier.RECURRING } shouldBe true
+    }
+
+    "upcoming: startDate 昇順" {
+        val d = LocalDate.of(2026, 4, 1)
+        val dates = SaleCalendar.upcomingSales(d).map { it.startDate }
+        dates shouldBe dates.sortedBy { it }
+    }
+
+    "upcoming: withinDays の窓で遠方の大型セールを除外" {
+        val d = LocalDate.of(2026, 4, 1)
+        // 7日窓: 直近1週間に大型セールは無いので空
+        SaleCalendar.upcomingSales(d, withinDays = 7).isEmpty() shouldBe true
+        // 120日窓: 6月の楽天スーパーセールが入る
+        SaleCalendar.upcomingSales(d, withinDays = 120).shouldNotBeEmpty()
+    }
+
+    "upcoming: 12月後半でも翌年春の大型セールを返す (年境界)" {
+        val d = LocalDate.of(2026, 12, 20)
+        val upcoming = SaleCalendar.upcomingSales(d, withinDays = 120)
+        upcoming.shouldNotBeEmpty()
+        // 最も近いのは翌年3月の楽天スーパーセール春
+        upcoming.first().startDate shouldBe LocalDate.of(2027, 3, 4)
+    }
+
+    "upcoming: platform 指定で絞り込める" {
+        val d = LocalDate.of(2026, 4, 1)
+        val amazon = SaleCalendar.upcomingSales(d, platform = Platform.AMAZON)
+        amazon.all { it.platform == null || it.platform == Platform.AMAZON } shouldBe true
+    }
 })
