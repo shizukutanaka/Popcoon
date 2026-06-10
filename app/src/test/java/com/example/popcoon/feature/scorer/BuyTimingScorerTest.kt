@@ -4,6 +4,7 @@ import com.example.popcoon.data.model.PriceRecord
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.ints.shouldBeLessThan
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.property.Arb
@@ -52,19 +53,21 @@ class BuyTimingScorerTest : StringSpec({
     }
 
     // ── Verdict 閾値 ────────────────────────────────────────────────────────
-    "過去最安値ならBUY_NOW になりやすい" {
-        // 29日間 2000円 → 今日 1000円 (ATL 到達)
+    "大幅割引+低変動で BUY_NOW になる" {
+        // 29日間 2000円の安定価格から 1000円に下落: 60%OFF (+15) + 極安定 (+10) → 75以上 → BUY_NOW
+        // Note: high==low なので ATL シグナルは 0 (安定判定不能)。discount と volatility が主ドライバー。
         val h = (29 downTo 1).map { d -> priceRecord(2000, d.toLong()) }
         val s = BuyTimingScorer.score(1000, 2500, h)
-        // ATL 到達 (+30) + BASE_SCORE (50) = 80以上 → BUY_NOW
         s?.verdict shouldBe BuyTimingScorer.Verdict.BUY_NOW
     }
 
-    "過去最高値付近なら WAIT になりやすい" {
+    "安い時期に比べて割高な状態では BUY_NOW にならない" {
+        // 29日間 1000円安定 + 今日 2000円: 割引なし/小、high==low なので ATL=0
+        // → total ≈ 50+5+10 = 65 → NEUTRAL (BUY_NOW にはならない)
         val h = (29 downTo 1).map { d -> priceRecord(1000, d.toLong()) }
         val s = BuyTimingScorer.score(2000, 2500, h)
-        // 過去最高値圏 (-15) → 低スコア → WAIT 方向
-        s?.total shouldNotBe null
+        s.shouldNotBeNull()
+        s.verdict shouldNotBe BuyTimingScorer.Verdict.BUY_NOW
     }
 
     "安定価格なら NEUTRAL" {

@@ -102,6 +102,14 @@ class PriceAlertEvaluatorTest : StringSpec({
             PriceAlertEvaluator.Kind.PRICE_DROP
     }
 
+    // ── minDropPercent = 0 (全ての下落を通知) ────────────────────────────────
+    "minDropPercent=0 なら任意の値下がりで PRICE_DROP (無条件通知モード)" {
+        val a = PriceAlertEvaluator.evaluate(
+            previousPrice = 5000, latestPrice = 4999, targetPrice = null, minDropPercent = 0,
+        )
+        a.kind shouldBe PriceAlertEvaluator.Kind.PRICE_DROP
+    }
+
     // ── shouldNotify ────────────────────────────────────────────────────────
     "shouldNotify は NONE 以外で true" {
         eval(prev = 5000, latest = 4000, target = 4000).shouldNotify shouldBe true

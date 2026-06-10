@@ -64,7 +64,9 @@ object PriceAlertEvaluator {
         }
 
         // 2. 目標未到達でも、有意な値下がりがあれば通知。
-        if (dropPercent >= minDropPercent && minDropPercent > 0) {
+        // minDropPercent > 0 の guard は誤り: minDropPercent=0 ("全て通知") の場合に
+        // 正当な値下がりが NONE になる。正しくは dropPercent > 0 で実際の下落を確認する。
+        if (dropPercent > 0 && dropPercent >= minDropPercent) {
             return Alert(Kind.PRICE_DROP, dropPercent)
         }
 
