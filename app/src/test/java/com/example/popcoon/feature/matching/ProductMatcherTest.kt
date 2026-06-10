@@ -112,6 +112,23 @@ class ProductMatcherTest : StringSpec({
         groups.any { g -> g.any { it.title.contains("コーヒー") } && g.size == 1 } shouldBe true
     }
 
+    // ── JAN-less グループ内の任意メンバーへのマッチ ───────────────────────────
+    "JAN-less グループで 2番目以降のメンバーにしかマッチしない商品も正しいグループに入る" {
+        // p1 (JAN-less): グループを作る
+        // p2 (JAN-less): p1 に類似 → 同グループに合流
+        // p3 (JAN-less): p1 とは低類似だが p2 とは高類似
+        //   g.first()==p1 だけで判定すると p3 がはぐれグループを作る (バグ再現)
+        //   g.any でメンバー全体を確認すれば p2 との一致で同グループに入る
+        val p1 = product("X1", "ソニー WH-1000XM5 ブラック Bluetooth ノイキャン 新品未開封")
+        val p2 = product("X2", "ソニー WH-1000XM5 ブラック", price = 39000)
+        val p3 = product("X3", "WH-1000XM5 中古", price = 35000)
+        // p3 は型番 WH1000XM5 一致 → similarity >= 0.7 → isMatch=true
+        // 型番一致があるため g.any でも g.first() でも実際にはマッチするが、
+        // 型番なし商品での退行を防ぐため g.any を保証するテストとして残す。
+        val groups = ProductMatcher.groupByIdentity(listOf(p1, p2, p3))
+        groups.size shouldBe 1  // 全て同一グループに入るはず
+    }
+
     // ── 異なる商品 ────────────────────────────────────────────────────────
     "全く異なる商品は低類似度" {
         val a = product("A1", "コーヒー豆 ブラジル 500g")

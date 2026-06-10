@@ -85,8 +85,10 @@ object ProductMatcher {
 
         // 2. JAN なしはタイトル類似度で照合
         //    既存 JAN グループにも合流できるなら合流 (型番一致など)
+        //    g.any: JAN-less 商品が作ったグループでは g.first() だけでなく
+        //    全メンバーと照合しないと、後発の JAN-less 商品を取り込み損ねる。
         for (p in noJan) {
-            val group = groups.firstOrNull { g -> isMatch(g.first(), p) }
+            val group = groups.firstOrNull { g -> g.any { isMatch(it, p) } }
             if (group != null) {
                 group += p
             } else {
