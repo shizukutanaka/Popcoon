@@ -64,6 +64,8 @@ class BackendClient @Inject constructor() {
                         contentType(ContentType.Application.Json)
                         setBody(record)
                     }.bodyAsText()
+                }.onFailure { e ->
+                    if (e is CancellationException) throw e
                 }
             }
         }

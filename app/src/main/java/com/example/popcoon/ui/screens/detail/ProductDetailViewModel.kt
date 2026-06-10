@@ -14,6 +14,7 @@ import com.example.popcoon.feature.bundle.BundlePackDetector
 import com.example.popcoon.feature.review.ReviewTrustScorer
 import com.example.popcoon.feature.scorer.BuyTimingScorer
 import com.example.popcoon.feature.tco.TCOCalculator
+import com.example.popcoon.core.PopcoonLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
@@ -172,7 +173,10 @@ class ProductDetailViewModel @Inject constructor(
                         viewModelScope.launch {
                             val advice = runCatching {
                                 advisor.advise(product, score)
-                            }.getOrDefault("AI 助言取得失敗")
+                            }.getOrElse { e ->
+                                if (e is CancellationException) throw e
+                                "AI 助言取得失敗"
+                            }
                             adviceCache.put(product, score, advice)
                             _state.update { cur ->
                                 if (cur is DetailUiState.Loaded && cur.product.key == product.key) {
@@ -183,6 +187,7 @@ class ProductDetailViewModel @Inject constructor(
                     }
                 }
             }.onFailure { e ->
+                if (e is CancellationException) throw e
                 _state.value = DetailUiState.Error(
                     e.message?.take(80) ?: "詳細ロード失敗"
                 )

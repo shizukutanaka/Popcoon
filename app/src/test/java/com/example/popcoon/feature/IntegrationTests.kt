@@ -97,14 +97,11 @@ class IntegrationTests : StringSpec({
     }
 
     "verdict BUY_NOW 閾値 70" {
-        // 実装的には total >= 70 で BUY_NOW
+        // 200円は過去最安値到達(+30) + 定価97%OFF(+15) + 豊富な履歴(+10) → 合計90 → BUY_NOW 確実
         val history = history(List(95) { 5000L - it * 20L }.map { maxOf(it, 100L) })
         val score = BuyTimingScorer.score(200L, 8000L, history)
         score.shouldNotBeNull()
-        // 十分好条件で BUY_NOW に
-        if (score.total >= 70) {
-            score.verdict shouldBe BuyTimingScorer.Verdict.BUY_NOW
-        }
+        score.verdict shouldBe BuyTimingScorer.Verdict.BUY_NOW
     }
 
     "ATL は高値圏より必ず高スコア" {

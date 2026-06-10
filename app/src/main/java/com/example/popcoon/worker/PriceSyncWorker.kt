@@ -61,9 +61,14 @@ class PriceSyncWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         PopcoonLogger.i(this, "価格同期開始 run=$runAttemptCount")
-        val watchlist = runCatching {
+        val watchlist = try {
             watchlistDao.observeAll().first()
-        }.getOrDefault(emptyList())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            PopcoonLogger.w(this, "ウォッチリスト取得失敗: ${e.message}")
+            emptyList()
+        }
 
         if (watchlist.isEmpty()) return Result.success()
 

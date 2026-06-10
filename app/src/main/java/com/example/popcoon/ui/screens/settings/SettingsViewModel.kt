@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -98,29 +99,40 @@ class SettingsViewModel @Inject constructor(
     fun deleteAllData() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isDeleting = true)
-            runCatching {
+            try {
                 database.clearAllTables()
                 prefs.clearAll()
-            }
+            } catch (e: CancellationException) {
+                _state.value = _state.value.copy(isDeleting = false)
+                throw e
+            } catch (_: Exception) { /* ignore DB errors silently */ }
             _state.value = _state.value.copy(isDeleting = false)
         }
     }
 
     fun clearSearchHistory() {
         viewModelScope.launch {
-            runCatching { database.searchHistoryDao().deleteAll() }
+            try {
+                database.searchHistoryDao().deleteAll()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) { }
         }
     }
 
     fun clearWatchlist() {
         viewModelScope.launch {
-            runCatching { database.watchlistDao().deleteAll() }
+            try {
+                database.watchlistDao().deleteAll()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) { }
         }
     }
 
     fun exportCsv() {
         viewModelScope.launch {
-            runCatching {
+            try {
                 val intent = csvExporter.shareIntent(context)
                 if (intent != null) {
                     context.startActivity(
@@ -128,7 +140,9 @@ class SettingsViewModel @Inject constructor(
                             .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                     )
                 }
-            }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) { }
         }
     }
 
