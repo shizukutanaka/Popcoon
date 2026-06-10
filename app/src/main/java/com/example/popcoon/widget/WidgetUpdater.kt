@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.glance.appwidget.updateAll
 import com.example.popcoon.core.PopcoonLogger
 import com.example.popcoon.data.db.WatchlistItem
+import com.example.popcoon.feature.watchlist.WidgetVerdict
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -59,7 +60,14 @@ object WidgetUpdater {
                 topItems.forEachIndexed { i, item ->
                     putString("title_$i", item.title)
                     putLong("price_$i", item.realPrice)
-                    putString("verdict_$i", "NEUTRAL")
+                    putString(
+                        "verdict_$i",
+                        WidgetVerdict.forItem(
+                            realPrice = item.realPrice,
+                            targetPrice = item.targetPrice,
+                            addedPrice = item.addedPrice,
+                        ),
+                    )
                 }
                 apply()
             }
