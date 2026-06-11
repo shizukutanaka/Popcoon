@@ -125,7 +125,8 @@ class SearchViewModel @Inject constructor(
                 val alternatives = group.drop(1)  // 他モールの同一商品
                 val history = runCatching {
                     repository.getPriceHistory(product.key)
-                }.getOrDefault(emptyList())
+                }.onFailure { if (it is CancellationException) throw it }
+                    .getOrDefault(emptyList())
 
                 val score = BuyTimingScorer.score(
                     current = product.totalPrice,
