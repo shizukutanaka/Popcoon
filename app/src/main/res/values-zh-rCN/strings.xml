@@ -48,6 +48,26 @@
     <string name="customs_fee">手续费</string>
     <string name="customs_total">到岸总价</string>
     <string name="customs_exempt">免税</string>
+    <string name="customs_category">类别</string>
+    <string name="customs_japan_price">日本最低价 (可选)</string>
+    <string name="customs_dutiable">完税价格</string>
+    <string name="customs_result">测算结果</string>
+    <string name="customs_verdict_cheaper">跨境更划算</string>
+    <string name="customs_verdict_comparable">基本相当</string>
+    <string name="customs_verdict_more_expensive">日本国内更便宜</string>
+    <string name="customs_verdict_not_recommended">不推荐 (检疫·质量风险)</string>
+    <string name="customs_entry_desc">测算海外购物的关税·消费税总额</string>
+    <string name="customs_cat_clothing">服装</string>
+    <string name="customs_cat_shoes">鞋</string>
+    <string name="customs_cat_bag">包</string>
+    <string name="customs_cat_electronics">电子设备</string>
+    <string name="customs_cat_camera">相机</string>
+    <string name="customs_cat_toy">玩具</string>
+    <string name="customs_cat_sports">体育用品</string>
+    <string name="customs_cat_cosmetics">化妆品</string>
+    <string name="customs_cat_food">食品</string>
+    <string name="customs_cat_other">其他</string>
+    <string name="settings_tools">工具</string>
 
     <string name="eco_score">环保伦理评分</string>
     <string name="eco_co2">CO2 评分</string>

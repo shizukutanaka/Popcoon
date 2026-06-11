@@ -48,6 +48,26 @@
     <string name="customs_fee">수수료</string>
     <string name="customs_total">총 비용</string>
     <string name="customs_exempt">면세</string>
+    <string name="customs_category">카테고리</string>
+    <string name="customs_japan_price">국내 최저가 (선택)</string>
+    <string name="customs_dutiable">과세 가격</string>
+    <string name="customs_result">견적 결과</string>
+    <string name="customs_verdict_cheaper">해외직구가 이득</string>
+    <string name="customs_verdict_comparable">거의 동일</string>
+    <string name="customs_verdict_more_expensive">국내가 더 저렴</string>
+    <string name="customs_verdict_not_recommended">비추천 (검역·품질 위험)</string>
+    <string name="customs_entry_desc">해외직구의 관세·소비세 포함 총액 견적</string>
+    <string name="customs_cat_clothing">의류</string>
+    <string name="customs_cat_shoes">신발</string>
+    <string name="customs_cat_bag">가방</string>
+    <string name="customs_cat_electronics">전자기기</string>
+    <string name="customs_cat_camera">카메라</string>
+    <string name="customs_cat_toy">완구</string>
+    <string name="customs_cat_sports">스포츠용품</string>
+    <string name="customs_cat_cosmetics">화장품</string>
+    <string name="customs_cat_food">식품</string>
+    <string name="customs_cat_other">기타</string>
+    <string name="settings_tools">도구</string>
 
     <string name="eco_score">에코 윤리 점수</string>
     <string name="eco_co2">CO2 점수</string>

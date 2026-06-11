@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.popcoon.ui.screens.barcode.BarcodeScreen
 import com.example.popcoon.ui.screens.calendar.SaleCalendarScreen
+import com.example.popcoon.ui.screens.customs.CustomsSimulatorScreen
 import com.example.popcoon.ui.screens.detail.ProductDetailScreen
 import com.example.popcoon.ui.screens.detail.navigateToDetail
 import com.example.popcoon.ui.screens.search.SearchScreen
@@ -61,7 +62,14 @@ fun PopcoonNavGraph(
         }
 
         composable(Tab.SETTINGS.route) {
-            SettingsScreen(onBack = { navController.popBackStack() })
+            SettingsScreen(
+                onBack = { navController.popBackStack() },
+                onCustoms = { navController.navigate("customs") },
+            )
+        }
+
+        composable("customs") {
+            CustomsSimulatorScreen(onBack = { navController.popBackStack() })
         }
 
         composable("detail/{productKey}") { entry ->

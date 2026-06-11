@@ -124,6 +124,26 @@
     <string name="customs_fee">手数料</string>
     <string name="customs_total">着払い合計</string>
     <string name="customs_exempt">免税</string>
+    <string name="customs_category">カテゴリ</string>
+    <string name="customs_japan_price">国内最安値 (任意)</string>
+    <string name="customs_dutiable">課税価格</string>
+    <string name="customs_result">試算結果</string>
+    <string name="customs_verdict_cheaper">越境がお得</string>
+    <string name="customs_verdict_comparable">ほぼ同等</string>
+    <string name="customs_verdict_more_expensive">国内の方が安い</string>
+    <string name="customs_verdict_not_recommended">非推奨 (検疫・品質リスク)</string>
+    <string name="customs_entry_desc">海外通販の関税・消費税込み総額を試算</string>
+    <string name="customs_cat_clothing">衣類</string>
+    <string name="customs_cat_shoes">靴</string>
+    <string name="customs_cat_bag">バッグ</string>
+    <string name="customs_cat_electronics">電子機器</string>
+    <string name="customs_cat_camera">カメラ</string>
+    <string name="customs_cat_toy">おもちゃ</string>
+    <string name="customs_cat_sports">スポーツ用品</string>
+    <string name="customs_cat_cosmetics">化粧品</string>
+    <string name="customs_cat_food">食品</string>
+    <string name="customs_cat_other">その他</string>
+    <string name="settings_tools">ツール</string>
 
     <!-- Eco -->
     <string name="eco_score">エコ倫理スコア</string>

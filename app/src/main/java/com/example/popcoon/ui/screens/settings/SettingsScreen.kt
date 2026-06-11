@@ -23,6 +23,7 @@ import com.example.popcoon.ui.theme.Spacing
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onCustoms: () -> Unit = {},
     viewModel: SettingsViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -99,6 +100,15 @@ fun SettingsScreen(
                     modifier = Modifier
                         .padding(Spacing.ml)
                         .clickable { deleteDialogVisible = true },
+                )
+            }
+
+            // ── ツール ─────────────────────────────────
+            SectionCard(stringResource(R.string.settings_tools)) {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.customs_simulate)) },
+                    supportingContent = { Text(stringResource(R.string.customs_entry_desc)) },
+                    modifier = Modifier.padding(Spacing.ml).clickable { onCustoms() },
                 )
             }
 

@@ -48,6 +48,26 @@
     <string name="customs_fee">Handling fee</string>
     <string name="customs_total">Landed cost</string>
     <string name="customs_exempt">Tax exempt</string>
+    <string name="customs_category">Category</string>
+    <string name="customs_japan_price">Domestic best price (optional)</string>
+    <string name="customs_dutiable">Dutiable value</string>
+    <string name="customs_result">Estimate</string>
+    <string name="customs_verdict_cheaper">Importing is cheaper</string>
+    <string name="customs_verdict_comparable">About the same</string>
+    <string name="customs_verdict_more_expensive">Domestic is cheaper</string>
+    <string name="customs_verdict_not_recommended">Not recommended (quarantine/quality risk)</string>
+    <string name="customs_entry_desc">Estimate import duty &amp; tax total for overseas purchases</string>
+    <string name="customs_cat_clothing">Clothing</string>
+    <string name="customs_cat_shoes">Shoes</string>
+    <string name="customs_cat_bag">Bag</string>
+    <string name="customs_cat_electronics">Electronics</string>
+    <string name="customs_cat_camera">Camera</string>
+    <string name="customs_cat_toy">Toys</string>
+    <string name="customs_cat_sports">Sports gear</string>
+    <string name="customs_cat_cosmetics">Cosmetics</string>
+    <string name="customs_cat_food">Food</string>
+    <string name="customs_cat_other">Other</string>
+    <string name="settings_tools">Tools</string>
 
     <string name="eco_score">Eco ethics score</string>
     <string name="eco_co2">CO2 score</string>
