@@ -276,4 +276,10 @@
     <string name="point_effective_price">포인트 적용 후 실질 가격</string>
     <string name="point_breakdown">내역</string>
     <string name="point_effective_subtitle">정가 %1$s 에서 %2$s 적립</string>
+
+    <!-- 재고 알림 -->
+    <string name="stock_alert_on">재고 알림 ON</string>
+    <string name="stock_alert_off">재고 알림</string>
+    <string name="stock_back_in_stock">재입고되었습니다</string>
+    <string name="stock_out_of_stock">품절되었습니다</string>
 </resources>

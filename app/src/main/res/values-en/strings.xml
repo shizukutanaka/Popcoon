@@ -281,4 +281,10 @@
     <string name="point_effective_price">Effective price after points</string>
     <string name="point_breakdown">Breakdown</string>
     <string name="point_effective_subtitle">%2$s back off list price %1$s</string>
+
+    <!-- Stock alerts -->
+    <string name="stock_alert_on">Stock alert ON</string>
+    <string name="stock_alert_off">Stock alert</string>
+    <string name="stock_back_in_stock">Back in stock</string>
+    <string name="stock_out_of_stock">Out of stock</string>
 </resources>

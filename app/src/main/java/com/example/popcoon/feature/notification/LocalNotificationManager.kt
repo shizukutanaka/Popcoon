@@ -68,6 +68,42 @@ class LocalNotificationManager @Inject constructor() {
         }
     }
 
+    fun sendStockAlert(
+        context: Context,
+        productKey: String,
+        productTitle: String,
+        backInStock: Boolean,
+    ) {
+        val deepLinkIntent = Intent(context, MainActivity::class.java).apply {
+            action = Intent.ACTION_VIEW
+            data = android.net.Uri.parse("popcoon://product/$productKey")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            productKey.hashCode() xor 0x53544F43,  // 'STOC' — 価格アラートと通知 ID を区別
+            deepLinkIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val title = if (backInStock) "在庫が復活しました" else "在庫切れになりました"
+        val notification = NotificationCompat.Builder(context, PopcoonApp.CHANNEL_PRICE_ALERT)
+            .setSmallIcon(R.drawable.ic_shortcut_star)
+            .setContentTitle(title)
+            .setContentText(productTitle.take(40))
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setPriority(
+                if (backInStock) NotificationCompat.PRIORITY_HIGH
+                else NotificationCompat.PRIORITY_DEFAULT,
+            )
+            .build()
+
+        runCatching {
+            NotificationManagerCompat.from(context)
+                .notify(productKey.hashCode() xor 0x53544F43, notification)
+        }
+    }
+
     fun sendWeeklyDigest(
         context: Context,
         summary: String,

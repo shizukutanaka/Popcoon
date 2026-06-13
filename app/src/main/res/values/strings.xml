@@ -304,4 +304,10 @@
     <string name="point_effective_price">ポイント還元後 実質価格</string>
     <string name="point_breakdown">内訳</string>
     <string name="point_effective_subtitle">定価 %1$s より %2$s 還元</string>
+
+    <!-- 在庫アラート -->
+    <string name="stock_alert_on">在庫アラート ON</string>
+    <string name="stock_alert_off">在庫アラート</string>
+    <string name="stock_back_in_stock">在庫が復活しました</string>
+    <string name="stock_out_of_stock">在庫切れになりました</string>
 </resources>
