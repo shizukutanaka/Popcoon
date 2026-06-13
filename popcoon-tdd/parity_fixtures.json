@@ -1,0 +1,410 @@
+{
+  "_doc": "Cross-language parity contract generated from popcoon_core (verified oracle). Kotlin parity tests must reproduce these outputs. History build rule: product_key='k', AMAZON, recorded_at=2026-01-01+i days UTC.",
+  "buy_timing": [
+    {
+      "expect": {
+        "confidence": "HIGH",
+        "total": 67,
+        "verdict": "NEUTRAL"
+      },
+      "input": {
+        "current": 10000,
+        "list_price": 12000,
+        "prices": [
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000
+        ]
+      }
+    },
+    {
+      "expect": {
+        "confidence": "MEDIUM",
+        "total": 72,
+        "verdict": "BUY_NOW"
+      },
+      "input": {
+        "current": 12100,
+        "list_price": 20000,
+        "prices": [
+          15000,
+          14900,
+          14800,
+          14700,
+          14600,
+          14500,
+          14400,
+          14300,
+          14200,
+          14100,
+          14000,
+          13900,
+          13800,
+          13700,
+          13600,
+          13500,
+          13400,
+          13300,
+          13200,
+          13100,
+          13000,
+          12900,
+          12800,
+          12700,
+          12600,
+          12500,
+          12400,
+          12300,
+          12200,
+          12100
+        ]
+      }
+    },
+    {
+      "expect": {
+        "confidence": "LOW",
+        "total": 55,
+        "verdict": "NEUTRAL"
+      },
+      "input": {
+        "current": 11300,
+        "list_price": 14000,
+        "prices": [
+          10000,
+          10100,
+          10200,
+          10300,
+          10400,
+          10500,
+          10600,
+          10700,
+          10800,
+          10900,
+          11000,
+          11100,
+          11200,
+          11300
+        ]
+      }
+    },
+    {
+      "expect": null,
+      "input": {
+        "current": 10000,
+        "list_price": 12000,
+        "prices": [
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000,
+          10000
+        ]
+      }
+    }
+  ],
+  "customs": [
+    {
+      "expect": {
+        "consumption_tax": 0,
+        "customs_duty": 0,
+        "is_tax_exempt": true,
+        "total_landed_cost": 15000,
+        "verdict": "CHEAPER"
+      },
+      "input": {
+        "category": "衣類",
+        "foreign": 10000,
+        "japan_best": null,
+        "ship": 5000
+      }
+    },
+    {
+      "expect": {
+        "consumption_tax": 3250,
+        "customs_duty": 7500,
+        "is_tax_exempt": false,
+        "total_landed_cost": 35950,
+        "verdict": "CHEAPER"
+      },
+      "input": {
+        "category": "靴",
+        "foreign": 20000,
+        "japan_best": null,
+        "ship": 5000
+      }
+    },
+    {
+      "expect": {
+        "consumption_tax": 5500,
+        "customs_duty": 0,
+        "is_tax_exempt": false,
+        "total_landed_cost": 60700,
+        "verdict": "CHEAPER"
+      },
+      "input": {
+        "category": "電子機器",
+        "foreign": 50000,
+        "japan_best": null,
+        "ship": 5000
+      }
+    },
+    {
+      "expect": {
+        "consumption_tax": 0,
+        "customs_duty": 0,
+        "is_tax_exempt": true,
+        "total_landed_cost": 12000,
+        "verdict": "CHEAPER"
+      },
+      "input": {
+        "category": "食品",
+        "foreign": 10000,
+        "japan_best": 50000,
+        "ship": 2000
+      }
+    },
+    {
+      "expect": {
+        "consumption_tax": 2640,
+        "customs_duty": 4400,
+        "is_tax_exempt": false,
+        "total_landed_cost": 29240,
+        "verdict": "NOT_RECOMMENDED"
+      },
+      "input": {
+        "category": "食品",
+        "foreign": 20000,
+        "japan_best": 40000,
+        "ship": 2000
+      }
+    },
+    {
+      "expect": {
+        "consumption_tax": 5400,
+        "customs_duty": 9000,
+        "is_tax_exempt": false,
+        "total_landed_cost": 59600,
+        "verdict": "MORE_EXPENSIVE"
+      },
+      "input": {
+        "category": "食品",
+        "foreign": 40000,
+        "japan_best": 30000,
+        "ship": 5000
+      }
+    },
+    {
+      "expect": {
+        "consumption_tax": 2464,
+        "customs_duty": 2640,
+        "is_tax_exempt": false,
+        "total_landed_cost": 27304,
+        "verdict": "CHEAPER"
+      },
+      "input": {
+        "category": "衣類",
+        "foreign": 20000,
+        "japan_best": 40000,
+        "ship": 2000
+      }
+    },
+    {
+      "expect": {
+        "consumption_tax": 0,
+        "customs_duty": 0,
+        "is_tax_exempt": true,
+        "total_landed_cost": 16666,
+        "verdict": "CHEAPER"
+      },
+      "input": {
+        "category": "衣類",
+        "foreign": 10000,
+        "japan_best": null,
+        "ship": 6666
+      }
+    }
+  ],
+  "eco_ethics": [
+    {
+      "expect": {
+        "co2_kg": 121.333333,
+        "co2_score": 25,
+        "green_alternative": "国産代替でCO242%削減可",
+        "labor_score": 52,
+        "overall": 46
+      },
+      "input": {
+        "category": "smartphone",
+        "certifications": [],
+        "origin": "CN"
+      }
+    },
+    {
+      "expect": {
+        "co2_kg": 300.0,
+        "co2_score": 45,
+        "green_alternative": null,
+        "labor_score": 82,
+        "overall": 62
+      },
+      "input": {
+        "category": "laptop",
+        "certifications": [],
+        "origin": "JP"
+      }
+    },
+    {
+      "expect": {
+        "co2_kg": 266.666667,
+        "co2_score": 90,
+        "green_alternative": "国産代替でCO2-50%削減可",
+        "labor_score": 90,
+        "overall": 81
+      },
+      "input": {
+        "category": "tv",
+        "certifications": [
+          "green-cert"
+        ],
+        "origin": "DE"
+      }
+    },
+    {
+      "expect": {
+        "co2_kg": 11.555556,
+        "co2_score": 45,
+        "green_alternative": "国産代替でCO230%削減可",
+        "labor_score": 48,
+        "overall": 52
+      },
+      "input": {
+        "category": "tshirt",
+        "certifications": [],
+        "origin": "VN"
+      }
+    },
+    {
+      "expect": {
+        "co2_kg": 93.333333,
+        "co2_score": 45,
+        "green_alternative": "国産代替でCO225%削減可",
+        "labor_score": 55,
+        "overall": 54
+      },
+      "input": {
+        "category": "smartphone",
+        "certifications": [],
+        "origin": null
+      }
+    },
+    {
+      "expect": {
+        "co2_kg": 42.222222,
+        "co2_score": 65,
+        "green_alternative": null,
+        "labor_score": 78,
+        "overall": 68
+      },
+      "input": {
+        "category": "unknown_category",
+        "certifications": [],
+        "origin": "US"
+      }
+    }
+  ]
+}

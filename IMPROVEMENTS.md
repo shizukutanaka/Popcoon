@@ -3,6 +3,46 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## ソクラテス監査 (Tier 10: 「監査」自体の網羅性への反問 — 2026-06-13)
+
+前ラウンドの「パリティ監査」を反問した: 「最重要の関数を監査したか、それとも楽な関数だけか?」
+答えは後者だった。customs/dark-pattern/eco/predict は見たが、**プロダクトの存在理由である
+看板機能 `BuyTimingScorer` を監査していなかった**。また `eval_condition` を
+「一致 (Kotlin 側は要追検証)」と言いつつ確認していなかった。
+
+### BuyTimingScorer 監査 (buy_timing_scorer.py vs BuyTimingScorer.kt)
+6 シグナルすべてを 1 行ずつ照合 — **コア経路は忠実なパリティ**:
+ベース50 / ATL近接(≤0→30,≤0.1→22,≤0.3→12,≥0.9→-15) / トレンド(±) /
+定価割引(40/25/10) / ボラティリティ(cv 0.02/0.05/0.25) / 履歴(90/30) /
+ダークパターン罰則(-8) / verdict(≥70,≤35) / confidence(90/30) — 全一致。
+
+検出した乖離 2 件 (いずれも記録):
+1. **潜在**: Python のダークパターン罰則には `FAKE_SALE → -4` 分岐があるが、Kotlin に該当
+   `WarningType` が無く未処理。現状は両言語とも `detect_dark_patterns` が FAKE_SALE を
+   生成しないため**不活性**だが、その検出を将来追加すると乖離する。
+2. **意図的拡張**: Kotlin は `today != null` のとき `signalUpcomingSale` / `signalSeasonalDow`
+   を加算する (Python に無い)。ヘッダの「Python実装と同一式」は `today=null` 経路でのみ真。
+
+### パリティを「文書上の主張」から「実行可能な契約」へ (Python 半分を実装)
+Tier 9 で判明した核心 — *parity を強制する機構が無い* — に着手。検証済みオラクルから
+**言語中立な JSON fixture を生成する仕組み**を追加した:
+- `gen_parity_fixtures.py`: customs(8) / eco(6) / buy_timing(4) の固定入力→期待出力を
+  `popcoon_core` から算出し `parity_fixtures.json` に書き出す (計 18 ケース)。
+- `test_parity_fixtures.py`: その JSON を読み、オラクルと毎回突き合わせる**能動的セルフチェック**
+  (fixture の陳腐化を防ぐ)。→ Python suite 296 → **300 passed**。
+- 履歴構築規約 (`product_key='k'`, AMAZON, `recorded_at=2026-01-01+i 日 UTC`) を JSON に明記し、
+  Kotlin 側が同一の決定論的構築で再現できるようにした。
+
+### 残り (Kotlin consumer — 故意に未実装)
+パリティの**真の強制**には Kotlin 側が同 `parity_fixtures.json` を読んで
+`CustomsSimulator`/`EcoEthicsScorer`/`BuyTimingScorer` の出力を照合する必要がある。
+だが**コンパイル検証できない Kotlin を投入しない**という本セッションの一貫した方針に従い、
+今ラウンドでは書かない (customs バグの再来を避ける)。具体設計だけ確定:
+- `parity_fixtures.json` を `app/src/test/resources/parity/` にコピー (生成時に同期、CI で diff チェック)。
+- `ParityContractTest.kt` (kotest) が kotlinx.serialization で読み込み、scalar 関数
+  (customs/eco) から照合開始。buy_timing は価格列から上記規約で `PriceRecord` を再構築。
+- これは SDK/CI 有効化後の最初のタスク。fixture 側は既に検証済みなので Kotlin は照合を書くだけ。
+
 ## ソクラテス監査 (Tier 9: 「検証できない」という自分の前提への反問 — 2026-06-13)
 
 前ラウンドで「Android SDK も CI も無いから何も検証できない」と繰り返し主張していた。
