@@ -3,6 +3,42 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## ソクラテス監査 (Tier 11: 「検証できない/CIは管理者しか有効化できない」二つの前提を実測 — 2026-06-13)
+
+3 ラウンド連続で「Kotlin はコンパイルできない」「CI は `workflows` 権限が無いので
+管理者しか有効化できない」と主張してきた。ゴールに従い**両前提を実測**した。
+
+### 前提1「CI は自分には有効化できない」→ 実測の結果 **真** (検証済み)
+`ci/android.yml` を `.github/workflows/` へ `git mv` してコミットし push を試行 →
+リモートが明示的に拒否:
+`refusing to allow a GitHub App to create or update workflow ... without 'workflows' permission`。
+→ 前ラウンドまで「継承した主張」だったものを、本セッションのトークンで**実証**。コミットは
+reset で取り消し済み (push 不可なものでブランチを汚さない)。CI 有効化は管理者の `git mv` 待ちで確定。
+
+### 前提2「Kotlin はローカルでコンパイル/実行できない」→ 実測の結果 **偽** (スカラー関数は可能)
+パリティ最重要のスカラー関数は依存が極小だった:
+`CustomsSimulator` (kotlin.math のみ) / `EcoEthicsScorer` (import ゼロ) → Android/Room/serialization 非依存。
+Gradle 同梱の `kotlin-compiler-embeddable-2.0.20.jar` で**追加 classpath ゼロでコンパイル成功**。
+→ 「Kotlin は CI でしか検証できない」は全 Kotlin には当てはまらない。
+
+### 成果: パリティを「文書上の主張」から「実行可能な検証」へ (Tier 9/10 の核心に決着)
+`popcoon-tdd/kotlin_parity/` に**実行可能なクロス言語パリティハーネス**を追加:
+- `run.sh`: 同梱コンパイラで本物の Kotlin (CustomsSimulator/EcoEthicsScorer) + ハーネスを
+  コンパイル → JVM 実行 → 出力を `compare_oracle.py` に渡し、同じ入力で Python オラクルを
+  再計算して照合。**Android SDK 不要**。
+- 結果: **18 ケース全一致 (customs 11 + eco 7)**。Tier 9 で修正した CustomsSimulator の
+  verdict バグが、読み比べではなく**実際のコンパイル&実行で正しいと確認**された
+  (食品免税の掘り出し物=CHEAPER / 中途半端=NOT_RECOMMENDED 等)。
+- 嵌った点を README に記録: JVM の `stdout.encoding=ANSI_X3.4-1968` で日本語が `?` に化け、
+  Python が壊れた入力で再計算して偽の mismatch を出していた → `-Dstdout.encoding=UTF-8` で解消。
+
+### 残り (拡張)
+- **履歴依存関数** (`BuyTimingScorer`/`PricePredictionEngine`/`DarkPatternDetector`) のハーネス化:
+  `PriceRecord` (Product.kt, kotlinx-serialization plugin 依存) のコンパイルが必要。
+  `-Xplugin` + serialization ランタイム追加、または最小 `PriceRecord` スタブで拡張可能。
+- これで Tier 10 で「故意に未実装」とした Kotlin consumer の代替が**スカラー関数では実現**した
+  (CI/SDK 無しで実行可能)。CI 有効化後は full app テストへ統合。
+
 ## ソクラテス監査 (Tier 10: 「監査」自体の網羅性への反問 — 2026-06-13)
 
 前ラウンドの「パリティ監査」を反問した: 「最重要の関数を監査したか、それとも楽な関数だけか?」
