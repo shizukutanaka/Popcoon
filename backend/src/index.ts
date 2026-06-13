@@ -98,6 +98,22 @@ async function appendPriceHistory(
 
 // ── HTTP ハンドラー ──────────────────────────────────────────────────────────
 
+/**
+ * KV.list は 1 回の呼び出しで最大 1000 キーしか返さない (list_complete=false で cursor を返す)。
+ * cursor を辿って全キー名を集める。これを怠ると GDPR 削除やアラート評価が
+ * 「最初の1ページ」しか処理せず、それ以降のデータを取りこぼす。
+ */
+async function listAllKeys(ns: KVNamespace, prefix: string): Promise<string[]> {
+  const names: string[] = [];
+  let cursor: string | undefined;
+  do {
+    const res = await ns.list({ prefix, cursor });
+    for (const k of res.keys) names.push(k.name);
+    cursor = res.list_complete ? undefined : res.cursor;
+  } while (cursor);
+  return names;
+}
+
 async function handleRequest(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const ip = req.headers.get("cf-connecting-ip") || "unknown";
@@ -182,14 +198,15 @@ async function handleRequest(req: Request, env: Env): Promise<Response> {
   if (req.method === "DELETE" && url.pathname === "/v1/device") {
     const deviceToken = req.headers.get("x-device-token");
     if (!deviceToken) return bad("missing x-device-token");
-    // アラート全削除 (list → delete)
-    const list = await env.ALERTS.list({ prefix: "alert:" });
-    for (const k of list.keys) {
-      const raw = await env.ALERTS.get(k.name);
+    // アラート全削除 (全ページを cursor で走査 — 1000 件超でも取りこぼさない)。
+    // GDPR Article 17: 部分削除は許されないため list_complete まで辿る。
+    const keys = await listAllKeys(env.ALERTS, "alert:");
+    for (const name of keys) {
+      const raw = await env.ALERTS.get(name);
       if (!raw) continue;
       try {
         const a = JSON.parse(raw) as Alert;
-        if (a.device_token === deviceToken) await env.ALERTS.delete(k.name);
+        if (a.device_token === deviceToken) await env.ALERTS.delete(name);
       } catch {}
     }
     await env.DEVICE_TOKENS.delete(deviceToken);
@@ -297,10 +314,12 @@ async function sendFcmNotification(
 // ── Scheduled: アラート評価 & 通知配信 ──────────────────────────────────────
 async function evaluateAlerts(env: Env): Promise<void> {
   const fcmKey = env.FCM_SERVER_KEY;
-  const list = await env.ALERTS.list({ prefix: "alert:", limit: 100 });
+  // 全アラートを評価する (旧実装は limit:100 で 101 件目以降を黙って無視し、
+  // それらのアラートは永遠に発火しなかった)。cursor で全ページを走査。
+  const keys = await listAllKeys(env.ALERTS, "alert:");
 
-  for (const key of list.keys) {
-    const raw = await env.ALERTS.get(key.name);
+  for (const name of keys) {
+    const raw = await env.ALERTS.get(name);
     if (!raw) continue;
     let alert: Alert;
     try { alert = JSON.parse(raw); } catch { continue; }
@@ -356,7 +375,7 @@ async function evaluateAlerts(env: Env): Promise<void> {
     // 発火済みアラートを非アクティブ化 (one-shot)
     // 継続監視が必要な場合はクライアントが再登録する
     const updated: Alert = { ...alert, active: false };
-    await env.ALERTS.put(key.name, JSON.stringify(updated));
+    await env.ALERTS.put(name, JSON.stringify(updated));
   }
 }
 

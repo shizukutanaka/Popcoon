@@ -198,3 +198,86 @@ describe("AlertCondition evaluation", () => {
     });
   });
 });
+
+// ── KV ページネーション (GDPR 削除 / アラート評価の取りこぼし防止) ──────────────
+// KV.list は最大 1000 キー/呼び出し。cursor を辿らないと 1000 件超を取りこぼす。
+// src/index.ts::listAllKeys の契約をここで固定する。
+
+interface FakeKV {
+  list(opts: { prefix?: string; cursor?: string }): Promise<{
+    keys: { name: string }[]; list_complete: boolean; cursor?: string;
+  }>;
+  get(name: string): Promise<string | null>;
+  delete(name: string): Promise<void>;
+}
+
+function makeKV(entries: [string, string][]): FakeKV & { store: Map<string, string> } {
+  const store = new Map(entries);
+  return {
+    store,
+    async list({ prefix = "", cursor }) {
+      const PAGE = 1000;
+      const all = [...store.keys()].filter(k => k.startsWith(prefix)).sort();
+      const start = cursor ? parseInt(cursor, 10) : 0;
+      const page = all.slice(start, start + PAGE);
+      const next = start + PAGE;
+      const complete = next >= all.length;
+      return { keys: page.map(name => ({ name })), list_complete: complete, cursor: complete ? undefined : String(next) };
+    },
+    async get(name) { return store.has(name) ? store.get(name)! : null; },
+    async delete(name) { store.delete(name); },
+  };
+}
+
+async function listAllKeys(ns: FakeKV, prefix: string): Promise<string[]> {
+  const names: string[] = [];
+  let cursor: string | undefined;
+  do {
+    const res = await ns.list({ prefix, cursor });
+    for (const k of res.keys) names.push(k.name);
+    cursor = res.list_complete ? undefined : res.cursor;
+  } while (cursor);
+  return names;
+}
+
+describe("KV ページネーション", () => {
+  function seed(n: number, victimIdx: number[]) {
+    const entries: [string, string][] = [];
+    for (let i = 0; i < n; i++) {
+      const owner = victimIdx.includes(i) ? "victim" : "other";
+      entries.push([`alert:${String(i).padStart(5, "0")}`, JSON.stringify({ device_token: owner })]);
+    }
+    return entries;
+  }
+
+  it("listAllKeys が 1000 件超を全て返す", async () => {
+    const kv = makeKV(seed(2500, []));
+    expect((await listAllKeys(kv, "alert:")).length).toBe(2500);
+    // 単一ページ呼び出しは 1000 で頭打ち (旧バグの再現)
+    expect((await kv.list({ prefix: "alert:" })).keys.length).toBe(1000);
+  });
+
+  it("GDPR 削除がページをまたいで victim の全アラートを消す", async () => {
+    const kv = makeKV(seed(2500, [5, 1500, 2499]));
+    for (const name of await listAllKeys(kv, "alert:")) {
+      const raw = await kv.get(name);
+      if (!raw) continue;
+      if ((JSON.parse(raw) as { device_token: string }).device_token === "victim") await kv.delete(name);
+    }
+    const left = [...kv.store.values()].filter(v => JSON.parse(v).device_token === "victim").length;
+    expect(left).toBe(0);          // 完全削除
+    expect(kv.store.size).toBe(2497);  // 他者は無傷
+  });
+
+  it("回帰: 単一ページ削除は 2 ページ目以降の victim データを残す (GDPR 違反)", async () => {
+    const kv = makeKV(seed(2500, [5, 1500, 2499]));
+    const onePage = (await kv.list({ prefix: "alert:" })).keys.map(k => k.name);
+    for (const name of onePage) {
+      const raw = await kv.get(name);
+      if (!raw) continue;
+      if ((JSON.parse(raw) as { device_token: string }).device_token === "victim") await kv.delete(name);
+    }
+    const left = [...kv.store.values()].filter(v => JSON.parse(v).device_token === "victim").length;
+    expect(left).toBe(2);  // index 1500 & 2499 が削除されず残る
+  });
+});
