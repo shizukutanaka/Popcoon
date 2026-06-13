@@ -24,18 +24,30 @@ if [[ -z "$KC" ]]; then
 fi
 LIB="$(dirname "$KC")"
 ST="$(find "$LIB" -name 'kotlin-stdlib-2*.jar' | grep -v sources | head -1)"
+# kotlinx-serialization runtime: Product.kt is @Serializable. The compiler PLUGIN is
+# absent, but the annotations are inert without it and the logic never calls
+# .serializer(), so the real sources compile against the runtime jars alone.
+SER="$(find "$LIB" -name 'kotlinx-serialization-core-jvm-*.jar' | head -1):$(find "$LIB" -name 'kotlinx-serialization-json-jvm-*.jar' | head -1)"
 
 echo "compiler: $KC"
 java -cp "$LIB/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
-  -cp "$ST" -d "$OUT/parity.jar" -nowarn -no-reflect \
+  -cp "$ST:$SER" -d "$OUT/parity.jar" -nowarn -no-reflect \
+  "$SRC/data/model/Product.kt" \
   "$SRC/feature/crossborder/CustomsSimulator.kt" \
   "$SRC/feature/ethics/EcoEthicsScorer.kt" \
+  "$SRC/feature/darkpattern/DarkPatternDetector.kt" \
+  "$SRC/feature/prediction/ConformalInterval.kt" \
+  "$SRC/feature/prediction/SeasonalDecompForecast.kt" \
+  "$SRC/feature/prediction/PricePredictionEngine.kt" \
+  "$SRC/feature/calendar/SaleCalendar.kt" \
+  "$SRC/feature/scorer/SeasonalDowSignal.kt" \
+  "$SRC/feature/scorer/BuyTimingScorer.kt" \
   "$HERE/ParityHarness.kt" 2>&1 | grep -v 'unable to find kotlin' || true
 
 # Force UTF-8 stdout: the JVM may default to ASCII (stdout.encoding=ANSI_X3.4-1968),
 # which would mangle the Japanese category/cert literals to '?'.
 java -Dstdout.encoding=UTF-8 -Dfile.encoding=UTF-8 \
-  -cp "$OUT/parity.jar:$ST" ParityHarnessKt > "$OUT/kotlin_out.tsv"
+  -cp "$OUT/parity.jar:$ST:$SER" ParityHarnessKt > "$OUT/kotlin_out.tsv"
 
 echo "kotlin emitted $(wc -l < "$OUT/kotlin_out.tsv") cases"
 PYTHONIOENCODING=UTF-8 python3 "$HERE/compare_oracle.py" < "$OUT/kotlin_out.tsv"

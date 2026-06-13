@@ -26,19 +26,30 @@ run.sh
 # 前提: 一度 ./gradlew --version を実行して wrapper distribution を取得済みであること
 #       (kotlin-compiler-embeddable jar を ~/.gradle から探す)
 bash popcoon-tdd/kotlin_parity/run.sh
-# => PARITY: 18 matched, 0 mismatched  (全一致なら exit 0)
+# => PARITY: 39 matched, 0 mismatched  (全一致なら exit 0)
 ```
 
-## カバレッジと拡張
+## カバレッジ (移植済み純関数 6 種すべて実行検証)
 
 | 関数 | 状態 | 備考 |
 |------|------|------|
 | `CustomsSimulator.simulate` | ✅ 実行検証 (11 ケース) | Tier 9 の verdict バグ修正がコンパイル&実行で確認済み |
 | `EcoEthicsScorer.score` | ✅ 実行検証 (7 ケース) | 定数・式・丸め・日本語文字列まで一致 |
-| `BuyTimingScorer` / `PricePredictionEngine` / `DarkPatternDetector` | ⏳ 未対応 | `PriceRecord` (Product.kt, kotlinx-serialization plugin 依存) のコンパイルが必要。`-Xplugin=kotlinx-serialization-compiler-plugin` + serialization ランタイムを classpath に追加すれば拡張可能。あるいは履歴依存関数用に最小 `PriceRecord` スタブ (realPrice/recordedAt) を用意する |
+| `DarkPatternDetector.detect` | ✅ 実行検証 (7 シナリオ) | 4 種の警告 (常設/参考価格/値上げ/端数) すべて発火し一致 |
+| `PricePredictionEngine.predict` | ✅ 実行検証 (7 シナリオ) | Holt/IQR/buy-prob/confidence。margin/seasonal は Kotlin 拡張なので比較対象外 |
+| `BuyTimingScorer.score` | ✅ 実行検証 (7 シナリオ) | 看板機能。`today=null` で Python 同等経路を照合 (67/72/55/62/67/42/null) |
 
-## なぜスカラー関数から始めるか
+履歴依存関数は `PriceRecord` (Product.kt) を要するが、`@Serializable` の**コンパイラ plugin は
+不要**だった: plugin 不在でもアノテーションは無害で、ロジックは `.serializer()` を呼ばないため、
+**本物のソースが serialization ランタイム jar のみでコンパイルできる** (スタブ不要)。
 
-`CustomsSimulator` と `EcoEthicsScorer` は kotlin stdlib のみに依存（Android/Room/serialization
-非依存）→ 追加 classpath ゼロでコンパイルできる。最小リスクで「実行可能パリティ」の足場を作り、
-履歴依存関数は段階的に追加する方針。
+## 嵌りどころ
+
+- **JVM stdout が ASCII**: `stdout.encoding=ANSI_X3.4-1968` だと日本語が `?` に化け、Python が
+  壊れた入力で再計算して偽 mismatch を出す → `-Dstdout.encoding=UTF-8` 必須 (run.sh で設定済み)。
+
+## 限界
+
+これは純粋ロジックを単体でコンパイル/実行するもので、**full app (Compose/Room/DI/Hilt) の
+コンパイルは検証しない**。それは CI (`.github/workflows/`) でしか確認できない。
+本ハーネスは「移植ロジックのパリティ」専用の、SDK 不要な検証経路。

@@ -3,6 +3,34 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## ソクラテス監査 (Tier 12: 実行パリティを看板機能まで拡張 — 2026-06-13)
+
+Tier 11 でスカラー関数 (customs/eco) の実行パリティを確立した。だがそれは「楽な 2 関数」。
+最重要の `BuyTimingScorer` (プロダクトの存在理由) と数値リッチな `predict`/`darkpattern` は
+依然「読み比べ」止まり — まさに customs バグを最初に見逃しかけた脆い方法。実行検証へ格上げした。
+
+### 障壁の実測: 「serialization plugin が無いと PriceRecord はコンパイルできない」→ **偽**
+履歴依存関数は `PriceRecord` (Product.kt, `@Serializable`) を要する。plugin はキャッシュに
+無かったが、**実測すると plugin 無しで Product.kt はコンパイル成功** (exit 0)。理由: plugin 不在でも
+`@Serializable` は無害なアノテーションに過ぎず、ロジックは `.serializer()` を呼ばないため
+serialization ランタイム jar のみでビルドできる。→ スタブ不要、本物のソースで検証。
+
+### 成果: 移植済み純関数 **6 種すべて**を実行パリティ化
+`popcoon-tdd/kotlin_parity/` のハーネスを履歴依存関数まで拡張 (Product.kt + 予測/季節/カレンダー
+等 10 ファイルを同梱コンパイラでビルド、31 classes)。結果 **39 ケース全一致**:
+- scalar: customs 11 + eco 7
+- 履歴 7 シナリオ × {darkpattern, predict, buytiming} = 21
+- ダークパターン 4 種 (常設/参考価格/値上げ/端数) すべて発火し一致。buy-timing は
+  67/72/55/62/67/42/null と多様な出力すべてが Python オラクルと一致。
+
+→ Tier 10 で「読んで一致」とした BuyTimingScorer の判断が、**コンパイル&実行で裏付けられた**
+(careful reading と executed check が一致 = 監査手法の相互検証)。看板機能のパリティは
+もはや主張ではなく**実行可能な事実**。
+
+### 限界 (正直に)
+これは純粋ロジックの単体コンパイル/実行であり、**full app (Compose/Room/Hilt/DI) の
+コンパイルは検証しない**。それは CI (`.github/workflows/`, 管理者の `git mv` 待ち) のみ。
+
 ## ソクラテス監査 (Tier 11: 「検証できない/CIは管理者しか有効化できない」二つの前提を実測 — 2026-06-13)
 
 3 ラウンド連続で「Kotlin はコンパイルできない」「CI は `workflows` 権限が無いので
