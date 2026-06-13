@@ -3,6 +3,17 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 15: backend クラッシュ受信の PII 漏れ — 2026-06-13)
+
+`/v1/crash` の「個人情報チェック (二重チェック)」が **`body.sanitized_stack` だけ**を検査し、
+保存は **body 全体** (`JSON.stringify(body)`) だった。→ `sanitized_stack` をクリーンにしつつ
+他フィールド (例 `device_id:"user@email.com"`) に PII を入れれば**チェックをすり抜けて永続化**。
+プライバシー (「個人情報なし」「テレメトリ未送信」) を中核差別化とする製品の致命的な穴。
+- 修正: 純関数 `containsPotentialPii(payload)` を抽出し、**payload 全体**をメール/IPv4 正規表現で
+  走査。ハンドラはこれで弾く。
+- 検証: Node 再現で旧実装は他フィールドの PII を見逃し新実装は捕捉、正当なクラッシュは受理 (8/8)。
+  vitest にも同契約テストを追加。
+
 ## 製品改善ループ (Tier 14: backend の KV 取りこぼし — GDPR 削除/アラート評価 — 2026-06-13)
 
 backend 監査の続き。`KV.list` は 1 回で最大 1000 キーしか返さない (cursor で続きを取る) が、

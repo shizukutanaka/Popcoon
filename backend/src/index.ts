@@ -99,6 +99,19 @@ async function appendPriceHistory(
 // ── HTTP ハンドラー ──────────────────────────────────────────────────────────
 
 /**
+ * クラッシュ payload 全体に個人情報 (メール / IPv4) が混入していないか検査する。
+ * 旧実装は body.sanitized_stack だけを見ていたが、保存するのは body 全体 (JSON.stringify)
+ * だったため、他フィールド (device_id 等) の PII が二重チェックをすり抜けて永続化されていた。
+ * プライバシーを売りにする製品の中核 — payload 全体を走査して保守的に弾く。
+ */
+function containsPotentialPii(payload: unknown): boolean {
+  const serialized = JSON.stringify(payload);
+  const email = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+  const ipv4 = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/;
+  return email.test(serialized) || ipv4.test(serialized);
+}
+
+/**
  * KV.list は 1 回の呼び出しで最大 1000 キーしか返さない (list_complete=false で cursor を返す)。
  * cursor を辿って全キー名を集める。これを怠ると GDPR 削除やアラート評価が
  * 「最初の1ページ」しか処理せず、それ以降のデータを取りこぼす。
@@ -217,9 +230,8 @@ async function handleRequest(req: Request, env: Env): Promise<Response> {
   if (req.method === "POST" && url.pathname === "/v1/crash") {
     const body = await req.json().catch(() => null) as Record<string, unknown> | null;
     if (!body) return bad("invalid payload");
-    // 個人情報含まない事を確認 (二重チェック)
-    const stack = body.sanitized_stack as string | undefined;
-    if (stack && (stack.includes("@") || /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/.test(stack))) {
+    // 個人情報が含まれないことを payload 全体で確認 (保存対象は body 全体のため)。
+    if (containsPotentialPii(body)) {
       return bad("payload contains potential PII");
     }
     // KV に集約 (週単位で削除、recent crashes のみ保持)

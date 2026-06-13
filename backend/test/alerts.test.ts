@@ -281,3 +281,27 @@ describe("KV ページネーション", () => {
     expect(left).toBe(2);  // index 1500 & 2499 が削除されず残る
   });
 });
+
+// ── クラッシュ payload の PII 検査 (プライバシーが製品の中核差別化) ──────────────
+// src/index.ts::containsPotentialPii の契約。保存対象は body 全体なので payload 全体を走査する。
+function containsPotentialPii(payload: unknown): boolean {
+  const serialized = JSON.stringify(payload);
+  const email = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+  const ipv4 = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/;
+  return email.test(serialized) || ipv4.test(serialized);
+}
+
+describe("crash PII 検査", () => {
+  it("sanitized_stack 以外のフィールドのメールも検出する (旧実装の穴)", () => {
+    expect(containsPotentialPii({ sanitized_stack: "Foo.bar(Foo.kt:42)", device_id: "user@email.com" })).toBe(true);
+  });
+  it("他フィールドの IPv4 も検出する", () => {
+    expect(containsPotentialPii({ sanitized_stack: "clean", note: "from 10.0.0.1" })).toBe(true);
+  });
+  it("ネストされた PII も検出する", () => {
+    expect(containsPotentialPii({ meta: { contact: "a.b@c.co" } })).toBe(true);
+  });
+  it("PII の無い正当なクラッシュは受理する", () => {
+    expect(containsPotentialPii({ sanitized_stack: "com.example.Foo.bar(Foo.kt:42)", app_version: "1.2.3", os: "Android 14" })).toBe(false);
+  });
+});
