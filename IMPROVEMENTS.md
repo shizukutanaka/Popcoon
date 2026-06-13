@@ -3,6 +3,17 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 18: Yahoo の在庫データ復元 + マッパー抽出 — 2026-06-13)
+
+Tier 17 の楽天と同じパターンを Yahoo に適用。`YahooClient` は V3 itemSearch の `inStock`
+真偽を DTO で取りこぼし `stockCount` を常に null にしていた。
+- 変換を純粋関数 `YahooMapper.kt` (ktor/BuildConfig 非依存) に抽出、`YahooClient` は IO のみに。
+  `inStock==false → stockCount=0` を写す。listPrice(defaultPrice 優先)/shipping(code==2 無料) の
+  既存ロジックも mapper に移設。
+- **検証**: `run_yahoo.sh` で単体ビルド・実行。在庫/listPrice/shipping/既存フィールドを全アサート green。
+- 正直な限界: `inStock` の正確なフィールド名は実 API で未確認。だが `ignoreUnknownKeys` +
+  nullable 既定のため**名前が違っても無害** (従来同様 null)。回帰リスク無し・上振れのみ。
+
 ## 製品改善ループ (Tier 17: 楽天の在庫データ復元 — 幻フィールドの解消第一歩 — 2026-06-13)
 
 Tier 8/9 で指摘した「データ抽出層が `stockCount` 等を埋めず、機能が死蔵」問題に着手。
