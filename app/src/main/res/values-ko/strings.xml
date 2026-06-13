@@ -168,6 +168,8 @@
     <string name="detail_price_history">가격 이력</string>
     <string name="detail_saved">저장됨</string>
     <string name="detail_save">저장</string>
+    <string name="detail_buy_button">상품 페이지 열기</string>
+    <string name="detail_buy_ad_badge">#ad 이 링크는 제휴 링크입니다</string>
     <!-- Navigation -->
     <string name="nav_search">검색</string>
     <string name="nav_watchlist">즐겨찾기</string>

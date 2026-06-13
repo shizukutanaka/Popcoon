@@ -1,5 +1,7 @@
 package com.example.popcoon.ui.screens.detail
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import com.example.popcoon.R
+import com.example.popcoon.feature.affiliate.AffiliateUrlBuilder
 import com.example.popcoon.ui.util.HapticFeedback
 import androidx.compose.ui.unit.dp
 import com.example.popcoon.feature.scorer.BuyTimingScorer
@@ -70,7 +73,7 @@ fun ProductDetailScreen(
             when (val s = state) {
                 DetailUiState.Loading ->
                     com.example.popcoon.ui.components.ProductDetailSkeleton()
-                is DetailUiState.Loaded -> LoadedContent(s)
+                is DetailUiState.Loaded -> LoadedContent(s, s.affiliateOptin)
                 is DetailUiState.Error -> {
                     androidx.compose.foundation.layout.Box(
                         modifier = Modifier.fillMaxSize(),
@@ -103,7 +106,7 @@ fun ProductDetailScreen(
 }
 
 @Composable
-private fun LoadedContent(s: DetailUiState.Loaded) {
+private fun LoadedContent(s: DetailUiState.Loaded, affiliateOptin: Boolean) {
     // ─ タイトル
     // ─ 商品画像 + タイトル
     Row(verticalAlignment = androidx.compose.ui.Alignment.Top) {
@@ -208,6 +211,35 @@ private fun LoadedContent(s: DetailUiState.Loaded) {
                 Text(stringResource(R.string.detail_ai_advice), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(Spacing.ml))
                 Text(advice, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
+
+    // ─ 購入ページを開くボタン (アフィリエイト有効時は #ad 表示 — 景品表示法 8 条)
+    if (s.product.url.isNotBlank()) {
+        val context = LocalContext.current
+        val url = remember(s.product.url, affiliateOptin) {
+            AffiliateUrlBuilder.build(
+                platform = s.product.platform,
+                rawUrl = s.product.url,
+                optOut = !affiliateOptin,
+            )
+        }
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+            Button(
+                onClick = {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.detail_buy_button))
+            }
+            if (affiliateOptin) {
+                Text(
+                    stringResource(R.string.detail_buy_ad_badge),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

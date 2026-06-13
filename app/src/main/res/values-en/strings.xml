@@ -168,6 +168,8 @@
     <string name="detail_price_history">Price history</string>
     <string name="detail_saved">Saved</string>
     <string name="detail_save">Save</string>
+    <string name="detail_buy_button">Open product page</string>
+    <string name="detail_buy_ad_badge">#ad This is an affiliate link</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>

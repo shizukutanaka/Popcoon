@@ -14,6 +14,7 @@ import com.example.popcoon.feature.prediction.PricePredictionEngine
 import com.example.popcoon.feature.bundle.BundlePackDetector
 import com.example.popcoon.feature.review.ReviewTrustScorer
 import com.example.popcoon.feature.scorer.BuyTimingScorer
+import com.example.popcoon.feature.settings.UserPreferences
 import com.example.popcoon.feature.tco.TCOCalculator
 import com.example.popcoon.core.PopcoonLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -44,6 +45,7 @@ sealed interface DetailUiState {
         val reviewTrust: ReviewTrustScorer.Result? = null,
         val bundle: BundlePackDetector.Analysis? = null,
         val ethics: EcoEthicsScorer.Score? = null,
+        val affiliateOptin: Boolean = false,
     ) : DetailUiState
 }
 
@@ -67,6 +69,7 @@ class ProductDetailViewModel @Inject constructor(
     private val advisor: BuyingAdvisor,
     private val adviceCache: com.example.popcoon.feature.ai.AdviceCache,
     private val watchlistDao: com.example.popcoon.data.db.WatchlistDao,
+    private val prefs: UserPreferences,
     @dagger.hilt.android.qualifiers.ApplicationContext
     private val context: android.content.Context,
 ) : ViewModel() {
@@ -122,8 +125,9 @@ class ProductDetailViewModel @Inject constructor(
                     )
                 }
 
-                // 5. 即時表示 (ウォッチリスト状態も確認)
+                // 5. 即時表示 (ウォッチリスト状態・アフィリエイト設定も確認)
                 val inWatchlist = watchlistDao.get(product.key) != null
+                val affiliateOptin = kotlinx.coroutines.flow.first(prefs.affiliateOptin)
                 val prediction = PricePredictionEngine.predict(history)
                 // TCO: 対象カテゴリ (プリンター/PC等) のみ計算
                 val tco = TCOCalculator.inferCategory(product.title)?.let { category ->
@@ -167,6 +171,7 @@ class ProductDetailViewModel @Inject constructor(
                     reviewTrust = reviewTrust,
                     bundle = bundle,
                     ethics = ethics,
+                    affiliateOptin = affiliateOptin,
                 )
 
                 // 6. AI advice をキャッシュ確認 → 必要なら背景取得
