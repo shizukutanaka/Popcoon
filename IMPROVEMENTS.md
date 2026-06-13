@@ -3,6 +3,56 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## ソクラテス監査 (Tier 9: 「検証できない」という自分の前提への反問 — 2026-06-13)
+
+前ラウンドで「Android SDK も CI も無いから何も検証できない」と繰り返し主張していた。
+ゴール『ソクラテス問答を行い改善する』に従い、**その前提自体を反問**した:
+「本当に環境を確認したのか? それとも確認せず思い込んでいるだけか?」
+
+### 反問で判明したこと (前提は誤りだった)
+環境を実測すると、検証可能な層が存在した:
+- **`popcoon-tdd/` は Python リファレンス実装** (mutation/chaos/differential/metamorphic/fuzzing
+  /golden 等の網羅テスト)。**Python は動く** → `pytest` で **290 passed, 1 skipped** を即時取得。
+  本セッションが「持っていない」と言い続けた "real signal" は、実は最初から取得可能だった。
+- `backend/` は TypeScript Cloudflare Worker (node22 はあるが node_modules 不在 → offline 不可)。
+- Gradle は offline 動作可 (8.11.1, kotlin-compiler-embeddable 同梱)。`:app` のみ Android SDK 必須。
+
+### さらなる反問: 「Python parity」は誰が保証しているのか?
+プロジェクトの看板は "Python parity" (Kotlin 移植が Python と一致)。だが **検証機構が無い**:
+`test_differential.py` は **Python 最適化版 vs Python naive 版**を比較するだけで、コメント自身が
+『「Kotlin本体との整合性」の predecessor』と告白している。golden snapshot も Python 内部の
+ハッシュ固定のみで、Kotlin はそのfixtureを一切消費していない。→ **Kotlin は黙って乖離し得る。**
+
+### 検証済みオラクルで Kotlin↔Python パリティ監査 (5 関数を読み比べ)
+| 関数 | 結果 |
+|---|---|
+| `predict_price` / `PricePredictionEngine` | ✅ 一致 (Holt α=0.3/β=0.1, IQR, buy_prob, confidence)。Conformal/季節分解は Kotlin 拡張 |
+| `detect_dark_patterns` / `DarkPatternDetector` | ✅ 一致 (常設90%/参考1.5x/値上げ1.1x/端数80-99)。drip/text は Kotlin 拡張 |
+| `score_eco_ethics` / `EcoEthicsScorer` | ✅ 一致 (国別CO2・労働定数, 式, 丸めすべて一致) |
+| `eval_condition` | ✅ 一致 (Kotlin 側は別途要追検証だが式は同型) |
+| `simulate_customs` / `CustomsSimulator` | ❌ **乖離 (バグ検出)** |
+
+### 検出バグ: CustomsSimulator の verdict 分岐順 (修正済み)
+Kotlin は「`完全一致`」とコメントしつつ、食品/化粧品の `NOT_RECOMMENDED` 判定を
+**最優先に繰り上げて**いた。結果、国内価格が設定された食品/化粧品は **価格に関係なく常に
+NOT_RECOMMENDED**。検証済み Python は逆で、免税級の掘り出し物 (国内の70%未満) は CHEAPER が勝つ。
+- **しかも Kotlin テストがこのバグを固定していた**: `simulate(10k,2k,食品,国内50k)` を
+  `NOT_RECOMMENDED` と断言。Python オラクルでは同入力は `CHEAPER` (total=12,000・免税)。
+  → 「緑のチェックは結果ではなく仮説」の実例 (テストがバグを承認していた)。
+- **対応**: ①Kotlin の `when` を Python の分岐順に修正 ②バグを固定していた Kotlin テストを
+  オラクル準拠 (CHEAPER) に訂正し、正しい NOT_RECOMMENDED 経路 (中途半端な節約帯) の
+  ケースを追加 ③**Python オラクル側に verdict 分岐順のクロス言語コントラクトを追加**
+  (`test_customs_verdict_branch_order`, 6 ケース) → ローカルで実行・検証可能。期待値は
+  すべて `popcoon_core` で算出。Python suite: 290 → **296 passed**。
+
+### 残課題 (今後)
+- **クロス言語 golden ブリッジ (parity の真の強制)**: Python から言語中立な JSON fixture
+  (固定入力→期待出力) を書き出し、Kotlin テストが同 fixture を消費して一致検証する仕組み。
+  これで "parity" が文書上の主張から実行可能な契約になる。Python 側生成器は即検証可、
+  Kotlin consumer は CI/SDK 有効化後に配線 (今は未コンパイル surface を増やさない)。
+- **最重要は依然 CI/SDK の有効化**: `:app` の Kotlin/Compose 層は今も未コンパイル。
+  Python 層が緑でも Android 本体の検証は別問題。`git mv ci/android.yml .github/workflows/` が前提。
+
 ## 製品分析 (Tier 7: 長所・短所・不足機能の洗い出しと実装)
 
 プロダクトとしての強み・弱み・不足機能を棚卸しし、価値が高く自己完結する

@@ -60,13 +60,15 @@ object CustomsSimulator {
 
         val total = foreign + ship + duty + ctax + fee
 
+        // 判定順は Python オラクル (popcoon_core.simulate_customs) と厳密一致させる。
+        // 食品/化粧品の NOT_RECOMMENDED は「価格でCHEAPER/同等/割高に該当しない」場合の
+        // フォールバックであり、最優先ではない (免税級の掘り出し物はCHEAPERが勝つ)。
         val verdict = when {
             japanBestPrice == null -> Verdict.CHEAPER
-            // 食品・化粧品は衛生/検疫リスクにより価格によらず非推奨
-            category == "食品" || category == "化粧品" -> Verdict.NOT_RECOMMENDED
             isExempt && total < japanBestPrice * 0.7 -> Verdict.CHEAPER
             total >= japanBestPrice -> Verdict.MORE_EXPENSIVE
             total >= japanBestPrice * 0.9 -> Verdict.COMPARABLE
+            category == "食品" || category == "化粧品" -> Verdict.NOT_RECOMMENDED
             else -> Verdict.CHEAPER
         }
 

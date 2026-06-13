@@ -138,6 +138,28 @@ class TestCustomsSnapshots:
             f"入力 {case}: 着払い {result.total_landed_cost} != 期待 {expected_total}"
         assert result.is_tax_exempt == expected_exempt
 
+    # 判定 (verdict) の分岐順を固定するクロス言語コントラクト。
+    # Kotlin 移植 (CustomsSimulator) が食品/化粧品を最優先で NOT_RECOMMENDED にして
+    # オラクルと乖離していたため、その分岐順をここに明示的にピン留めする。
+    # 食品/化粧品の NOT_RECOMMENDED は「価格でCHEAPER/同等/割高に該当しない」フォールバック。
+    @pytest.mark.parametrize("case,expected_verdict", [
+        # 食品でも免税級の掘り出し物 (国内の70%未満) は CHEAPER が勝つ
+        ((10_000, 2_000, "食品", 50_000),   "CHEAPER"),
+        ((10_000, 2_000, "化粧品", 50_000), "CHEAPER"),
+        # 中途半端な節約帯 (国内の90%未満、免税掘り出し物でもない) でのみ NOT_RECOMMENDED
+        ((20_000, 2_000, "食品", 40_000),   "NOT_RECOMMENDED"),
+        ((20_000, 2_000, "化粧品", 40_000), "NOT_RECOMMENDED"),
+        # 食品でも国内価格以上なら MORE_EXPENSIVE が勝つ (検疫より価格判定が優先)
+        ((40_000, 5_000, "食品", 30_000),   "MORE_EXPENSIVE"),
+        # 非・食品/化粧品は同帯でも CHEAPER (NOT_RECOMMENDED は食品/化粧品限定)
+        ((20_000, 2_000, "衣類", 40_000),   "CHEAPER"),
+    ])
+    def test_customs_verdict_branch_order(self, case, expected_verdict):
+        foreign, ship, category, japan = case
+        result = simulate_customs(foreign, ship, category, japan)
+        assert result.verdict.value == expected_verdict, \
+            f"入力 {case}: verdict {result.verdict.value} != 期待 {expected_verdict}"
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # TCO計算のスナップショット

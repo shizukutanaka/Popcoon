@@ -41,9 +41,20 @@ class CustomsSimulatorKotlinTest : StringSpec({
         r.verdict shouldBe CustomsSimulator.Verdict.CHEAPER
     }
 
-    "食品は NOT_RECOMMENDED (衛生・検疫リスク)" {
-        val r = CustomsSimulator.simulate(10_000, 2_000, "食品", japanBestPrice = 50_000)
+    // 食品/化粧品の NOT_RECOMMENDED は「中途半端な節約」帯でのみ発火する (Python オラクル準拠)。
+    // 入力 (20k+2k, 食品, 国内40k): dutiable=22,000>免税 → total=29,240、国内の 90% (36,000) 未満
+    // かつ免税掘り出し物でもない → NOT_RECOMMENDED。期待値は popcoon_core で検証済み。
+    "食品は中途半端な節約帯で NOT_RECOMMENDED (衛生・検疫リスク)" {
+        val r = CustomsSimulator.simulate(20_000, 2_000, "食品", japanBestPrice = 40_000)
         r.verdict shouldBe CustomsSimulator.Verdict.NOT_RECOMMENDED
+    }
+
+    // 回帰防止: 食品でも免税級の掘り出し物 (国内の 70% 未満) は CHEAPER が勝つ。
+    // 旧実装は食品を無条件 NOT_RECOMMENDED にしており Python と乖離していた。
+    // 入力 (10k+2k, 食品, 国内50k): total=12,000 (免税) < 35,000 → CHEAPER。
+    "食品でも免税級の掘り出し物は CHEAPER (Python オラクル一致)" {
+        val r = CustomsSimulator.simulate(10_000, 2_000, "食品", japanBestPrice = 50_000)
+        r.verdict shouldBe CustomsSimulator.Verdict.CHEAPER
     }
 
     "外国価格 0 でも例外なし" {
