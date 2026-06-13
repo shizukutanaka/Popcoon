@@ -3,6 +3,20 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 17: 楽天の在庫データ復元 — 幻フィールドの解消第一歩 — 2026-06-13)
+
+Tier 8/9 で指摘した「データ抽出層が `stockCount` 等を埋めず、機能が死蔵」問題に着手。
+`RakutenClient` は楽天 API が返す `availability` (1=在庫/0=在庫切れ) を DTO で取りこぼし、
+`stockCount` を常に null にしていた → `SortAndFilter` の在庫切れ除外 (`stockCount==0`,
+デフォルト ON) が不発だった。
+- 変換ロジックを ktor/BuildConfig 非依存の純粋関数に切り出し (`RakutenMapper.kt`)、
+  `RakutenClient` は IO のみに。DTO に `availability` を追加し、`availability==0 → stockCount=0` を写す。
+- **検証**: `RakutenMapper.kt` + `Product.kt` を Gradle 同梱コンパイラで単体ビルド・実行
+  (`popcoon-tdd/kotlin_parity/run_rakuten.sh`)。在庫/在庫切れ/既存フィールド保全を全アサート green。
+  RakutenClient の IO 部 (ktor) のみ未コンパイル検証 (変更は DTO 削除 + `.toProduct()` 呼び出しの機械的差し替え)。
+- `pointsBack` は `pointRate` から算出可能だが `product.totalPrice` を変え UI 全体に波及するため、
+  CI でレンダリング検証できるまで保留 (TODO をコード/本書に明記)。これが「検証可能な分だけ進める」方針。
+
 ## 製品改善ループ (Tier 16: backend /v1/history の入力検証不足 — 2026-06-13)
 
 `POST /v1/history` は `recorded_at` の**存在**しか見ず、`list_price` の型も未検証だった。

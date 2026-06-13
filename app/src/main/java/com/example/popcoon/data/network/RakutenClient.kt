@@ -1,7 +1,6 @@
 package com.example.popcoon.data.network
 
 import com.example.popcoon.BuildConfig
-import com.example.popcoon.data.model.Platform
 import com.example.popcoon.data.model.Product
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -11,7 +10,6 @@ import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CancellationException
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 /**
@@ -44,42 +42,7 @@ class RakutenClient(
         }.onFailure { if (it is CancellationException) throw it }
             .getOrNull() ?: return emptyList()
 
-        return resp.Items.map { it.Item }.map { i ->
-            Product(
-                sku = i.itemCode,
-                title = i.itemName,
-                platform = Platform.RAKUTEN,
-                realPrice = i.itemPrice.toLong(),
-                listPrice = i.itemPrice.toLong(),  // 楽天は定価返さない
-                shippingFee = 0L,
-                pointsBack = 0L,
-                url = i.itemUrl,
-                rating = i.reviewAverage?.toFloat(),
-                reviewCount = i.reviewCount ?: 0,
-                imageUrl = i.mediumImageUrls.firstOrNull()?.imageUrl,
-                brand = i.shopName,
-            )
-        }
+        // DTO → Product の変換は純粋関数 (RakutenMapper.kt) に集約。
+        return resp.Items.map { it.Item.toProduct() }
     }
-}
-
-@Serializable
-private data class RakutenResponse(val Items: List<ItemContainer>) {
-    @Serializable
-    data class ItemContainer(val Item: RakutenItem)
-
-    @Serializable
-    data class RakutenItem(
-        val itemCode: String,
-        val itemName: String,
-        val itemPrice: Int,
-        val itemUrl: String,
-        val shopName: String,
-        val reviewAverage: Double? = null,
-        val reviewCount: Int? = null,
-        val mediumImageUrls: List<ImageUrl> = emptyList(),
-    )
-
-    @Serializable
-    data class ImageUrl(val imageUrl: String)
 }
