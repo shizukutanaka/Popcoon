@@ -3,6 +3,23 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 13: backend のアラート誤発火バグ — 2026-06-13)
+
+ユーザー指示で「製品の長所短所改善点」へ視点を戻し、未検証だった `backend/`
+(TypeScript Cloudflare Worker) を監査。**実害のあるバグを検出・修正**:
+
+### バグ: ATL (過去最安) アラートの誤発火
+`evaluateCondition` の `atl` ケースが `history.slice(0, -1)` で**最古**の履歴を除外していた。
+だが本番 (`evaluateAlerts`) では history は**新しい順**で `current === history[0]`。
+正しくは current(=[0]) を除いた `slice(1)` の最小値と比較すべき。
+- 影響: **最古の価格が真の最安だった場合、current が最安でないのに「過去最安」通知を誤発火**。
+  Node 再現で実証 (history=[100,120,90], current=100 → 旧: true 誤発火 / 新: false 正)。
+  信頼性を売りにする製品が偽の「最安」プッシュを送るのは致命的な信頼毀損。
+- テストも同じ誤ロジックを複製し、かつ current を history 外に置く**本番と異なる契約**で
+  書かれていたため見逃していた (customs と同型: テストがバグを承認)。
+- 修正: 本番を `slice(1)` に。テストを本番契約 (current=history[0]) に揃え、
+  「最古が真の最安」回帰ケースを追加。依存なしの Node 検証で全 8 アサーション green。
+
 ## ソクラテス監査 (Tier 12: 実行パリティを看板機能まで拡張 — 2026-06-13)
 
 Tier 11 でスカラー関数 (customs/eco) の実行パリティを確立した。だがそれは「楽な 2 関数」。

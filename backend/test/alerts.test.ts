@@ -27,7 +27,8 @@ function evaluateCondition(c: AlertCondition, current: PriceRecord, history: Pri
       return current.real_price >= (c.value ?? 0);
     case "atl": {
       if (history.length < 2) return false;
-      const historicLow = Math.min(...history.slice(0, -1).map(r => r.real_price));
+      // history は新しい順で current === history[0]。過去最安は current を除いた history.slice(1)。
+      const historicLow = Math.min(...history.slice(1).map(r => r.real_price));
       return current.real_price <= historicLow;
     }
     case "discount_pct": {
@@ -66,26 +67,38 @@ describe("AlertCondition evaluation", () => {
     });
   });
 
+  // 本番の契約 (evaluateAlerts): history は新しい順で current === history[0]。
+  // テストもこの契約に揃える (旧テストは current を history 外に置いており本番と乖離していた)。
   describe("atl (all-time-low)", () => {
     it("trigger when current is new low", () => {
       const c: AlertCondition = { type: "atl" };
       const history = [
+        { real_price: 950, list_price: 2000 },   // current (= history[0])
         { real_price: 1000, list_price: 2000 },
         { real_price: 1100, list_price: 2000 },
-        { real_price: 1200, list_price: 2000 },
       ];
-      const newLow = { real_price: 950, list_price: 2000 };
-      expect(evaluateCondition(c, newLow, history)).toBe(true);
+      expect(evaluateCondition(c, history[0], history)).toBe(true);
     });
 
     it("not trigger when current is higher than historic low", () => {
       const c: AlertCondition = { type: "atl" };
       const history = [
+        { real_price: 1050, list_price: 2000 },  // current
         { real_price: 1000, list_price: 2000 },
         { real_price: 1100, list_price: 2000 },
       ];
-      const notLow = { real_price: 1050, list_price: 2000 };
-      expect(evaluateCondition(c, notLow, history)).toBe(false);
+      expect(evaluateCondition(c, history[0], history)).toBe(false);
+    });
+
+    it("regression: not trigger when the OLDEST record was the true low", () => {
+      // 旧 slice(0,-1) 実装は最古(=真の最安)を除外し、誤って ATL を発火していた。
+      const c: AlertCondition = { type: "atl" };
+      const history = [
+        { real_price: 100, list_price: 200 },  // current (新しい順, history[0])
+        { real_price: 120, list_price: 200 },
+        { real_price: 90,  list_price: 200 },  // oldest = 真の過去最安
+      ];
+      expect(evaluateCondition(c, history[0], history)).toBe(false);
     });
 
     it("requires at least 2 history entries", () => {

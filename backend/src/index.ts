@@ -239,7 +239,11 @@ function evaluateCondition(condition: AlertCondition, current: PriceRecord, hist
 
     case "atl": {
       if (history.length < 2) return false;
-      const historicLow = Math.min(...history.slice(0, -1).map(r => r.real_price));
+      // history は新しい順 (appendPriceHistory が降順ソート) で current === history[0]。
+      // 過去最安は「current を除く全履歴」= history.slice(1) の最小値。
+      // 旧実装は slice(0,-1) で最古を除外しており、最古が真の最安だった場合に
+      // ATL を誤発火していた (= 偽の「過去最安」通知でユーザーの信頼を損なう)。
+      const historicLow = Math.min(...history.slice(1).map(r => r.real_price));
       return current.real_price <= historicLow;
     }
 
