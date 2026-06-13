@@ -39,6 +39,7 @@ CI) を調査した結果と、適用した改善・今後のバックログ。
 | 51 | **不足機能** | `SaleCalendar` (テスト済み) が検索の当日バナーでしか露出せず、今後のセールを一覧できない (docstring が「Pricey 相当の主要差別化」と明記) | `SaleCalendar.upcomingSales` 純関数+テストを追加し、`SaleCalendarScreen` (開催中/今後の大型セール) を新設。検索トップバーのカレンダーアイコン+当日バナータップで遷移。4ロケール対応 |
 | 52 | **並行性バグ** | `SearchViewModel.performSearch` の `async{}` 内 `runCatching { getPriceHistory }.getOrDefault` が `CancellationException` を握り潰し、キャンセル済みの子コルーチンが空履歴でスコア計算を継続 (構造化並行性を破壊) | `.onFailure { if (it is CancellationException) throw it }` を挿入。他全 7 箇所 (各 API クライアント / `BackendClient` / `FallbackScraper` / `CsvExporter` / `PriceSyncWorker`) と挙動を統一 |
 | 53 | **不足機能** | `CustomsSimulator` (テスト済み・Python パリティの越境関税/消費税計算) が UI 未配線で死蔵 | 設定「ツール」セクションから開く `CustomsSimulatorScreen` を新設。現地価格/送料/カテゴリ/(任意)国内最安値を入力し、課税価格・関税・消費税・手数料・着払い合計の内訳と判定チップ (国内比較入力時) を表示。ViewModel 不要の純 `remember` 計算。4ロケール対応 (各 240 文字列) |
+| 54 | **不足機能 (コアUX)** | `AffiliateUrlBuilder` (Amazon/楽天/Yahoo 三社対応のアフィリエイトタグ注入) が完全実装済みだが、商品詳細画面に購入ボタンが存在せず `product.url` が一切使われていない。ユーザーは買い時スコアを見ても購入に進めない | `ProductDetailScreen` の末尾に「購入ページを開く」`Button` を追加。`AffiliateUrlBuilder.build()` で設定の `affiliateOptin` に応じてURL変換、`Intent.ACTION_VIEW` で開く。アフィリエイト有効時は `#ad` 開示ラベル表示 (景品表示法 8 条)。`UserPreferences` を VM に注入し `DetailUiState.Loaded` に `affiliateOptin` フィールド追加。4ロケール対応 (各 242 文字列) |
 
 ### 残課題 (未着手)
 - **CI 緑化の確認**: 上記 #49 で初めて Kotest が走るため、未実行だった spec に潜在失敗が無いか CI 有効化後に要確認
