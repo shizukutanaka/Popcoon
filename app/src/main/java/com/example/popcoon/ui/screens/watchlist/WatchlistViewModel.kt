@@ -82,16 +82,6 @@ class WatchlistViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 在庫変化アラートを有効 / 無効にする。
-     * 次回の価格同期で在庫状態が変化したとき通知される。
-     */
-    fun setStockAlert(productKey: String, enabled: Boolean) {
-        viewModelScope.launch {
-            dao.setStockAlert(productKey, enabled)
-        }
-    }
-
     private suspend fun updateWidget() {
         val current = rawItems.first()
         WidgetUpdater.update(context, current)

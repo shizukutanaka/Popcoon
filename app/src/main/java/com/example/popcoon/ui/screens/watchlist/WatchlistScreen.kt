@@ -137,9 +137,6 @@ fun WatchlistScreen(
                                 onItemClick(item.productKey)
                             },
                             onSetTarget = { targetDialogItem = item },
-                            onToggleStockAlert = { enabled ->
-                                viewModel.setStockAlert(item.productKey, enabled)
-                            },
                         )
                     }
                 }
@@ -217,7 +214,6 @@ private fun WatchlistRow(
     item: WatchlistItem,
     onClick: () -> Unit,
     onSetTarget: () -> Unit,
-    onToggleStockAlert: (Boolean) -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
@@ -254,10 +250,7 @@ private fun WatchlistRow(
                 SinceAddedDelta(item = item)
                 // 目標価格バッジ / 設定ボタン
                 Spacer(Modifier.height(6.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    TargetPriceChip(item = item, onClick = onSetTarget)
-                    StockAlertChip(enabled = item.stockAlertEnabled, onToggle = onToggleStockAlert)
-                }
+                TargetPriceChip(item = item, onClick = onSetTarget)
             }
             // ← にスワイプで削除ヒント
             Text(
@@ -326,24 +319,6 @@ private fun TargetPriceChip(item: WatchlistItem, onClick: () -> Unit) {
         } else {
             AssistChipDefaults.assistChipColors()
         },
-    )
-}
-
-/** 在庫アラートの有効/無効を表示する小さなトグルチップ。 */
-@Composable
-private fun StockAlertChip(enabled: Boolean, onToggle: (Boolean) -> Unit) {
-    FilterChip(
-        selected = enabled,
-        onClick = { onToggle(!enabled) },
-        label = {
-            Text(
-                stringResource(if (enabled) R.string.stock_alert_on else R.string.stock_alert_off),
-                style = MaterialTheme.typography.labelSmall,
-            )
-        },
-        leadingIcon = if (enabled) {
-            { Icon(AppIcons.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
-        } else null,
     )
 }
 

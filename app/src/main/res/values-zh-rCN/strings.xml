@@ -275,11 +275,4 @@
     <string name="price_chart_insufficient">价格历史数据不足</string>
     <string name="point_effective_price">积分返还后实付价</string>
     <string name="point_breakdown">明细</string>
-    <string name="point_effective_subtitle">原价 %1$s 返还 %2$s</string>
-
-    <!-- 库存提醒 -->
-    <string name="stock_alert_on">库存提醒 开启</string>
-    <string name="stock_alert_off">库存提醒</string>
-    <string name="stock_back_in_stock">已恢复库存</string>
-    <string name="stock_out_of_stock">已缺货</string>
-</resources>
+    <string name="point_effective_subtitle">原价 %1$s 返还 %2$s</string></resources>

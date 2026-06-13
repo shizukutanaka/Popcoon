@@ -18,7 +18,6 @@ import com.example.popcoon.data.repository.BackendClient
 import com.example.popcoon.data.repository.IProductRepository
 import com.example.popcoon.feature.notification.LocalNotificationManager
 import com.example.popcoon.feature.notification.PriceAlertEvaluator
-import com.example.popcoon.feature.notification.StockAlertEvaluator
 import com.example.popcoon.feature.retention.ReviewPrompter
 import com.example.popcoon.widget.WidgetUpdater
 import dagger.assisted.Assisted
@@ -101,24 +100,6 @@ class PriceSyncWorker @AssistedInject constructor(
                             val previousPrice = item.realPrice
 
                             watchlistDao.upsert(item.copy(realPrice = latest.realPrice))
-
-                            // 在庫変化アラート: 価格 > 0 を在庫ありの代理指標とする
-                            // (stockCount は refresh() 時のみ更新されるため Worker では使わない)。
-                            val nowInStock = latest.realPrice > 0
-                            val stockKind = StockAlertEvaluator.evaluate(
-                                previouslyInStock = item.lastKnownInStock,
-                                currentlyInStock = nowInStock,
-                                stockAlertEnabled = item.stockAlertEnabled,
-                            )
-                            watchlistDao.updateLastKnownInStock(item.productKey, nowInStock)
-                            if (stockKind != StockAlertEvaluator.Kind.NONE) {
-                                notificationManager.sendStockAlert(
-                                    context = applicationContext,
-                                    productKey = item.productKey,
-                                    productTitle = item.title,
-                                    backInStock = stockKind == StockAlertEvaluator.Kind.BACK_IN_STOCK,
-                                )
-                            }
 
                             // 目標価格到達 / 有意な値下がりを純関数で判定。
                             // 目標到達は率に関係なく最優先で通知（ユーザーが明示的に求めた情報）。

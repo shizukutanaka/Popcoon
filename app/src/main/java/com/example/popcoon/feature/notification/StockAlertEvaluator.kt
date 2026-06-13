@@ -1,15 +1,25 @@
 package com.example.popcoon.feature.notification
 
 /**
- * 在庫変化アラート判定の純関数。
+ * 在庫変化アラート判定の純関数。【現状: 休眠中 — 実データ供給待ち】
  *
- * 「在庫アラート」は競合アプリ（Keepa, CamelCamelCamel, Pricewise 等）が普遍的に持つ機能で、
- * Popcoon には Product.stockCount フィールドが既に存在するが、
- * 状態変化の追跡と通知導線が実装されていなかった。
+ * 「在庫アラート」は競合アプリ（Keepa, CamelCamelCamel, Pricewise 等）が普遍的に持つ機能。
  *
- * 価格アラート (PriceAlertEvaluator) と直交して動作する:
+ * ⚠ 重要 (ソクラテス監査 2026-06 で判明):
+ *  `Product.stockCount` フィールドは存在するが、本番のどのデータ経路
+ *  (`AmazonPaApiClient` / `RakutenClient` / `YahooClient` / `FallbackScraper`) でも
+ *  代入されず、常に null である。backend の `PriceRecord` にも在庫フィールドが無い。
+ *  → 在庫の「真の信号」がパイプラインに流れていないため、本関数は意図的に
+ *    どこからも呼び出していない (UI トグル・Worker 配線・Room 列は配線せず)。
+ *  同根の死蔵: `SortAndFilter` の「在庫切れ除外」フィルタ (`stockCount == 0`) も同様に不発。
+ *
+ *  本関数自体のロジックは正しく検証済み (StockAlertEvaluatorTest)。
+ *  将来 scraper/backend が実在庫 (在庫数 or in_stock 真偽) を返すようになれば、
+ *  そこを `currentlyInStock` に渡すだけで即有効化できる、という設計上のフックとして残す。
+ *
+ * 想定動作 (有効化後):
  *  - 価格変化がなくても在庫復活は通知する
- *  - 在庫切れ通知はオプション (頻繁な入出荷で大量通知になるリスクを避けるため、デフォルト: 有効)
+ *  - 在庫切れ通知はオプション (頻繁な入出荷で大量通知になるリスクを避ける)
  *
  * Android 非依存の純関数 → 単体テストで網羅検証できる。
  */

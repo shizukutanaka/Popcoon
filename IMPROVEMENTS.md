@@ -40,9 +40,60 @@ CI) を調査した結果と、適用した改善・今後のバックログ。
 | 52 | **並行性バグ** | `SearchViewModel.performSearch` の `async{}` 内 `runCatching { getPriceHistory }.getOrDefault` が `CancellationException` を握り潰し、キャンセル済みの子コルーチンが空履歴でスコア計算を継続 (構造化並行性を破壊) | `.onFailure { if (it is CancellationException) throw it }` を挿入。他全 7 箇所 (各 API クライアント / `BackendClient` / `FallbackScraper` / `CsvExporter` / `PriceSyncWorker`) と挙動を統一 |
 | 53 | **不足機能** | `CustomsSimulator` (テスト済み・Python パリティの越境関税/消費税計算) が UI 未配線で死蔵 | 設定「ツール」セクションから開く `CustomsSimulatorScreen` を新設。現地価格/送料/カテゴリ/(任意)国内最安値を入力し、課税価格・関税・消費税・手数料・着払い合計の内訳と判定チップ (国内比較入力時) を表示。ViewModel 不要の純 `remember` 計算。4ロケール対応 (各 240 文字列) |
 | 54 | **不足機能 (コアUX)** | `AffiliateUrlBuilder` (Amazon/楽天/Yahoo 三社対応のアフィリエイトタグ注入) が完全実装済みだが、商品詳細画面に購入ボタンが存在せず `product.url` が一切使われていない。ユーザーは買い時スコアを見ても購入に進めない | `ProductDetailScreen` の末尾に「購入ページを開く」`Button` を追加。`AffiliateUrlBuilder.build()` で設定の `affiliateOptin` に応じてURL変換、`Intent.ACTION_VIEW` で開く。アフィリエイト有効時は `#ad` 開示ラベル表示 (景品表示法 8 条)。`UserPreferences` を VM に注入し `DetailUiState.Loaded` に `affiliateOptin` フィールド追加。4ロケール対応 (各 242 文字列) |
-| 55 | **不足機能** | `Product.stockCount` / `Product.isInStock` フィールドが既に存在するが、在庫変化の追跡・通知導線が皆無。競合 (Keepa/CamelCamelCamel/Pricewise) が普遍的に持つ「在庫復活通知」が欠如 | `StockAlertEvaluator` 純関数 (7 テスト) を新設。`WatchlistItem` に `stockAlertEnabled` / `lastKnownInStock` 追加 (Room v5, MIGRATION_4_5)。`PriceSyncWorker` で在庫変化を評価し `LocalNotificationManager.sendStockAlert()` で通知。ウォッチリスト行に `StockAlertChip` (FilterChip) で個別 ON/OFF トグル。4ロケール対応 (各 246 文字列) |
+## ソクラテス監査 (Tier 8: 自作機能への反問 — 2026-06-13)
 
-### 残課題 (未着手)
+「在庫アラート」を実装した直後に、ゴール『ソクラテス問答を行い改善する』に従って
+**自分の成果物そのものを反問**した。問い: 「この機能は発火する信号を持っているか?」
+
+### 反問で判明したこと
+- `Product.stockCount` は **本番のどのデータ経路でも代入されない幻のフィールド**だった。
+  `AmazonPaApiClient` / `RakutenClient` / `YahooClient` / `FallbackScraper` のいずれも
+  代入せず、`grep` で確認すると代入は **テストコード内のみ**。backend の `PriceRecord`
+  にも在庫フィールドが無い。よって `Product.isInStock` は本番では `realPrice > 0` に縮退する。
+- 実装した `PriceSyncWorker` の `nowInStock = latest.realPrice > 0` 代理は **ほぼ常に true** →
+  `BACK_IN_STOCK` / `OUT_OF_STOCK` は実データ上ほぼ発火し得ない。
+- 同じ幻フィールドに依存する `SortAndFilter` の「在庫切れ除外」(`stockCount == 0`) も
+  **以前から不発の死蔵コントロール**だった (今回の反問で副次的に発見)。
+- これは本セッションが繰り返し是正してきた死蔵パターン (widget の "NEUTRAL" 固定、
+  未表示の EcoEthics スコア) の **再演**。検証 (CI/SDK) が無い中での機能配線が、
+  動くソフトではなく「もっともらしい表面積」を生む危険の実例。
+
+### 対応 (#55 改め)
+| # | 分類 | 対応 |
+|---|------|------|
+| 55 | **誠実な撤回** | ユーザー向けの偽の約束 (発火しない「在庫アラート ON」トグル — 自前のダークパターン)、スキーマ変更 (Room v5/MIGRATION_4_5 → v4 に戻す)、`realPrice > 0` の誤った代理を **撤回**。検証済みの純粋ロジック `StockAlertEvaluator` (7 テスト) **のみ残置**し、docstring に「実在庫信号が供給されるまで休眠」「有効化方法」を明記。i18n は 246→242 に復帰 (4ロケール パリティ維持)。撤回の過程で下記「幻フィールド監査」を実施 |
+
+### 幻フィールド監査 (反問から派生した全 sweep)
+`stockCount` が氷山の一角ではないか、と疑って `Product` の全フィールドを監査した。
+本番の Product は **4 つの生成元** (`AmazonPaApiClient.toProduct` / `RakutenClient` /
+`YahooClient` / `FallbackScraper.fetchProduct`) が **手動コンストラクタ呼び出し** で作る
+(プラットフォーム固有 DTO を deserialize → `Product(...)` に詰め替え)。よって、
+そのコンストラクタ呼び出しで渡されないフィールドは **既定値のまま=幻**になる。
+
+4 生成元が **一つも設定しない** フィールド (常に既定値):
+| フィールド | 既定 | 影響を受ける機能 | 実害 |
+|---|---|---|---|
+| `originCountry` | null | `EcoEthicsCard` (#47) | **本番で常に非表示**。`ProductDetailViewModel:152` が `originCountry?.takeIf{...}` で gate するため、今セッションで「死蔵を蘇生」と記録した #47 は **実際には蘇生していない** |
+| `stockCount` | null | 在庫アラート(#55) / `SortAndFilter` 在庫切れ除外 | 既述。発火しない |
+| `pointsBack` | 0 | `PointSimulator` の Amazon 経路 | Amazon のポイント還元は常に 0 表示。※ 楽天/Yahoo は固定レートモデル (`PointSimulator:74`) で算出するため **機能する** — 全滅ではない |
+| `couponAmount`/`couponCode` | 0/"" | `Product.hasCoupon` / クーポン表示 | クーポン UI は常に非表示 |
+| `janCode` | null | 名寄せ/重複統合 (3モール最安) | JAN ベースの名寄せが効かない |
+| `subscribePrice` | null | 定期おトク便比較 | 常に非表示 |
+| `deliveryDays` | null | 配送日数表示 | 常に非表示 |
+
+**結論**: 在庫アラートは単発のミスではなく、**「リッチ商品インテリジェンス層が、
+データ抽出層の出力しないフィールドに依存している」という systemic な乖離**の一症状。
+スコアリング/純関数 (Python パリティ済み) は健全だが、その入力が production で枯れている。
+
+### 残課題 (未着手 — 検証優先の方針で「実装せず記録」)
+- **データ抽出層の拡充 (最優先・全機能の前提)**: 各クライアントの `toProduct` に
+  `originCountry` / `pointsBack`(Amazon) / `couponAmount` / `janCode` / `subscribePrice` /
+  `stockCount` の抽出を追加する。これらが入って初めて EcoEthicsCard・在庫アラート・
+  クーポン表示・JAN 名寄せ・定期便比較が **本番で生きる**。スコープ大 + ローカル検証不能 (SDK不在)
+  のため、CI 有効化後に着手すべき。
+- **暫定の正直化**: 上記が入るまで、幻フィールドに依存する UI は「データなし時は非表示」
+  ガードを持つこと (EcoEthicsCard は既に gate 済みで害なし。クーポン/在庫も同様)。
+  ユーザーに「在りそうで無い」機能を見せない方針を維持。
 - **CI 緑化の確認**: 上記 #49 で初めて Kotest が走るため、未実行だった spec に潜在失敗が無いか CI 有効化後に要確認
   (ローカルは Android SDK 不在で検証不可)。
 
@@ -193,7 +244,9 @@ GitHub 調査で確認した、競合にあり Popcoon に未実装だった機�
 - ~~**URL 貼り付けで追加**: 共有インテント (`ACTION_SEND`)~~ → 既存 (`feature/share/
   UrlClassifier`, MainActivity で配線済み)。
 - **クーポン/プロモコード集約**と決済前の自動適用 (Honey, Karma の中核機能)。
-- ~~**在庫アラート**: 再入荷/在庫切れ通知~~ → 実装済み (#55 `StockAlertEvaluator` + Room v5 + `StockAlertChip`)。
+- **在庫アラート**: 再入荷/在庫切れ通知。純関数 `StockAlertEvaluator` は検証済みで用意済みだが、
+  `Product.stockCount` が production で代入されない幻フィールドのため **配線は前提待ち** (Tier 8 #55 参照)。
+  scraper/backend が実在庫信号を返すのが前提。
 - ~~**「追加時からの変動」表示**: ウォッチ追加時価格を基準に変動を可視化~~ → 実装済み
   (#12 `WatchlistPriceDelta` + Room v2→v3 `addedPrice` カラム + 行内表示)。
 - **値下がりフィード**: ウォッチ外の急落商品を一覧する発見導線 (要 backend)。

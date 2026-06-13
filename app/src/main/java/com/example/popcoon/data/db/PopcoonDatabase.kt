@@ -53,16 +53,6 @@ data class WatchlistItem(
      * (v3 で追加 — MIGRATION_2_3)
      */
     val addedPrice: Long = 0,
-    /**
-     * 在庫変化アラートの有効フラグ。true のとき「在庫復活 / 在庫切れ」を通知する。
-     * (v5 で追加 — MIGRATION_4_5)
-     */
-    val stockAlertEnabled: Boolean = false,
-    /**
-     * 前回同期時の在庫状態キャッシュ。null = 初回同期 (基準なし)。
-     * (v5 で追加 — MIGRATION_4_5)
-     */
-    val lastKnownInStock: Boolean? = null,
 )
 
 // ── Entity: SearchHistory ───────────────────────────────────────────────────
@@ -118,14 +108,6 @@ interface WatchlistDao {
     @Query("UPDATE watchlist SET realPrice = :price WHERE productKey = :key")
     suspend fun updatePrice(key: String, price: Long)
 
-    /** 在庫アラート有効/無効を切り替える。 */
-    @Query("UPDATE watchlist SET stockAlertEnabled = :enabled WHERE productKey = :key")
-    suspend fun setStockAlert(key: String, enabled: Boolean)
-
-    /** 前回同期の在庫状態を更新する (StockAlertEvaluator の比較基準)。 */
-    @Query("UPDATE watchlist SET lastKnownInStock = :inStock WHERE productKey = :key")
-    suspend fun updateLastKnownInStock(key: String, inStock: Boolean)
-
     @Query("SELECT COUNT(*) FROM watchlist")
     suspend fun count(): Int
 
@@ -178,7 +160,7 @@ interface PriceCacheDao {
 // ── Database ────────────────────────────────────────────────────────────────
 @Database(
     entities = [WatchlistItem::class, SearchHistoryEntry::class, PriceCacheEntry::class],
-    version = 5,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(InstantConverter::class)
@@ -222,19 +204,6 @@ abstract class PopcoonDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_watchlist_addedAt` ON `watchlist` (`addedAt`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_search_history_query` ON `search_history` (`query`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_search_history_timestamp` ON `search_history` (`timestamp`)")
-            }
-        }
-
-        /**
-         * v4 → v5: 在庫アラート機能の追加。
-         * stockAlertEnabled: ユーザーが商品ごとに有効化するフラグ (デフォルト: 0=false)。
-         * lastKnownInStock: 前回同期時の在庫状態キャッシュ (null=初回同期)。
-         * nullable INTEGER を使い、NULL=未記録 / 0=在庫なし / 1=在庫あり の三値で管理。
-         */
-        val MIGRATION_4_5 = object : Migration(4, 5) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE watchlist ADD COLUMN stockAlertEnabled INTEGER NOT NULL DEFAULT 0")
-                db.execSQL("ALTER TABLE watchlist ADD COLUMN lastKnownInStock INTEGER")
             }
         }
     }
