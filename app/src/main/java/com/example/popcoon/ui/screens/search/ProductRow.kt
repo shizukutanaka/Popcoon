@@ -15,10 +15,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.popcoon.R
+import androidx.compose.ui.tooling.preview.Preview
 import com.example.popcoon.data.model.Platform
+import com.example.popcoon.data.model.Product
+import com.example.popcoon.feature.scorer.BuyTimingScorer
 import com.example.popcoon.ui.components.ProductImage
 import com.example.popcoon.ui.theme.AppIcons
 import com.example.popcoon.ui.theme.CornerRadius
+import com.example.popcoon.ui.theme.PopcoonTheme
 import com.example.popcoon.ui.theme.Spacing
 import com.example.popcoon.ui.components.VerdictBadge
 
@@ -138,4 +142,27 @@ private fun platformEmoji(p: Platform): String = when (p) {
     Platform.AMAZON -> "📦"
     Platform.RAKUTEN -> "🛒"
     Platform.YAHOO -> "🟡"
+}
+
+@Preview(name = "ProductRow – BUY_NOW", showBackground = true)
+@androidx.compose.runtime.Composable
+private fun ProductRowPreview() {
+    PopcoonTheme {
+        ProductRow(
+            row = SearchRow(
+                product = Product(
+                    sku = "B0TEST001",
+                    title = "Sony WH-1000XM5 ワイヤレスノイズキャンセリングヘッドホン",
+                    platform = Platform.AMAZON,
+                    listPrice = 44_000,
+                    realPrice = 29_800,
+                ),
+                verdict = BuyTimingScorer.Verdict.BUY_NOW,
+                warnings = listOf("常態割引"),
+                score = 85,
+                alternatives = emptyList(),
+            ),
+            onClick = {},
+        )
+    }
 }
