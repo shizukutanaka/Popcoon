@@ -142,6 +142,8 @@ class FallbackScraper {
         val price = priceStr.replace(",", "").toDoubleOrNull()?.toLong() ?: 0L
         val image = extractJsonString(json, "image")
         val brand = extractJsonString(json, "brand")
+        // schema.org Offer.availability から在庫を復元 (在庫切れ系 → stockCount=0)。
+        val availability = extractJsonString(json, "availability")
 
         return Product(
             sku = java.net.URI(url).path.substringAfterLast("/").take(64),
@@ -152,6 +154,7 @@ class FallbackScraper {
             url = url,
             imageUrl = image,
             brand = brand,
+            stockCount = stockFromAvailability(availability),
         )
     }
 

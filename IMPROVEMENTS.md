@@ -3,6 +3,23 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 19: FallbackScraper の JSON-LD 在庫抽出 — 2026-06-13)
+
+まず「SortAndFilter の在庫切れ除外が実際に効くか」を実行検証しようとしたが、フィルタ本体は
+`if (excludeOutOfStock && p.stockCount == 0)` で**自明に正しく** (null は除外されない)、
+R/StringRes/SearchRow をスタブして実行するのは検証劇場と判断しスキップ (= 検証の費用対効果を
+ソクラテス的に問うた)。代わりに在庫復元を別経路へ拡張:
+
+`FallbackScraper` (API 失敗時に JSON-LD を読む) は schema.org の `offers.availability` を
+取りこぼし、スクレイプ商品の `stockCount` も常に null だった。
+- ktor 非依存の純粋関数 `stockFromAvailability(raw)` を新設し、`OutOfStock/SoldOut/Discontinued`
+  (URL 形式含む) → 0、それ以外 → null に変換。parseProductSchema から呼ぶ (2 行追加)。
+- **検証**: `run_jsonld.sh` で単体ビルド・実行。全 schema.org 値の写像に加え、nested
+  `offers.availability` が flat キー正規表現で抽出され 0 に写ることを end-to-end でアサート green。
+
+これで楽天/Yahoo/フォールバックの 3 経路で在庫が復元され、SortAndFilter の在庫切れ除外
+(デフォルト ON) が実データで機能する。残るは Amazon PA-API (Offers.Availability、要 CI 検証)。
+
 ## 製品改善ループ (Tier 18: Yahoo の在庫データ復元 + マッパー抽出 — 2026-06-13)
 
 Tier 17 の楽天と同じパターンを Yahoo に適用。`YahooClient` は V3 itemSearch の `inStock`
