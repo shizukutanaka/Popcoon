@@ -3,6 +3,17 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 16: backend /v1/history の入力検証不足 — 2026-06-13)
+
+`POST /v1/history` は `recorded_at` の**存在**しか見ず、`list_price` の型も未検証だった。
+だが `appendPriceHistory` は `recorded_at` を `localeCompare` で**文字列ソート/dedup** し、
+`evaluateAlerts` は `history[0]` を latest として扱う。→ 不正な timestamp ("today" 等) を
+送られると履歴順序が時系列とズレ、**偽の latest** が予測/アラート全体を汚染する。
+- 修正: `isValidIsoUtc()` で正準 ISO-8601 UTC ("...Z") のみ受理 (Kotlin の Instant.toString()
+  形式に一致)。`list_price` も非負数を必須化。
+- 検証: Node 再現 (10/10) — 正準値受理、garbage/ローカルオフセット/日付のみ/不能日付を拒否。
+  かつ "today" が localeCompare で誤って先頭に来る (= 偽 latest) ことを実証。vitest 契約テスト追加。
+
 ## 製品改善ループ (Tier 15: backend クラッシュ受信の PII 漏れ — 2026-06-13)
 
 `/v1/crash` の「個人情報チェック (二重チェック)」が **`body.sanitized_stack` だけ**を検査し、

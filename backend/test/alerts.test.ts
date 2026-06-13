@@ -305,3 +305,27 @@ describe("crash PII 検査", () => {
     expect(containsPotentialPii({ sanitized_stack: "com.example.Foo.bar(Foo.kt:42)", app_version: "1.2.3", os: "Android 14" })).toBe(false);
   });
 });
+
+// ── recorded_at の ISO-8601 UTC 検証 (履歴ソート/dedup の前提) ──────────────────
+// src/index.ts::isValidIsoUtc の契約。非正準値を弾かないと localeCompare ソートが崩れる。
+function isValidIsoUtc(s: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?Z$/.test(s) && !Number.isNaN(Date.parse(s));
+}
+
+describe("recorded_at 検証", () => {
+  it("正準 ISO-8601 UTC を受理する (Kotlin Instant.toString() 形式)", () => {
+    expect(isValidIsoUtc("2026-01-01T00:00:00Z")).toBe(true);
+    expect(isValidIsoUtc("2026-06-13T16:30:05.123Z")).toBe(true);
+  });
+  it("非正準・不正な値を弾く", () => {
+    for (const bad of ["", "2026-01-01", "2026-01-01T00:00:00+09:00", "today", "1767225600", "2026-13-45T99:99:99Z"]) {
+      expect(isValidIsoUtc(bad)).toBe(false);
+    }
+  });
+  it("回帰: 不正な timestamp は localeCompare ソートで誤って先頭(=latest)に来る", () => {
+    const sortDesc = (a: string[]) => [...a].sort((x, y) => y.localeCompare(x));
+    const good = ["2026-01-01T00:00:00Z", "2026-02-01T00:00:00Z", "2026-03-01T00:00:00Z"];
+    expect(sortDesc(good)[0]).toBe("2026-03-01T00:00:00Z");
+    expect(sortDesc([...good, "today"])[0]).toBe("today");  // 検証が無いとこうなる
+  });
+});

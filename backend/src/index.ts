@@ -112,6 +112,17 @@ function containsPotentialPii(payload: unknown): boolean {
 }
 
 /**
+ * recorded_at が正準 ISO-8601 UTC ("...Z") か検証する。
+ * appendPriceHistory は recorded_at を localeCompare で文字列ソート/dedup するため、
+ * 非正準・不正な値を許すと履歴順序が時系列と一致せず、latest=history[0] や
+ * 予測パイプライン (Holt/IQR) が壊れる。Kotlin クライアントは Instant.toString()
+ * = ISO-8601 UTC を送るので、それに揃える。
+ */
+function isValidIsoUtc(s: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?Z$/.test(s) && !Number.isNaN(Date.parse(s));
+}
+
+/**
  * KV.list は 1 回の呼び出しで最大 1000 キーしか返さない (list_complete=false で cursor を返す)。
  * cursor を辿って全キー名を集める。これを怠ると GDPR 削除やアラート評価が
  * 「最初の1ページ」しか処理せず、それ以降のデータを取りこぼす。
@@ -164,6 +175,12 @@ async function handleRequest(req: Request, env: Env): Promise<Response> {
     // 入力検証
     if (typeof body.real_price !== "number" || body.real_price < 0) {
       return bad("real_price must be non-negative number");
+    }
+    if (typeof body.list_price !== "number" || body.list_price < 0) {
+      return bad("list_price must be non-negative number");
+    }
+    if (!isValidIsoUtc(body.recorded_at)) {
+      return bad("recorded_at must be ISO-8601 UTC (e.g. 2026-01-01T00:00:00Z)");
     }
     if (body.product_key.length > 200) return bad("product_key too long");
 
