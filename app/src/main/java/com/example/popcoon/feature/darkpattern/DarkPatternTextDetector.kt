@@ -98,16 +98,11 @@ object DarkPatternTextDetector {
         return null
     }
 
-    /** 全角数字 (３) を含む数字列を Int に変換 (Python の int() と同等)。Java の toInt() は全角を弾く。 */
-    private fun parseUnicodeInt(s: String): Int {
-        val sb = StringBuilder(s.length)
-        for (c in s) sb.append(if (c in '０'..'９') '0' + (c - '０') else c)
-        return sb.toString().toInt()
-    }
-
+    // 数字 → Int は kotlin の toInt() で十分: Character.digit ベースで全角数字 (３) も解釈する
+    // (Python int() と同等)。取りこぼしの真因は regex の \d が ASCII 専用だった点で、(?U) で解消済み。
     private fun detectScarcity(text: String, stockCount: Int?): Signal? {
         Regex("(?U)残り\\s*(\\d+)\\s*点").find(text)?.let { m ->
-            val n = parseUnicodeInt(m.groupValues[1])
+            val n = m.groupValues[1].toInt()
             return Signal(
                 Category.SCARCITY, m.value,
                 if (n <= 3) Severity.HIGH else Severity.MEDIUM,
@@ -117,7 +112,7 @@ object DarkPatternTextDetector {
             return Signal(Category.SCARCITY, m.value, Severity.HIGH)
         }
         Regex("(?U)only\\s+(\\d+)\\s+left", RegexOption.IGNORE_CASE).find(text)?.let { m ->
-            val n = parseUnicodeInt(m.groupValues[1])
+            val n = m.groupValues[1].toInt()
             return Signal(
                 Category.SCARCITY, m.value,
                 if (n <= 3) Severity.HIGH else Severity.MEDIUM,

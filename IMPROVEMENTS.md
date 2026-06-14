@@ -3,6 +3,19 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 31: 自己誤認の訂正 — 冗長な全角パースヘルパー削除 — 2026-06-14)
+
+`TargetPriceDialog` の全角入力を疑い検証した結果、**自分の過去の前提が誤りと判明**し訂正・簡素化。
+- 検証 (bundled kotlinc で実行): `"３".toInt()` = 3、`"１０００".toLongOrNull()` = 1000。
+  Kotlin の数値パースは `Character.digit` ベースで**全角数字を解釈する**。`toInt()` は例外を投げない。
+- 帰結1: `TargetPriceDialog` (`text.filter{isDigit()}.toLongOrNull()`) は全角入力で**既に正常動作**。
+  コメント「全角許容」は正確 → **バグではない**ので変更せず (誤った「修正」を未然に回避)。
+- 帰結2: Tier 24/28 で追加した `parseUnicodeInt`/`parseUnicodeIntOrNull` は**冗長**だった。真の修正は
+  regex の (?U) のみで、パースは素の `toInt()`/`toIntOrNull()` で足りる。両ヘルパーを削除し簡素化。
+  → run_all.sh で 80/80 + 全ハーネス通過を確認 (挙動不変)。Tier 24/28 の該当記述も訂正済み。
+- 教訓: 「Java/Kotlin は全角を弾く」という思い込みを実測せず一般化していた。**実行で確かめる**規律を
+  二次的なパース層にも適用すべきだった。(?U) regex 修正自体は正しく必要だった。
+
 ## 製品改善ループ (Tier 30: ProductMatcher を NFKC 正規化に刷新 + 長所短所改善点 — 2026-06-14)
 
 ### 長所短所改善点の洗い出し (本セッションの知見ベース)
@@ -49,8 +62,8 @@ Tier 28 の教訓「全角/Unicode は構造的弱点」を**バグパターン�
 個数抽出 → 実質単価) を text/regex リスク種別として優先監査し、**実バグを発見・修正**:
 - 正規表現が ASCII `\d`。日本語タイトルで頻出する全角数字「３本セット」「２４本ケース」を
   取りこぼし、全角表記のセット商品が「単品」(NOT_A_BUNDLE) 扱いになっていた (dark-pattern と同種)。
-  さらに `toIntOrNull("３")` も null を返すため、(?U) だけでは不十分。
-  → BUNDLE_PATTERNS 5本に `(?U)` 付与 + `parseUnicodeIntOrNull` で全角→ASCII 正規化。
+  → BUNDLE_PATTERNS 5本に `(?U)` 付与。(※当初「`toIntOrNull("３")` も null なので (?U) だけでは不十分」と
+  記載し `parseUnicodeIntOrNull` を追加したが**誤り**: `toIntOrNull` は全角も解釈する。Tier 30 でヘルパー削除。)
 - 派生発見: doc コメントが実在しない `bundle_pack_detector.py` との 100% 等価を主張 → 修正
   (実行検証は run_bundle.sh に置換)。
 - `run_bundle.sh` + `BundlePackDetectorCheck.kt`: ASCII/全角の抽出 + verdict 独立手計算で実行検証
@@ -108,9 +121,10 @@ predict / buy-timing / conformal / seasonal-decomp / cart / seasonal-dow) + EC �
   `\d`/`\s` は ASCII 専用。「残り３点」(全角数字)・「残り　3　点」(全角空白 U+3000) を
   Kotlin が取りこぼし、Python と乖離。日本語 EC では全角が頻出するため実用上の検出漏れ。
   → 該当 regex に `(?U)` (UNICODE_CHARACTER_CLASS) を付与し Python と一致。
-- **Bug A' (派生クラッシュ)**: (?U) で全角数字がマッチすると capture group が「３」になり、
-  Java の `"３".toInt()` は **NumberFormatException**（Python `int("３")`=3 と異なる）。
-  → `parseUnicodeInt` ヘルパーで全角→ASCII 変換してから解析。修正しないと検出強化が例外に化ける。
+- **Bug A' (当初の想定 → ※Tier 30 で訂正)**: (?U) で全角数字「３」がマッチした後、`"３".toInt()` が
+  例外を投げると想定し `parseUnicodeInt` を追加した。**この前提は誤り**: Kotlin の `toInt()` は
+  `Character.digit` ベースで全角数字も解釈する (`"３".toInt()` = 3、例外なし)。真の修正は (?U) のみで十分で、
+  ヘルパーは冗長 → Tier 30 で削除。取りこぼしの真因は regex の `\d` が ASCII 専用だった点のみ。
 - **Bug B (早期 return)**: `if (text.isBlank()) return emptyList()` が、空テキスト+低在庫
   (stockCount<=3) の SCARCITY 検査を丸ごとスキップ。Python は早期 return せず stockCount を見る。
   → 早期 return を削除し Python と一致。可視テキスト無し+低在庫の商品で警告が出るように。

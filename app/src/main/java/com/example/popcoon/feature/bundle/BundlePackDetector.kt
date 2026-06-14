@@ -33,20 +33,15 @@ object BundlePackDetector {
         Regex("""(?U)(\d+)\s*(本|袋|個|枚)\s*(?:セット)?""") to 0.60,
     )
 
-    /** 全角数字 (３) を含む数字列を Int に。Java の toIntOrNull は全角を弾くため正規化してから解析。 */
-    private fun parseUnicodeIntOrNull(s: String): Int? {
-        val sb = StringBuilder(s.length)
-        for (c in s) sb.append(if (c in '０'..'９') '0' + (c - '０') else c)
-        return sb.toString().toIntOrNull()
-    }
-
+    // 数字 → Int は toIntOrNull() で十分: Character.digit ベースで全角数字 (３) も解釈する。
+    // 取りこぼしの真因は regex の \d が ASCII 専用だった点で、各パターンの (?U) で解消済み。
     fun extractBundleInfo(title: String?): BundleInfo? {
         if (title.isNullOrEmpty()) return null
         var best: Pair<Int, String>? = null
         var bestConf = 0.0
         for ((pattern, confidence) in BUNDLE_PATTERNS) {
             for (m in pattern.findAll(title)) {
-                val count = m.groupValues.getOrNull(1)?.let { parseUnicodeIntOrNull(it) } ?: continue
+                val count = m.groupValues.getOrNull(1)?.toIntOrNull() ?: continue
                 if (count <= 0) continue
                 if (confidence > bestConf) {
                     best = count to (m.groupValues.getOrNull(2) ?: "")
