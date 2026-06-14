@@ -26,22 +26,25 @@ object DarkPatternTextDetector {
 
     // ── パターン定義（Python proto と 1:1 対応） ────────────────────────────
 
+    // (?U) = UNICODE_CHARACTER_CLASS。\d \s \b を Unicode 対応にし、全角数字 (３) や
+    // 全角空白 (U+3000) を Python (str 既定で Unicode) と同様に検出する。ASCII 専用の
+    // Java/Kotlin 既定だと「残り３点」「残り　3　点」を取りこぼし、Python 参照と乖離する。
     private val URGENCY = listOf(
-        Regex("残り\\s*\\d+\\s*(?:時間|分|秒)"),
+        Regex("(?U)残り\\s*\\d+\\s*(?:時間|分|秒)"),
         Regex("本日限り"),
         Regex("今だけ"),
         Regex("まもなく(?:終了|締切)"),
         Regex("ending soon", RegexOption.IGNORE_CASE),
         Regex("limited[- ]time", RegexOption.IGNORE_CASE),
-        Regex("\\bhurry\\b", RegexOption.IGNORE_CASE),
+        Regex("(?U)\\bhurry\\b", RegexOption.IGNORE_CASE),
         Regex("act now", RegexOption.IGNORE_CASE),
         Regex("today only", RegexOption.IGNORE_CASE),
     )
 
     private val SOCIAL_PROOF = listOf(
-        Regex("\\d+\\s*人が[^。\\n]{0,15}(?:見て|閲覧|カート|購入)"),
-        Regex("\\d+\\s+people are (?:viewing|looking)", RegexOption.IGNORE_CASE),
-        Regex("in\\s+\\d+\\s+carts", RegexOption.IGNORE_CASE),
+        Regex("(?U)\\d+\\s*人が[^。\\n]{0,15}(?:見て|閲覧|カート|購入)"),
+        Regex("(?U)\\d+\\s+people are (?:viewing|looking)", RegexOption.IGNORE_CASE),
+        Regex("(?U)in\\s+\\d+\\s+carts", RegexOption.IGNORE_CASE),
     )
 
     private val MISDIRECTION = listOf(
@@ -51,7 +54,7 @@ object DarkPatternTextDetector {
 
     private val CONFIRMSHAMING = listOf(
         Regex("いいえ.*(?:節約|お得|割引).*(?:したくない|不要|結構|いりません)"),
-        Regex("no,?\\s+i\\s+(?:don't|do not)\\s+want\\s+to\\s+save", RegexOption.IGNORE_CASE),
+        Regex("(?U)no,?\\s+i\\s+(?:don't|do not)\\s+want\\s+to\\s+save", RegexOption.IGNORE_CASE),
     )
 
     // ── 公開 API ────────────────────────────────────────────────────────────
@@ -63,7 +66,8 @@ object DarkPatternTextDetector {
      * @param stockCount 実際の在庫数（APIから取得可能な場合）
      */
     fun detect(text: String, stockCount: Int? = null): List<Signal> {
-        if (text.isBlank()) return emptyList()
+        // 空テキストでも stockCount による在庫切迫は検出する (Python 参照は早期 return しない)。
+        // 旧実装は text.isBlank() で打ち切り、可視テキスト無し+低在庫の SCARCITY を取りこぼしていた。
         val warnings = mutableListOf<Signal>()
 
         firstMatch(text, URGENCY)?.let { ev ->
@@ -94,9 +98,16 @@ object DarkPatternTextDetector {
         return null
     }
 
+    /** 全角数字 (３) を含む数字列を Int に変換 (Python の int() と同等)。Java の toInt() は全角を弾く。 */
+    private fun parseUnicodeInt(s: String): Int {
+        val sb = StringBuilder(s.length)
+        for (c in s) sb.append(if (c in '０'..'９') '0' + (c - '０') else c)
+        return sb.toString().toInt()
+    }
+
     private fun detectScarcity(text: String, stockCount: Int?): Signal? {
-        Regex("残り\\s*(\\d+)\\s*点").find(text)?.let { m ->
-            val n = m.groupValues[1].toInt()
+        Regex("(?U)残り\\s*(\\d+)\\s*点").find(text)?.let { m ->
+            val n = parseUnicodeInt(m.groupValues[1])
             return Signal(
                 Category.SCARCITY, m.value,
                 if (n <= 3) Severity.HIGH else Severity.MEDIUM,
@@ -105,8 +116,8 @@ object DarkPatternTextDetector {
         Regex("在庫わずか|残りわずか").find(text)?.let { m ->
             return Signal(Category.SCARCITY, m.value, Severity.HIGH)
         }
-        Regex("only\\s+(\\d+)\\s+left", RegexOption.IGNORE_CASE).find(text)?.let { m ->
-            val n = m.groupValues[1].toInt()
+        Regex("(?U)only\\s+(\\d+)\\s+left", RegexOption.IGNORE_CASE).find(text)?.let { m ->
+            val n = parseUnicodeInt(m.groupValues[1])
             return Signal(
                 Category.SCARCITY, m.value,
                 if (n <= 3) Severity.HIGH else Severity.MEDIUM,

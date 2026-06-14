@@ -37,6 +37,7 @@ java -cp "$LIB/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
   "$SRC/feature/crossborder/CustomsSimulator.kt" \
   "$SRC/feature/ethics/EcoEthicsScorer.kt" \
   "$SRC/feature/darkpattern/DarkPatternDetector.kt" \
+  "$SRC/feature/darkpattern/DarkPatternTextDetector.kt" \
   "$SRC/feature/prediction/ConformalInterval.kt" \
   "$SRC/feature/prediction/SeasonalDecompForecast.kt" \
   "$SRC/feature/prediction/PricePredictionEngine.kt" \

@@ -18,6 +18,7 @@ from buy_timing_scorer import score_buy_timing
 from proto_conformal_interval import conformal_margin
 from proto_seasonal_decomp_forecast import seasonal_decompose_forecast
 from proto_cross_mall_cart import optimize_basket
+from proto_darkpattern_signals import detect_dark_patterns as detect_text_patterns
 
 
 def _parse_cart_items(enc):
@@ -141,6 +142,14 @@ for line in sys.stdin:
         fc = seasonal_decompose_forecast(prices, horizon, period)
         exp = ";".join(f"{v:.10f}" for v in fc)
         check(got == exp, f"seasonal (n={len(prices)},h={horizon},p={period})", got, exp)
+
+    elif kind == "TEXT":
+        text = p[1]
+        stock = None if p[2] == "null" else int(p[2])
+        got = p[3]
+        sigs = detect_text_patterns(text, stock)
+        exp = ";".join(f"{w['category']}|{w['severity']}|{w['evidence']}" for w in sigs)
+        check(got == exp, f"text ({text!r},stock={stock})", got, exp)
 
     elif kind == "CART":
         items = _parse_cart_items(p[1])

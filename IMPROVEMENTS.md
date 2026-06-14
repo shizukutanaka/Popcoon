@@ -3,6 +3,25 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 24: DarkPatternTextDetector で実バグ2件発見・修正 — 2026-06-14)
+
+`DarkPatternTextDetector` (UIテキスト系ダークパターン検出) を実行パリティ検査に追加し、
+`proto_darkpattern_signals.py` と照合 → **実バグ2件を発見・修正**（customs 以来の本物の発見）。
+- **Bug A (Unicode 乖離)**: Python3 の `\d`/`\s` は str 既定で Unicode だが、Java/Kotlin の
+  `\d`/`\s` は ASCII 専用。「残り３点」(全角数字)・「残り　3　点」(全角空白 U+3000) を
+  Kotlin が取りこぼし、Python と乖離。日本語 EC では全角が頻出するため実用上の検出漏れ。
+  → 該当 regex に `(?U)` (UNICODE_CHARACTER_CLASS) を付与し Python と一致。
+- **Bug A' (派生クラッシュ)**: (?U) で全角数字がマッチすると capture group が「３」になり、
+  Java の `"３".toInt()` は **NumberFormatException**（Python `int("３")`=3 と異なる）。
+  → `parseUnicodeInt` ヘルパーで全角→ASCII 変換してから解析。修正しないと検出強化が例外に化ける。
+- **Bug B (早期 return)**: `if (text.isBlank()) return emptyList()` が、空テキスト+低在庫
+  (stockCount<=3) の SCARCITY 検査を丸ごとスキップ。Python は早期 return せず stockCount を見る。
+  → 早期 return を削除し Python と一致。可視テキスト無し+低在庫の商品で警告が出るように。
+- TEXT 14 ケースを run.sh に追加 → **73/73 一致**。kotest 回帰テスト4件も追加 (CI android job)。
+
+これで主要移植純関数 (customs/eco/dark-pattern×2/predict/buy-timing/conformal/seasonal/cart) を
+実行パリティで全数検証。発見した実バグは customs (Holt 初期化) と本件 (Unicode×2 + 早期return)。
+
 ## 製品改善ループ (Tier 23: CrossMallCartOptimizer の実行パリティ — 2026-06-14)
 
 最も複雑な純関数 `CrossMallCartOptimizer` (横断スマートカート: 送料無料ライン・クーポン・

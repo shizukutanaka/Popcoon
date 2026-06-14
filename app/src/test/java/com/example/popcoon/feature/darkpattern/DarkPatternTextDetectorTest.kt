@@ -79,6 +79,26 @@ class DarkPatternTextDetectorTest : StringSpec({
         DarkPatternTextDetector.Category.SCARCITY !in cats("通常の商品説明", stockCount = 50) shouldBe true
     }
 
+    // ── 回帰: Python 参照との乖離を実行パリティで検出 → 修正済み ──────────────
+    "SCARCITY: 全角数字「残り３点」も HIGH（Python \\d は Unicode、Kotlin 既定は ASCII の乖離を修正）" {
+        sev("残り３点", DarkPatternTextDetector.Category.SCARCITY) shouldBe
+            DarkPatternTextDetector.Severity.HIGH
+    }
+
+    "SCARCITY: 全角数字「残り５点」は MEDIUM（parseUnicodeInt で全角→Int 変換、toInt() の例外も回避）" {
+        sev("残り５点", DarkPatternTextDetector.Category.SCARCITY) shouldBe
+            DarkPatternTextDetector.Severity.MEDIUM
+    }
+
+    "SCARCITY: 全角空白「残り　3　点」(U+3000) も検出（\\s の Unicode 対応）" {
+        DarkPatternTextDetector.Category.SCARCITY in cats("残り　3　点") shouldBe true
+    }
+
+    "SCARCITY: 可視テキストが空でも stock_count<=3 なら検出（旧 isBlank 早期 return を修正）" {
+        sev("", DarkPatternTextDetector.Category.SCARCITY, stockCount = 2) shouldBe
+            DarkPatternTextDetector.Severity.HIGH
+    }
+
     "SOCIAL_PROOF: 人数+閲覧" {
         DarkPatternTextDetector.Category.SOCIAL_PROOF in cats("いま12人がこの商品を見ています") shouldBe true
     }

@@ -2,6 +2,7 @@ import com.example.popcoon.data.model.PriceRecord
 import com.example.popcoon.feature.cart.CrossMallCartOptimizer
 import com.example.popcoon.feature.crossborder.CustomsSimulator
 import com.example.popcoon.feature.darkpattern.DarkPatternDetector
+import com.example.popcoon.feature.darkpattern.DarkPatternTextDetector
 import com.example.popcoon.feature.ethics.EcoEthicsScorer
 import com.example.popcoon.feature.prediction.ConformalInterval
 import com.example.popcoon.feature.prediction.PricePredictionEngine
@@ -184,6 +185,33 @@ fun main() {
              mapOf("amazon" to mall(450.0, 3500.0), "rakuten" to mall(400.0, 3000.0, 2000.0 to 200.0),
                    "yahoo" to mall(500.0, 4000.0))),
     )
+    // ── TEXT: UI テキスト系ダークパターン検出 (regex/Unicode) ───────────────────
+    // text と stockCount → 警告 (category|severity|evidence)。proto_darkpattern_signals と照合。
+    // 全角数字/空白 (３ / U+3000) で Python(Unicode \d\s) と Kotlin(ASCII) の乖離を検査。
+    data class TX(val text: String, val stock: Int?)
+    val texts = listOf(
+        TX("本日限り！お見逃しなく", null),
+        TX("残り3点", null),
+        TX("残り３点", null),              // 全角数字 — 乖離検査 (n=3 HIGH)
+        TX("残り５点", null),              // 全角数字 — parseUnicodeInt + severity (n=5 MEDIUM)
+        TX("残り　3　点", null),           // 全角空白 U+3000 — 乖離検査
+        TX("在庫わずか", null),
+        TX("Only 2 left", null),
+        TX("low in stock", null),
+        TX("5人がカートに入れています", null),
+        TX("3 people are viewing", null),
+        TX("デフォルトでチェック", null),
+        TX("本日限り 残り3点 5人が購入", null),   // 複数カテゴリ → ソート
+        TX("", 2),                          // 空テキスト + stock=2
+        TX("普通の商品説明です", 2),         // テキスト無 + stock=2 → SCARCITY
+        TX("送料無料の良い商品", null),       // 何も無し
+    )
+    for (tx in texts) {
+        val sigs = DarkPatternTextDetector.detect(tx.text, tx.stock)
+        val enc = sigs.joinToString(";") { "${it.category}|${it.severity}|${it.evidence}" }
+        println("TEXT\t${tx.text}\t${tx.stock ?: "null"}\t$enc")
+    }
+
     for (cart in carts) {
         val r: CrossMallCartOptimizer.Result = CrossMallCartOptimizer.optimize(cart.items, cart.malls)
         val assignParts = ArrayList<String>()
