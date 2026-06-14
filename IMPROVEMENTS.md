@@ -3,6 +3,24 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 29: 全角バグの体系的掃討 — ProductMatcher で2件発見・修正 — 2026-06-14)
+
+Tier 28 の教訓「全角/Unicode は構造的弱点」を**バグパターン検索**で体系化。
+`grep 'Regex(...\d...)'` で ASCII `\d` を使う全 regex を洗い出し → 残る1件 `ProductMatcher` を監査し
+**実バグ2件発見・修正** (名寄せ/横断カートの基盤機能):
+- **Bug 1**: `extractModelNumber` が `title.uppercase()` のみで全角半角化せず。全角型番
+  「ＷＦ－１０００ＸＭ４」(販売者が全角でタイトルを書く場合) を取りこぼし → null。
+  `normalizeTitle` は全角対応済みで**2経路の正規化が不整合**だった。
+  → `toHalfWidth` ヘルパー抽出 + 全角ハイフン正規化を両経路で共用。
+- **Bug 2**: `WHITESPACE_REGEX = "\s+"` が ASCII。全角スペース U+3000 で分割されず、全角タイトルが
+  巨大1トークン化 → Jaccard 類似度が崩壊。全角表記の同一商品が別商品扱いになっていた。
+  → `(?U)\s+` で全角スペースも分割 (Python `\s` の Unicode 既定と一致)。
+- `run_matcher.sh` + `ProductMatcherCheck.kt`: ASCII/全角の型番抽出 + 全角タイトル同士の
+  end-to-end `isMatch` を実行検証 (修正前3件 mismatch → 全通過)。kotest 回帰2件追加。
+
+全角掃討完了: ASCII `\d` を使う regex は dark-pattern / bundle / matcher の3箇所、すべて修正済み。
+本セッションの全角/Unicode 起因の実バグは計5件 (darkpattern×2 + bundle + matcher×2)。
+
 ## 製品改善ループ (Tier 28: BundlePackDetector で全角数字バグ発見・修正 — 2026-06-14)
 
 「ネイティブ関数は cosmetic な発見のみ」という Tier 27 の総括は**早計**だった。バグの有無は

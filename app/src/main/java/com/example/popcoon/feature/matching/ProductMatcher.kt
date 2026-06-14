@@ -106,12 +106,7 @@ object ProductMatcher {
      *  - ノイズ語 (送料無料・正規品・新品等) 除去
      */
     fun normalizeTitle(title: String): Set<String> {
-        val normalized = title
-            .lowercase()
-            .replace(FULLWIDTH_REGEX) { m ->
-                // 全角英数を半角に
-                m.value.map { (it.code - 0xFEE0).toChar() }.joinToString("")
-            }
+        val normalized = toHalfWidth(title.lowercase())
             .replace(NOISE_REGEX, " ")
             .replace(SYMBOL_REGEX, " ")
 
@@ -120,12 +115,21 @@ object ProductMatcher {
             .toSet()
     }
 
+    /** 全角英数 (Ａ-Ｚａ-ｚ０-９) を半角に。全角タイトルを ASCII 経路と揃える。 */
+    private fun toHalfWidth(s: String): String =
+        s.replace(FULLWIDTH_REGEX) { m -> m.value.map { (it.code - 0xFEE0).toChar() }.joinToString("") }
+
     /**
      * 型番抽出: 英字+数字の組み合わせ (例: WH-1000XM5, RTX4090)。
      * 製品の一意識別に最も有効。
+     *
+     * 全角対応: 全角英数 (ＷＦ１０００) と全角ハイフン (－) を半角化してから MODEL_REGEX を当てる。
+     * 以前は title.uppercase() のみで、全角表記の型番 (販売者が全角でタイトルを書く場合) を取りこぼし、
+     * normalizeTitle (全角半角化済み) との整合が崩れていた。
      */
     fun extractModelNumber(title: String): String? {
-        val match = MODEL_REGEX.find(title.uppercase()) ?: return null
+        val ascii = toHalfWidth(title).replace('－', '-').uppercase()
+        val match = MODEL_REGEX.find(ascii) ?: return null
         return match.value.replace("-", "").replace(" ", "")
     }
 
@@ -152,5 +156,7 @@ object ProductMatcher {
     // 記号類
     private val SYMBOL_REGEX = Regex("[\\[\\]【】（）()「」『』、。,.!！?？/／・:：;；\"'`~〜\\-_=+*#@&|]")
 
-    private val WHITESPACE_REGEX = Regex("\\s+")
+    // (?U): 全角スペース (U+3000) でも分割する。ASCII \s だと全角タイトルが分割されず
+    // 巨大な 1 トークンになり Jaccard 類似度が崩れていた。
+    private val WHITESPACE_REGEX = Regex("(?U)\\s+")
 }

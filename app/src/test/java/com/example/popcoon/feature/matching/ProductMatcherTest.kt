@@ -56,6 +56,17 @@ class ProductMatcherTest : StringSpec({
         ProductMatcher.extractModelNumber("りんご 5個セット") shouldBe null
     }
 
+    // ── 回帰: 全角型番 / 全角スペース (日本語タイトルで頻出) ──────────────────
+    "型番抽出: 全角「ＷＦ－１０００ＸＭ４」も半角化して抽出" {
+        ProductMatcher.extractModelNumber("ソニー　ＷＦ－１０００ＸＭ４　イヤホン") shouldBe "WF1000XM4"
+    }
+
+    "全角スペース区切りのタイトルでも一致 (WHITESPACE \\s が全角 U+3000 を分割)" {
+        val a = product("A1", "ソニー WF-1000XM4 ワイヤレスイヤホン")
+        val b = product("R1", "ソニー　ＷＦ－１０００ＸＭ４　ワイヤレスイヤホン")
+        ProductMatcher.isMatch(a, b) shouldBe true
+    }
+
     // ── タイトル正規化 ────────────────────────────────────────────────────
     "ノイズ語を除去" {
         val tokens = ProductMatcher.normalizeTitle("【送料無料】正規品 コーヒー豆 500g")
