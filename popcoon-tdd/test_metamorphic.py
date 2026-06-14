@@ -25,6 +25,7 @@ from popcoon_core import (
     PriceRecord, Platform, Product,
     simulate_customs, calculate_tco, predict_price,
     AlertCondition, eval_condition, Trie,
+    score_eco_ethics,
 )
 from alert_optimizer import optimize, always_true, always_false, ConstantCondition
 from buy_timing_scorer import score_buy_timing, TimingVerdict
@@ -332,6 +333,47 @@ class TestTrieMetamorphic:
             t.insert(w)
         results = set(t.suggest("i", limit=100))
         assert results <= words, f"未挿入語が出現: {results - words}"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# M7: エコ/倫理スコアの不変条件 (差分パリティでは見えない共有バグ用)
+#
+# ソクラテス式の発端: 「ミスマッチ=バグ」の前提は「リファレンスが正しい」だった。
+# その前提を検証せずにいたため green_alternative の負の削減率バグを Kotlin と共有していた。
+# 「緑の代替案は実際に CO2 を削減する場合のみ提示される」という、どの実装とも独立な不変条件。
+# ═══════════════════════════════════════════════════════════════════════════
+class TestEcoMetamorphic:
+
+    COUNTRIES = ["JP", "DE", "US", "CN", "VN", "BD", "IN", "KR", None]
+    CATEGORIES = ["smartphone", "laptop", "tv", "tshirt", "unknown_cat"]
+
+    @pytest.mark.parametrize("country", COUNTRIES)
+    @pytest.mark.parametrize("category", CATEGORIES)
+    def test_green_alternative_never_claims_negative_saving(self, country, category):
+        """MR-20: 「国産代替で削減」は実際に削減する場合のみ提示 (負の削減率は不可)。
+
+        原産国が日本より低炭素 (DE 0.30 / US 0.38 < JP 0.45) の場合、国産代替はむしろ
+        CO2 を増やす。負の削減率を提示してはならない (共有バグだったため回帰として固定)。
+        """
+        s = score_eco_ethics(country, category)
+        if s.green_alternative is not None:
+            assert "-" not in s.green_alternative, \
+                f"{country}/{category}: 負の削減率を提示 {s.green_alternative!r}"
+
+    @pytest.mark.parametrize("country", COUNTRIES)
+    @pytest.mark.parametrize("category", CATEGORIES)
+    def test_scores_bounded_0_100(self, country, category):
+        """MR-21: overall / co2 / labor は必ず [0, 100]。"""
+        s = score_eco_ethics(country, category)
+        for name, v in [("overall", s.overall), ("co2", s.co2_score), ("labor", s.labor_score)]:
+            assert 0 <= v <= 100, f"{country}/{category}: {name}={v} が [0,100] 外"
+
+    def test_cleaner_origin_gets_no_domestic_suggestion(self):
+        """MR-22: 日本より低炭素な原産国 (DE/US) には国産代替を提示しない。"""
+        for clean in ["DE", "US"]:
+            assert score_eco_ethics(clean, "laptop").green_alternative is None
+        # 日本より高炭素な国にはちゃんと提示する (機能が無効化されていないことの確認)。
+        assert score_eco_ethics("CN", "laptop").green_alternative is not None
 
 
 if __name__ == "__main__":

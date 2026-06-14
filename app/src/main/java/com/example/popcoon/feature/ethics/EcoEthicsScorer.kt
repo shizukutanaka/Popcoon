@@ -60,9 +60,11 @@ object EcoEthicsScorer {
 
         val overall = (co2Score * 0.35 + laborFactor * 0.30 + 60 * 0.20 + 70 * 0.15).toInt()
 
+        // 原産国が日本より低炭素 (co2Factor < 0.45、例: DE 0.30 / US 0.38) の場合 savingPct <= 0。
+        // 「国産代替で削減」は成立しない (むしろ増加) ため提案しない。負の削減率を表示するバグだった。
         val greenAlt = if (country != "JP" && CO2_BY_CATEGORY.containsKey(category)) {
             val savingPct = ((1 - 0.45 / co2Factor) * 100).toInt()
-            "国産代替でCO2${savingPct}%削減可"
+            if (savingPct > 0) "国産代替でCO2${savingPct}%削減可" else null
         } else {
             null
         }

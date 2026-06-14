@@ -74,6 +74,15 @@ class EcoEthicsScorerTest : StringSpec({
         (de.overall > cn.overall) shouldBe true
     }
 
+    // 回帰: 日本より低炭素な原産国 (DE 0.30 / US 0.38 < JP 0.45) には「国産代替で削減」を
+    // 提示しない。以前は負の削減率 ("CO2-50%削減可") を表示する共有バグだった。
+    "低炭素な原産国 (DE/US) には国産代替を提示しない (負の削減率バグ回帰)" {
+        EcoEthicsScorer.score("DE", "laptop", emptyList()).greenAlternative.shouldBeNull()
+        EcoEthicsScorer.score("US", "laptop", emptyList()).greenAlternative.shouldBeNull()
+        // 高炭素国にはちゃんと提示し続ける (機能が無効化されていないこと)。
+        EcoEthicsScorer.score("CN", "laptop", emptyList()).greenAlternative.shouldNotBeNull()
+    }
+
     "エコマーク認証で CO2 スコアが +10" {
         val noLabel = EcoEthicsScorer.score("JP", "tv", emptyList())
         val withLabel = EcoEthicsScorer.score("JP", "tv", listOf("エコマーク"))

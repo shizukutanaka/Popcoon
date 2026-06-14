@@ -560,7 +560,10 @@ def score_eco_ethics(
     green_alt = None
     if origin_country != "JP" and category in CO2_BY_CATEGORY:
         saving_pct = int((1 - 0.45 / co2_factor) * 100)
-        green_alt = f"国産代替でCO2{saving_pct}%削減可"
+        # 原産国が日本より低炭素 (co2_factor < 0.45、例: DE 0.30 / US 0.38) の場合 saving_pct <= 0。
+        # 「国産代替で削減」は成立しない (むしろ増加) ため提案しない。負の削減率を表示するバグだった。
+        if saving_pct > 0:
+            green_alt = f"国産代替でCO2{saving_pct}%削減可"
 
     return EcoScore(
         overall=max(0, min(100, overall)),
