@@ -6,7 +6,7 @@ package com.example.popcoon.data.network
  * inStock → stockCount、listPrice/shipping ロジック、既存フィールド保全をアサートする。
  */
 fun main() {
-    fun hit(inStock: Boolean?, shipCode: Int? = null, defaultPrice: Int? = null) =
+    fun hit(inStock: Boolean?, shipCode: Int? = null, defaultPrice: Int? = null, jan: String? = null) =
         YahooResponse.Hit(
             code = "y123", name = "商品Y", price = 3000, url = "https://y.com/y",
             priceLabel = defaultPrice?.let { YahooResponse.PriceLabel(defaultPrice = it) },
@@ -15,6 +15,7 @@ fun main() {
             brand = YahooResponse.Brand(name = "ブランドY"),
             shipping = shipCode?.let { YahooResponse.Shipping(code = it) },
             inStock = inStock,
+            janCode = jan,
         )
 
     val inS = hit(true).toProduct()
@@ -38,6 +39,12 @@ fun main() {
     check(inS.realPrice == 3000L && inS.brand == "ブランドY" && inS.reviewCount == 8 && inS.rating == 4.2f) {
         "existing field mapping broke"
     }
+
+    // janCode: 正規化して Product.janCode に供給 (ProductMatcher の最優先一致)。
+    check(hit(true, jan = "4901234567894").toProduct().janCode == "4901234567894") { "jan13 -> janCode" }
+    check(hit(true, jan = "4901234-567894").toProduct().janCode == "4901234567894") { "jan with hyphen normalized" }
+    check(hit(true, jan = "junk").toProduct().janCode == null) { "invalid jan -> null" }
+    check(hit(true).toProduct().janCode == null) { "no jan -> null" }
 
     println("YAHOO MAPPER: all assertions passed (stockCount revived from inStock)")
 }

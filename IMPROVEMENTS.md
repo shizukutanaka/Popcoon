@@ -3,6 +3,19 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 38: janCode を主経路 (Yahoo API) でも復活 — 2026-06-14)
+
+ソクラテス式の続き: Tier 37 の janCode 復活は **FallbackScraper (フォールバック経路) のみ**だった。
+問: 大半の商品が通る**主経路 (Rakuten/Yahoo API)** では? → 答: 依然 null。半分しか直っていない。
+- Yahoo Shopping V3 商品検索は応答に `janCode` を含むが、`YahooResponse.Hit` DTO が**モデル化して
+  いなかった** (取りこぼし)。Yahoo は主要ソースのため影響大。
+- 実装: `Hit.janCode: String? = null` を追加し、`toProduct()` で `normalizeGtin(janCode)` を設定。
+  nullable 既定 + ignoreUnknownKeys のため、API がフィールドを返さなくても無害 (null のまま)。
+  正規化は FallbackScraper の gtin と共通 (`normalizeGtin`) でキー整合を担保。
+- 検証: run_yahoo.sh に janCode 4ケース (JAN-13/ハイフン正規化/不正→null/無し→null) → 全通過。
+  マッパーのロジックは実行検証済み。API がフィールドを返すかは外部契約 (コメントで明示)。
+- Rakuten Ichiba API は JAN を返さないため対象外 (DTO 確認済み)。
+
 ## 製品改善ループ (Tier 37: 死んだフィールドの体系的掃討 — janCode を復活 — 2026-06-14)
 
 Tier 36 の視点 (消費されるが生成されないフィールド) を**体系化**。Product 全20フィールドを

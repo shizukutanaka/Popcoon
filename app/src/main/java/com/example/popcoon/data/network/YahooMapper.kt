@@ -26,6 +26,9 @@ internal data class YahooResponse(val hits: List<Hit>) {
         // inStock: Yahoo V3 が返す在庫真偽 (要・実 API 確認)。従来 DTO で取りこぼしていた。
         // ignoreUnknownKeys + nullable 既定のため、フィールド名が違っても無害 (null のまま)。
         val inStock: Boolean? = null,
+        // janCode: Yahoo V3 商品検索は JAN を返す。ProductMatcher の最優先一致 (バーコード) に使う。
+        // 従来 DTO で取りこぼし、横断名寄せの確実シグナルが死んでいた。nullable 既定で無害。
+        val janCode: String? = null,
     )
     @Serializable internal data class PriceLabel(val defaultPrice: Int? = null, val premiumPrice: Int? = null)
     @Serializable internal data class Review(val rate: Float? = null, val count: Int? = null)
@@ -61,5 +64,7 @@ internal fun YahooResponse.Hit.toProduct(): Product {
         brand = brand?.name,
         // inStock==false → stockCount=0 (在庫切れ除外フィルタが機能)。true/null → null。
         stockCount = if (inStock == false) 0 else null,
+        // JAN を正規化して名寄せの確実シグナルに供給 (FallbackScraper の gtin と同じ正規化)。
+        janCode = normalizeGtin(janCode),
     )
 }

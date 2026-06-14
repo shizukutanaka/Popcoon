@@ -23,6 +23,7 @@ SER="$(find "$LIB" -name 'kotlinx-serialization-core-jvm-*.jar' | head -1):$(fin
 java -cp "$LIB/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
   -cp "$ST:$SER" -d "$OUT/yah.jar" -nowarn -no-reflect \
   "$SRC/data/model/Product.kt" \
+  "$SRC/data/network/JsonLdStock.kt" \
   "$SRC/data/network/YahooMapper.kt" \
   "$HERE/yahoo/YahooMapperCheck.kt" 2>&1 | grep -v 'unable to find kotlin' || true
 
