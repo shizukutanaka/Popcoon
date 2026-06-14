@@ -23,6 +23,7 @@ harnesses=(
   "run_points.sh"   # PointSimulator: 実質価格 (point stacking across malls)
   "run_bundle.sh"   # BundlePackDetector: set-sale count extraction (full-width digits)
   "run_matcher.sh"  # ProductMatcher: model-number extraction + title tokenization (full-width)
+  "run_jan.sh"      # JanCodeQuery: JAN/EAN-13/8 check-digit validation + UPC->JAN
 )
 
 fail=0

@@ -3,6 +3,17 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 32: JanCodeQuery のチェックデジット実行検証 — 2026-06-14)
+
+Unicode の鉱脈から**独立検証可能なアルゴリズム**へ転換。`JanCodeQuery` (JAN/EAN バーコード検証) の
+チェックデジットは標準アルゴリズムで、独立実装と照合すれば真の差分検証になる (重み付けの off-by-one
+は valid を弾く/invalid を通す実害)。
+- 独立オラクル: 標準 EAN-13 (奇数桁×1/偶数桁×3)・EAN-8 (奇数×3/偶数×1)・UPC-A を Python で別実装し
+  test vector 生成。`run_jan.sh` + `JanCodeQueryCheck.kt` で照合: 有効 JAN-13/8、末尾改変の無効、
+  桁数/非数字、UPC-12→JAN-13 変換 (0 前置)、国コード → 全通過。
+- バグ無し。`foldIndexed` の重み付け・`(10 - sum%10)%10` は標準どおり正しいと実行確認。
+- run_all.sh / CI parity job に組込み (ハーネス計9本)。
+
 ## 製品改善ループ (Tier 31: 自己誤認の訂正 — 冗長な全角パースヘルパー削除 — 2026-06-14)
 
 `TargetPriceDialog` の全角入力を疑い検証した結果、**自分の過去の前提が誤りと判明**し訂正・簡素化。
