@@ -3,6 +3,22 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 37: 死んだフィールドの体系的掃討 — janCode を復活 — 2026-06-14)
+
+Tier 36 の視点 (消費されるが生成されないフィールド) を**体系化**。Product 全20フィールドを
+「プロデューサ (mapper/scraper) が設定するか」×「コンシューマ (feature) が読むか」で照合:
+- 死んでいた (consumed but never produced): `originCountry`(Tier36で対応)・**`janCode`**・
+  `trustScore`・`subscribePrice`・`deliveryDays`・`couponAmount` 等。
+- 最重要は **`janCode`**: `ProductMatcher` が JAN 一致を**最優先の確実シグナル** (similarity=1.0) と
+  `groupByIdentity` で使うのに、どのプロデューサも設定しておらず**バーコード完全一致の名寄せが死亡**。
+  横断比較が型番+ファジー一致 (全角対応で直した方) のみに依存していた。
+- 実装: `normalizeGtin` (JsonLdStock.kt, 純粋) + `FallbackScraper` で schema.org `gtin13/gtin/gtin8`
+  (= JAN/EAN/UPC) を抽出・正規化 → `Product(janCode=...)`。JSON-LD に GTIN を持つ商品で JAN 名寄せが復活。
+  (EC API DTO は JAN を提供しないため Rakuten/Yahoo 経路は別途要対応 — 文書化のみ)。
+- 検証: run_jsonld.sh に gtin 正規化 10ケース + end-to-end → 全通過。
+- 残課題 (文書化): trustScore/subscribePrice/deliveryDays/couponAmount も同様に死んでいる
+  (consumer が少数 or 0)。優先度順に今後対応。
+
 ## 製品改善ループ (Tier 36: ソクラテス式 — 「正しい関数」は「動く機能」か? — 2026-06-14)
 
 ### ソクラテス式問答 (さらに深い前提)

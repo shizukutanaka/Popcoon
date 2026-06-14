@@ -147,6 +147,13 @@ class FallbackScraper {
         // schema.org countryOfOrigin から原産国を復元 → EcoEthicsScorer 用に ISO-2 へ正規化。
         // これが無いと originCountry は常に null で eco スコアが表示されない (機能が死ぬ)。
         val origin = normalizeOriginCountry(extractJsonString(json, "countryOfOrigin"))
+        // schema.org gtin13/gtin/gtin8 から JAN/バーコードを復元 → ProductMatcher の最優先一致用。
+        // これが無いと janCode は常に null で「バーコード完全一致」の名寄せ経路が死ぬ。
+        val jan = normalizeGtin(
+            extractJsonString(json, "gtin13")
+                ?: extractJsonString(json, "gtin")
+                ?: extractJsonString(json, "gtin8"),
+        )
 
         return Product(
             sku = java.net.URI(url).path.substringAfterLast("/").take(64),
@@ -158,6 +165,7 @@ class FallbackScraper {
             imageUrl = image,
             brand = brand,
             originCountry = origin,
+            janCode = jan,
             stockCount = stockFromAvailability(availability),
         )
     }

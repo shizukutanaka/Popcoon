@@ -44,3 +44,20 @@ internal fun normalizeOriginCountry(raw: String?): String? {
         else -> null
     }
 }
+
+/**
+ * schema.org `gtin13`/`gtin`/`gtin8` (= JAN/EAN/UPC バーコード) を Product.janCode 用に正規化する。
+ * 数字のみ・長さ 8/12/13/14 桁 (JAN-8 / UPC-12 / JAN-13 / GTIN-14) なら採用、それ以外は null。
+ *
+ * 背景 (もう一つの死んだ継ぎ目): ProductMatcher は janCode 一致を**最優先の確実シグナル** (similarity=1.0)
+ * として使うが、どのプロデューサも janCode を設定しておらず、その経路は常に死んでいた。
+ * JSON-LD の gtin から復元して初めて横断名寄せの「バーコード完全一致」が機能する。
+ */
+internal fun normalizeGtin(raw: String?): String? {
+    if (raw.isNullOrBlank()) return null
+    val digits = raw.trim().filter { it in '0'..'9' }  // ASCII 数字のみ (ハイフン等を除去)
+    return when (digits.length) {
+        8, 12, 13, 14 -> digits
+        else -> null
+    }
+}

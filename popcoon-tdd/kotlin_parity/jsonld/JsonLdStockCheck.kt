@@ -57,6 +57,29 @@ fun main() {
         "JSON-LD countryOfOrigin Japan -> JP"
     }
 
+    // ── normalizeGtin: schema.org gtin -> ProductMatcher 用 janCode ──────────
+    val gtinCases = listOf(
+        "4901234567894" to "4901234567894",   // JAN-13
+        "49123456" to "49123456",              // JAN-8
+        "036000291452" to "036000291452",      // UPC-12
+        "00012345678905" to "00012345678905",  // GTIN-14
+        "4901234-567894".let { it } to "4901234567894",  // ハイフン除去
+        " 4901234567894 " to "4901234567894",  // 前後空白
+        "12345" to null,                        // 桁数不正
+        "ABCDEFGHIJKLM" to null,                // 非数字
+        "" to null,
+    )
+    for ((raw, exp) in gtinCases) {
+        check(normalizeGtin(raw) == exp) { "normalizeGtin($raw) = ${normalizeGtin(raw)}, expected $exp" }
+    }
+    check(normalizeGtin(null) == null) { "gtin null -> null" }
+    // End-to-end: JSON-LD gtin13 -> extracted -> normalized janCode.
+    val ld3 = """{"@type":"Product","name":"X","gtin13":"4901234567894"}"""
+    check(normalizeGtin(extractJsonStringMirror(ld3, "gtin13")) == "4901234567894") {
+        "JSON-LD gtin13 -> janCode"
+    }
+
     println("JSON-LD STOCK: all assertions passed")
     println("ORIGIN COUNTRY: all assertions passed")
+    println("GTIN/JAN: all assertions passed")
 }
