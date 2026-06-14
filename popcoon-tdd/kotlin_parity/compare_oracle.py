@@ -17,6 +17,32 @@ from popcoon_core import (
 from buy_timing_scorer import score_buy_timing
 from proto_conformal_interval import conformal_margin
 from proto_seasonal_decomp_forecast import seasonal_decompose_forecast
+from proto_cross_mall_cart import optimize_basket
+
+
+def _parse_cart_items(enc):
+    items = []
+    for part in enc.split("|"):
+        name, qty, opts = part.split("#")
+        options = {}
+        for o in opts.split(","):
+            mall, price = o.split("=")
+            options[mall] = float(price)
+        items.append({"name": name, "qty": int(qty), "options": options})
+    return items
+
+
+def _parse_cart_malls(enc):
+    malls = {}
+    for part in enc.split("|"):
+        sid, ship, free, cps = part.split("#")
+        coupons = []
+        if cps:
+            for c in cps.split(","):
+                thr, disc = c.split("=")
+                coupons.append({"threshold": float(thr), "discount": float(disc)})
+        malls[sid] = {"shipping": float(ship), "free_threshold": float(free), "coupons": coupons}
+    return malls
 
 # Kotlin ハーネスと同一の決定論的履歴規約。
 _BASE = datetime(2026, 1, 1, tzinfo=timezone.utc)
@@ -115,6 +141,16 @@ for line in sys.stdin:
         fc = seasonal_decompose_forecast(prices, horizon, period)
         exp = ";".join(f"{v:.10f}" for v in fc)
         check(got == exp, f"seasonal (n={len(prices)},h={horizon},p={period})", got, exp)
+
+    elif kind == "CART":
+        items = _parse_cart_items(p[1])
+        malls = _parse_cart_malls(p[2])
+        got = p[3]
+        r = optimize_basket(items, malls)
+        assign = ",".join(f"{i}={r['assignment'][i]}" for i in sorted(r["assignment"]))
+        exp = (f"{r['total']:.6f}#{r['num_malls']}#{r['shipping_total']:.6f}#"
+               f"{r['coupon_total']:.6f}#{assign}#{str(r.get('greedy', False)).lower()}")
+        check(got == exp, f"cart ({len(items)} items)", got, exp)
 
     else:
         fail += 1

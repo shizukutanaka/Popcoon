@@ -3,6 +3,19 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 23: CrossMallCartOptimizer の実行パリティ — 2026-06-14)
+
+最も複雑な純関数 `CrossMallCartOptimizer` (横断スマートカート: 送料無料ライン・クーポン・
+配送回数を考慮した組合せ最適化) を実行パリティ検査に追加。`proto_cross_mall_cart.py` と照合。
+- 入力 (items/malls) を `# | , =` で符号化して emit → Python が同じ入力で再計算 (drift 防止)。
+- 5 シナリオ: 送料無料ラインでの集約、クーポン適用、同額タイ→配送回数最小、単一商品、3商品3モール。
+  → **58/58 一致** (旧 53 + 5)。全探索の列挙順・(総額,配送回数,combo) 辞書順タイブレーク・
+  貪欲フォールバック判定すべて Python と一致。バグ無し。
+- 副次: `run.sh` のコンパイル対象に `CrossMallCartOptimizer.kt` を追加 (漏れていた)。
+
+これで主要な移植純関数 (customs/eco/dark-pattern/predict/buy-timing/conformal/seasonal/cart) は
+すべて実行パリティ検査済み。残りは小物 (SeasonalDowSignal / DarkPatternTextDetector)。
+
 ## 製品改善ループ (Tier 22: SeasonalDecompForecast の実行パリティ — 2026-06-14)
 
 `SeasonalDecompForecast` (本番 `PricePredictionEngine.seasonalForecast7d` の基盤) を実行

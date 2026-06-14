@@ -33,6 +33,7 @@ echo "compiler: $KC"
 java -cp "$LIB/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
   -cp "$ST:$SER" -d "$OUT/parity.jar" -nowarn -no-reflect \
   "$SRC/data/model/Product.kt" \
+  "$SRC/feature/cart/CrossMallCartOptimizer.kt" \
   "$SRC/feature/crossborder/CustomsSimulator.kt" \
   "$SRC/feature/ethics/EcoEthicsScorer.kt" \
   "$SRC/feature/darkpattern/DarkPatternDetector.kt" \

@@ -1,4 +1,5 @@
 import com.example.popcoon.data.model.PriceRecord
+import com.example.popcoon.feature.cart.CrossMallCartOptimizer
 import com.example.popcoon.feature.crossborder.CustomsSimulator
 import com.example.popcoon.feature.darkpattern.DarkPatternDetector
 import com.example.popcoon.feature.ethics.EcoEthicsScorer
@@ -140,5 +141,57 @@ fun main() {
         val f = SeasonalDecompForecast.forecast(sc.prices, sc.horizon, sc.period)
         println("SEASONAL\t${sc.prices.joinToString(";")}\t${sc.horizon}\t${sc.period}\t" +
             f.joinToString(";") { "%.10f".format(it) })
+    }
+
+    // ── CART: cross-mall basket optimizer (組合せ最適化 + タイブレーク) ──────────
+    // 入力 (items/malls) を # | , = で符号化して emit → Python が同じ入力で再計算し照合。
+    // item= name#qty#mall=price,mall=price   mall= id#shipping#free#thr=disc,thr=disc
+    fun encItems(items: List<CrossMallCartOptimizer.CartItem>) =
+        items.joinToString("|") { ci ->
+            "${ci.name}#${ci.qty}#" + ci.options.entries.joinToString(",") { e -> "${e.key}=${e.value}" }
+        }
+    fun encMalls(malls: Map<String, CrossMallCartOptimizer.MallConfig>) =
+        malls.entries.joinToString("|") { (id, c) ->
+            "$id#${c.shipping}#${c.freeThreshold}#" + c.coupons.joinToString(",") { cp -> "${cp.threshold}=${cp.discount}" }
+        }
+    fun item(name: String, qty: Int, vararg opts: Pair<String, Double>) =
+        CrossMallCartOptimizer.CartItem(name, linkedMapOf(*opts), qty)
+    fun mall(ship: Double, free: Double, vararg cps: Pair<Double, Double>) =
+        CrossMallCartOptimizer.MallConfig(ship, free, cps.map { CrossMallCartOptimizer.Coupon(it.first, it.second) })
+
+    data class Cart(val items: List<CrossMallCartOptimizer.CartItem>, val malls: Map<String, CrossMallCartOptimizer.MallConfig>)
+    val carts = listOf(
+        // 2 商品: 分割すると送料がかかるが、まとめると送料無料ライン超え
+        Cart(listOf(item("A", 1, "amazon" to 1500.0, "rakuten" to 1600.0),
+                    item("B", 1, "amazon" to 1800.0, "rakuten" to 1700.0)),
+             mapOf("amazon" to mall(500.0, 3000.0), "rakuten" to mall(400.0, 3000.0))),
+        // クーポンが効くケース
+        Cart(listOf(item("A", 2, "rakuten" to 2000.0, "yahoo" to 2100.0),
+                    item("B", 1, "rakuten" to 3000.0, "yahoo" to 2900.0)),
+             mapOf("rakuten" to mall(400.0, 10000.0, 5000.0 to 500.0, 8000.0 to 1000.0),
+                   "yahoo" to mall(350.0, 8000.0))),
+        // 同額タイ → 配送回数が少ない (単一モール) を優先
+        Cart(listOf(item("A", 1, "amazon" to 1000.0, "rakuten" to 1000.0),
+                    item("B", 1, "amazon" to 1000.0, "rakuten" to 1000.0)),
+             mapOf("amazon" to mall(0.0, 0.0), "rakuten" to mall(0.0, 0.0))),
+        // 単一商品
+        Cart(listOf(item("solo", 3, "amazon" to 800.0, "yahoo" to 790.0)),
+             mapOf("amazon" to mall(500.0, 5000.0), "yahoo" to mall(600.0, 5000.0))),
+        // 3 商品 3 モール
+        Cart(listOf(item("A", 1, "amazon" to 1200.0, "rakuten" to 1250.0, "yahoo" to 1180.0),
+                    item("B", 1, "amazon" to 900.0, "rakuten" to 880.0, "yahoo" to 950.0),
+                    item("C", 2, "amazon" to 600.0, "rakuten" to 610.0, "yahoo" to 590.0)),
+             mapOf("amazon" to mall(450.0, 3500.0), "rakuten" to mall(400.0, 3000.0, 2000.0 to 200.0),
+                   "yahoo" to mall(500.0, 4000.0))),
+    )
+    for (cart in carts) {
+        val r: CrossMallCartOptimizer.Result = CrossMallCartOptimizer.optimize(cart.items, cart.malls)
+        val assignParts = ArrayList<String>()
+        for (i in 0 until cart.items.size) {
+            assignParts.add(i.toString() + "=" + r.assignment[i])
+        }
+        val assign = assignParts.joinToString(",")
+        println("CART\t${encItems(cart.items)}\t${encMalls(cart.malls)}\t" +
+            "${"%.6f".format(r.total)}#${r.numMalls}#${"%.6f".format(r.shippingTotal)}#${"%.6f".format(r.couponTotal)}#$assign#${r.greedy}")
     }
 }
