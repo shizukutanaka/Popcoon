@@ -3,6 +3,19 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 25: SeasonalDowSignal の実行パリティ — パリティ網羅完了 — 2026-06-14)
+
+最後の未直接検査の純関数 `SeasonalDowSignal` (曜日季節性の買い時シグナル) を実行パリティ検査に追加。
+注目点は **round-half-to-even** (Python `round()` = Kotlin `kotlin.math.round`)。素朴な `Math.round`
+(round-half-up) なら乖離する箇所。`rel*100` を 2.5/3.5/-3.5 の .5 境界に寄せたケースで検証。
+- SDOW 7 ケース (正/負シグナル、+10 クランプ、履歴不足、曜日サンプル不足、overall<=0) → **80/80 一致**。
+- 丸めは銀行丸めで一致。ガード分岐も全て一致。バグ無し。
+
+**パリティ網羅完了**: 移植純関数 (customs / eco / dark-pattern数値 / dark-pattern テキスト /
+predict / buy-timing / conformal / seasonal-decomp / cart / seasonal-dow) + EC マッパー3種
+(Rakuten/Yahoo/JSON-LD) を全て実行パリティ検査済み (run_all.sh, CI parity job)。
+発見した実バグ: customs (Holt 初期化) と DarkPatternText (Unicode \d\s ×2 + 早期return)。
+
 ## 製品改善ループ (Tier 24: DarkPatternTextDetector で実バグ2件発見・修正 — 2026-06-14)
 
 `DarkPatternTextDetector` (UIテキスト系ダークパターン検出) を実行パリティ検査に追加し、

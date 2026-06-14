@@ -19,6 +19,7 @@ from proto_conformal_interval import conformal_margin
 from proto_seasonal_decomp_forecast import seasonal_decompose_forecast
 from proto_cross_mall_cart import optimize_basket
 from proto_darkpattern_signals import detect_dark_patterns as detect_text_patterns
+from proto_seasonal_signal import seasonal_buy_signal
 
 
 def _parse_cart_items(enc):
@@ -150,6 +151,16 @@ for line in sys.stdin:
         sigs = detect_text_patterns(text, stock)
         exp = ";".join(f"{w['category']}|{w['severity']}|{w['evidence']}" for w in sigs)
         check(got == exp, f"text ({text!r},stock={stock})", got, exp)
+
+    elif kind == "SDOW":
+        hist = []
+        for pair in p[1].split(";"):
+            d, pr = pair.split(":")
+            hist.append((int(d), float(pr)))
+        today = int(p[2])
+        got = int(p[3])
+        exp = seasonal_buy_signal(hist, today)
+        check(got == exp, f"sdow (n={len(hist)},today={today})", got, exp)
 
     elif kind == "CART":
         items = _parse_cart_items(p[1])

@@ -8,6 +8,7 @@ import com.example.popcoon.feature.prediction.ConformalInterval
 import com.example.popcoon.feature.prediction.PricePredictionEngine
 import com.example.popcoon.feature.prediction.SeasonalDecompForecast
 import com.example.popcoon.feature.scorer.BuyTimingScorer
+import com.example.popcoon.feature.scorer.SeasonalDowSignal
 import java.time.Instant
 
 /**
@@ -210,6 +211,46 @@ fun main() {
         val sigs = DarkPatternTextDetector.detect(tx.text, tx.stock)
         val enc = sigs.joinToString(";") { "${it.category}|${it.severity}|${it.evidence}" }
         println("TEXT\t${tx.text}\t${tx.stock ?: "null"}\t$enc")
+    }
+
+    // ── SDOW: 曜日季節性シグナル (round-half-to-even の境界含む) ────────────────
+    // (dow:price;...) と todayDow → signal。proto_seasonal_signal と照合。
+    // overall=100 を作り dowMean を 97.5/96.5/102.5 等にして rel*100 を .5 境界へ寄せる。
+    data class SD(val hist: List<Pair<Int, Double>>, val today: Int)
+    // 14 点: 月(0) が安く、他は overall=100 になるよう調整。
+    fun mkHist(dowPrice: Map<Int, Double>, fill: Double, n: Int): List<Pair<Int, Double>> {
+        val out = ArrayList<Pair<Int, Double>>()
+        var i = 0
+        for ((d, p) in dowPrice) { out.add(d to p); i++ }
+        while (out.size < n) { out.add((i % 7) to fill); i++ }
+        return out
+    }
+    val sdows = listOf(
+        // 月曜2サンプルが 97.5 → rel=0.025 → 2.5 → round-half-to-even → 2
+        SD(listOf(0 to 97.5, 0 to 97.5, 1 to 101.0, 2 to 101.0, 3 to 100.0, 4 to 100.0,
+                  5 to 100.0, 6 to 100.0, 1 to 100.5, 2 to 100.5, 3 to 100.5, 4 to 100.5,
+                  5 to 100.5, 6 to 100.5), 0),
+        // 月曜 96.5 → 3.5 → round-half-to-even → 4
+        SD(listOf(0 to 96.5, 0 to 96.5, 1 to 101.0, 2 to 101.0, 3 to 100.0, 4 to 100.0,
+                  5 to 100.0, 6 to 100.0, 1 to 100.5, 2 to 100.5, 3 to 101.0, 4 to 101.0,
+                  5 to 100.5, 6 to 100.5), 0),
+        // 月曜が高い → 負のシグナル
+        SD(listOf(0 to 103.5, 0 to 103.5, 1 to 99.0, 2 to 99.0, 3 to 100.0, 4 to 100.0,
+                  5 to 100.0, 6 to 100.0, 1 to 99.5, 2 to 99.5, 3 to 99.5, 4 to 99.5,
+                  5 to 99.5, 6 to 99.5), 0),
+        // クランプ +10 (月曜が極端に安い)
+        SD(mkHist(mapOf(0 to 50.0), 100.0, 14), 0),
+        // 履歴 < 14 → 0
+        SD(mkHist(mapOf(0 to 90.0), 100.0, 10), 0),
+        // 対象曜日サンプル < 2 → 0 (日曜=6 が1件のみ)
+        SD(mkHist(mapOf(6 to 90.0), 100.0, 14), 6),
+        // overall<=0 → 0
+        SD(mkHist(mapOf(0 to 0.0), 0.0, 14), 0),
+    )
+    for (sd in sdows) {
+        val sig = SeasonalDowSignal.signal(sd.hist, sd.today)
+        val he = sd.hist.joinToString(";") { "${it.first}:${it.second}" }
+        println("SDOW\t$he\t${sd.today}\t$sig")
     }
 
     for (cart in carts) {
