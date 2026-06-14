@@ -128,7 +128,9 @@ object ProductMatcher {
      * normalizeTitle (全角半角化済み) との整合が崩れていた。
      */
     fun extractModelNumber(title: String): String? {
-        val ascii = toHalfWidth(title).replace('－', '-').uppercase()
+        // 全角ハイフン(－) と全角スペース(U+3000) も半角化: MODEL_REGEX の [-\s] は ASCII のため、
+        // 「ＲＴＸ　４０９０」のような全角区切りの型番を取りこぼさないように揃える。
+        val ascii = toHalfWidth(title).replace('－', '-').replace('　', ' ').uppercase()
         val match = MODEL_REGEX.find(ascii) ?: return null
         return match.value.replace("-", "").replace(" ", "")
     }

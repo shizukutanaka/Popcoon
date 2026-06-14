@@ -31,6 +31,7 @@ fun main() {
     // ── Full-width model numbers — must also be extracted ──────────────────
     check("zenkaku ＷＦ－１０００ＸＭ４", "WF1000XM4", model("ソニー　ＷＦ－１０００ＸＭ４　ワイヤレスイヤホン"))
     check("zenkaku ＲＴＸ４０９０", "RTX4090", model("ＧｅＦｏｒｃｅ　ＲＴＸ４０９０　搭載"))
+    check("zenkaku space-sep ＲＴＸ　４０９０", "RTX4090", model("ＧｅＦｏｒｃｅ　ＲＴＸ　４０９０"))
 
     // ── Consistency: extractModelNumber agrees with normalizeTitle on width ──
     // normalizeTitle already half-widths, so the full-width title shares a token
