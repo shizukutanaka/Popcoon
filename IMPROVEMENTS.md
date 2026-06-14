@@ -3,6 +3,16 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 22: SeasonalDecompForecast の実行パリティ — 2026-06-14)
+
+`SeasonalDecompForecast` (本番 `PricePredictionEngine.seasonalForecast7d` の基盤) を実行
+パリティ検査に追加。中心移動平均 + 季節成分中心化 + 最小二乗線形 + 外挿という、浮動小数点
+累積が多段で**乖離リスクの高い**数値ロジック。
+- ハーネス (run.sh) に SEASONAL 6 ケース (週次季節性 4/3/2週、min_history 境界、フラット
+  フォールバック、period=1 純線形、period=5) を追加し `seasonal_decompose_forecast` と
+  10 桁精度で照合 → **53/53 一致** (旧 47 + 6)。Python/Kotlin で全予測値が完全一致。
+- バグ無し。これで Holt/IQR/conformal/seasonal の予測パイプライン全数値要素が実行検証済み。
+
 ## 製品改善ループ (Tier 21: ConformalInterval の実行パリティ — 監査漏れの是正 — 2026-06-14)
 
 未パリティ検査の純関数を洗い直し。Tier 10 で `predict` の margin を「Kotlin 拡張」と断じたが、

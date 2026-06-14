@@ -16,6 +16,7 @@ from popcoon_core import (
 )
 from buy_timing_scorer import score_buy_timing
 from proto_conformal_interval import conformal_margin
+from proto_seasonal_decomp_forecast import seasonal_decompose_forecast
 
 # Kotlin ハーネスと同一の決定論的履歴規約。
 _BASE = datetime(2026, 1, 1, tzinfo=timezone.utc)
@@ -106,6 +107,14 @@ for line in sys.stdin:
         got = p[3]
         exp = f"{conformal_margin(residuals, alpha):.10f}"
         check(got == exp, f"conformal (n={len(residuals)},alpha={alpha})", got, exp)
+
+    elif kind == "SEASONAL":
+        prices = [float(x) for x in p[1].split(";") if x != ""]
+        horizon, period = int(p[2]), int(p[3])
+        got = p[4]
+        fc = seasonal_decompose_forecast(prices, horizon, period)
+        exp = ";".join(f"{v:.10f}" for v in fc)
+        check(got == exp, f"seasonal (n={len(prices)},h={horizon},p={period})", got, exp)
 
     else:
         fail += 1

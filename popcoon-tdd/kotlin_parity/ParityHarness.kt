@@ -4,6 +4,7 @@ import com.example.popcoon.feature.darkpattern.DarkPatternDetector
 import com.example.popcoon.feature.ethics.EcoEthicsScorer
 import com.example.popcoon.feature.prediction.ConformalInterval
 import com.example.popcoon.feature.prediction.PricePredictionEngine
+import com.example.popcoon.feature.prediction.SeasonalDecompForecast
 import com.example.popcoon.feature.scorer.BuyTimingScorer
 import java.time.Instant
 
@@ -119,5 +120,25 @@ fun main() {
     for (c in conformal) {
         val m = ConformalInterval.conformalMargin(c.residuals, c.alpha)
         println("CONFORMAL\t${c.residuals.joinToString(";")}\t${c.alpha}\t${"%.10f".format(m)}")
+    }
+
+    // ── SEASONAL: trend+seasonal 分解予測 (中心移動平均 + 最小二乗線形) ──────────
+    // 価格列・horizon・period → 予測列。proto_seasonal_decomp_forecast と照合。
+    data class SC(val prices: List<Double>, val horizon: Int, val period: Int)
+    fun weekly(nDays: Int) = (0 until nDays).map { i ->
+        1000.0 + 10 * i + when (i % 7) { 5 -> -50.0; 6 -> -30.0; 0 -> 20.0; else -> 0.0 }
+    }
+    val seasonal = listOf(
+        SC(weekly(28), 7, 7),                                   // 4 週・週次季節性 + トレンド
+        SC(weekly(21), 7, 7),                                   // 3 週
+        SC(weekly(14), 7, 7),                                   // min_history 境界 (=14)
+        SC(weekly(10), 7, 7),                                   // < min_history → フラット
+        SC((0 until 20).map { 500.0 + 3.5 * it }, 5, 1),        // period=1 → 純線形
+        SC((0 until 15).map { 800.0 - 2.0 * it + if (it % 5 == 0) 15.0 else 0.0 }, 5, 5),  // period=5
+    )
+    for (sc in seasonal) {
+        val f = SeasonalDecompForecast.forecast(sc.prices, sc.horizon, sc.period)
+        println("SEASONAL\t${sc.prices.joinToString(";")}\t${sc.horizon}\t${sc.period}\t" +
+            f.joinToString(";") { "%.10f".format(it) })
     }
 }
