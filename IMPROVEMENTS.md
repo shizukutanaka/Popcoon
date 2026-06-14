@@ -3,6 +3,27 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 39: ソクラテス式 — 中核の価値命題が成立しているか? [診断] — 2026-06-14)
+
+### ソクラテス式問答 (最も根本的な前提)
+- 問: このアプリは根本的に何のためにある? → 答: 商品を**実質価格 (ポイント還元後)** で並べ替えること。
+- 問: 検索結果は実際どの数値で並ぶ? → 答: `SortAndFilter` は `product.totalPrice` で sort/filter。
+- 問: 実データの `totalPrice` は? → 答: `realPrice + shipping - pointsBack - couponAmount`。だが
+  **pointsBack/couponAmount は常に 0** (Rakuten/Yahoo マッパーが 0 固定、DTO は pointRate を parse すらしない)。
+- 結論: 「安い順」は実質**定価+送料順**で、ポイントを完全に無視。中核の価値命題が成立していない。
+
+### 診断 (実装は意図的に保留 — リスクが高く著者も TODO 化)
+- **不整合**: 検索ランキング/価格フィルタ (`totalPrice`, points 無視) と 詳細画面の実質価格表示
+  (`PointSimulator`, points 込み) が食い違う。安い順 #3 が実質 #1 でもユーザーに正しく並ばない。
+- **保留の理由 (妥当)**: (1) `totalPrice` 変更は sort/filter/alert/比較 UI 全体に波及し、CI 無しでは
+  描画検証不能。(2) `pointsBack` を API から素直に入れると、詳細の `PointSimulator` (プラットフォーム
+  基本ポイントを別途加算) と**二重計上**する。真の修正は「実質価格の単一の真実源」を作り
+  ランキングと詳細の両方がそれを使う設計変更で、CI 検証が前提。
+- **本セッションの判断**: 中核機能の設計変更を未検証で強行するのは規律違反。正確な診断を文書化し、
+  配線可否は製品判断としてユーザーに委ねる (この後 AskUserQuestion)。
+- 関連の安全な前進 (済): originCountry/janCode は nullable・加算的で波及が無いため配線した (Tier 36-38)。
+  pointsBack は totalPrice に波及するため別扱い。
+
 ## 製品改善ループ (Tier 38: janCode を主経路 (Yahoo API) でも復活 — 2026-06-14)
 
 ソクラテス式の続き: Tier 37 の janCode 復活は **FallbackScraper (フォールバック経路) のみ**だった。
