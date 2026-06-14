@@ -20,6 +20,7 @@ harnesses=(
   "run_yahoo.sh"    # YahooMapper: inStock -> stockCount
   "run_jsonld.sh"   # FallbackScraper stockFromAvailability (schema.org)
   "run_url.sh"      # UrlClassifier: share-intent URL -> Platform+SKU
+  "run_points.sh"   # PointSimulator: 実質価格 (point stacking across malls)
 )
 
 fail=0

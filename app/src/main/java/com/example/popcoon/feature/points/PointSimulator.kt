@@ -81,12 +81,14 @@ object PointSimulator {
     private fun applyRakutenPoints(
         p: Product, ctx: UserContext, out: MutableList<PointSource>,
     ) {
-        // SPU 基本 (1倍 = 1%)
-        val basePct = ctx.rakutenSpu.coerceIn(1, 15) / 100.0
+        // SPU 基本 (1倍 = 1%)。表示率は実際に付与する coerce 後の値に揃える
+        // (透明性: 生の rakutenSpu を表示すると amount と矛盾していた。
+        //  spu=0 → 1% 付与なのに "0.0%" 表示、spu=20 → 15% 付与なのに "20.0%" 表示)。
+        val spu = ctx.rakutenSpu.coerceIn(1, 15)
         out += PointSource(
             "楽天SPU",
-            (p.realPrice * basePct).toLong(),
-            "${ctx.rakutenSpu}.0%",
+            (p.realPrice * (spu / 100.0)).toLong(),
+            "$spu.0%",
         )
 
         // 5と0のつく日 (毎月 5/10/15/20/25/30 にエントリーで +1%)

@@ -3,6 +3,23 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 27: PointSimulator の実質価格表示バグ修正 + 実行回帰 — 2026-06-14)
+
+中核機能「実質価格」(ポイント還元後価格、アプリの差別化要素) の `PointSimulator` を監査。
+**透明性を損なう表示バグを1件発見・修正**:
+- 楽天SPU の付与額は `coerceIn(1,15)` だが、表示率は生の `rakutenSpu` を使用 → 不一致。
+  spu=0 → 1% 付与なのに "0.0%" 表示、spu=20 → 15% 付与なのに "20.0%" 表示。
+  「計算ロジックを公開 (透明性)」が売りの機能で表示と実態が食い違う問題。
+  → 表示率を coerce 後の値に統一。
+- `run_points.sh` + `PointSimulatorCheck.kt`: 期待値を**ルールから手計算 (独立オラクル)** して照合。
+  楽天 SPU/5と0の日/ダイヤ重ね掛け、各ソースの切り捨て、Yahoo PayPay/5の日/日曜/プレミアム/SB、
+  Amazon 商品別還元、実質価格の 0 フロアを実行検証 → 全 assert 通過 (修正後の表示含む)。
+- run_all.sh / CI parity job に組込み。
+
+総括: 独立 Python オラクルとの差分検査 (customs/dark-pattern で実バグ発見) の鉱脈は掘り尽くした。
+ネイティブ純関数はオラクル不在で差分が出にくく、発見は表示系の小バグに留まる。
+残る高価値作業は CI 依存 (ConformalInterval/SeasonalDecompForecast の本番配線等)。
+
 ## 製品改善ループ (Tier 26: UrlClassifier の実行検証 — 共有フロー回帰 — 2026-06-14)
 
 パリティ網羅完了後、Python オラクルを持たないネイティブ Kotlin 純関数のうち**正規表現/文字列
