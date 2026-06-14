@@ -43,6 +43,7 @@ java -cp "$LIB/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
   "$SRC/feature/prediction/PricePredictionEngine.kt" \
   "$SRC/feature/calendar/SaleCalendar.kt" \
   "$SRC/feature/scorer/SeasonalDowSignal.kt" \
+  "$SRC/feature/tco/TCOCalculator.kt" \
   "$SRC/feature/scorer/BuyTimingScorer.kt" \
   "$HERE/ParityHarness.kt" 2>&1 | grep -v 'unable to find kotlin' || true
 

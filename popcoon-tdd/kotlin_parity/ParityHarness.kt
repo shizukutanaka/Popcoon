@@ -9,6 +9,7 @@ import com.example.popcoon.feature.prediction.PricePredictionEngine
 import com.example.popcoon.feature.prediction.SeasonalDecompForecast
 import com.example.popcoon.feature.scorer.BuyTimingScorer
 import com.example.popcoon.feature.scorer.SeasonalDowSignal
+import com.example.popcoon.feature.tco.TCOCalculator
 import java.time.Instant
 
 /**
@@ -251,6 +252,30 @@ fun main() {
         val sig = SeasonalDowSignal.signal(sd.hist, sd.today)
         val he = sd.hist.joinToString(";") { "${it.first}:${it.second}" }
         println("SDOW\t$he\t${sd.today}\t$sig")
+    }
+
+    // ── TCO: 総所有コスト (消耗品/電力/保守/残価, intensity・年数依存) ────────────
+    // price/category/years/intensity → 7 フィールド。popcoon_core.calculate_tco と照合。
+    data class TC(val price: Long, val category: String, val years: Int, val intensity: Double)
+    val tcos = listOf(
+        TC(15000, "inkjet_printer", 5, 1.0),
+        TC(15000, "inkjet_printer", 5, 0.33),   // 浮動小数点の結合順検査
+        TC(15000, "inkjet_printer", 7, 2.0),
+        TC(40000, "laser_printer", 5, 1.0),
+        TC(40000, "laser_printer", 5, 2.0),      // ドラムに intensity を掛けるか (乖離検査)
+        TC(40000, "laser_printer", 5, 0.5),
+        TC(8000, "coffee_capsule", 3, 1.0),
+        TC(8000, "coffee_capsule", 5, 1.5),
+        TC(120000, "laptop", 5, 1.0),
+        TC(120000, "laptop", 1, 1.0),
+        TC(80000, "smartphone", 5, 1.0),
+        TC(50000, "refrigerator", 5, 1.0),
+        TC(5000, "unknown_widget", 5, 1.0),      // generic フォールバック
+    )
+    for (tc in tcos) {
+        val r = TCOCalculator.calculate(tc.price, tc.category, tc.years, tc.intensity)
+        println("TCO\t${tc.price}\t${tc.category}\t${tc.years}\t${tc.intensity}\t" +
+            "${r.consumablesTotal};${r.energyTotal};${r.maintenance};${r.residualValue};${r.totalTco};${r.tcoPerMonth}")
     }
 
     for (cart in carts) {

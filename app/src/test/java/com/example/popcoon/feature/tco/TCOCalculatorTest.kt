@@ -38,6 +38,13 @@ class TCOCalculatorTest : StringSpec({
         (r.consumablesTotal > inkjet.consumablesTotal) shouldBe true
     }
 
+    // 回帰: ドラムは使用強度 (intensity) で増減しない (0.33/年 固定)。Python 参照と一致。
+    "レーザー: intensity=2.0 でもドラムはスケールしない (差分パリティで検出した実バグ)" {
+        // toner=int(6000*3.0)=18000, drum=int(8000*0.33)=2640, paper=int(600*6.0)=3600 → 24240/年 ×5
+        val r = TCOCalculator.calculate(40_000, "laser_printer", 5, intensity = 2.0)
+        r.consumablesTotal shouldBe 121_200L
+    }
+
     "ノート PC: 消耗品なし、電気代のみ" {
         val r = TCOCalculator.calculate(150_000, "laptop", 5)
         r.consumablesTotal shouldBe 0L

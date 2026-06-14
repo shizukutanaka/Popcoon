@@ -37,20 +37,24 @@ object TCOCalculator {
         require(years > 0) { "years must be positive" }
         require(intensity > 0) { "intensity must be positive" }
 
+        // Python (popcoon_core.calculate_tco) と完全一致させる:
+        //  - 各消耗品は int(price * (基本数 * intensity))。intensity を先に掛けて結合順も合わせる。
+        //  - レーザーのドラムは Python では intensity 非適用 (0.33/年 固定)。以前は intensity を掛けており、
+        //    i≠1.0 のレーザープリンタで消耗品コスト＝TCO がずれていた (差分パリティで検出した実バグ)。
         val consumablesYearly = when (category) {
             "inkjet_printer" -> {
-                val ink_black = (1800 * 6.0 * intensity).toLong()
-                val ink_color = (2200 * 4.0 * intensity).toLong()
-                val paper = (800 * 2.0 * intensity).toLong()
-                ink_black + ink_color + paper
+                val inkBlack = (1800 * (6.0 * intensity)).toLong()
+                val inkColor = (2200 * (4.0 * intensity)).toLong()
+                val paper = (800 * (2.0 * intensity)).toLong()
+                inkBlack + inkColor + paper
             }
             "laser_printer" -> {
-                val toner = (6000 * 1.5 * intensity).toLong()
-                val drum = (8000 * 0.33 * intensity).toLong()
-                val paper = (600 * 3.0 * intensity).toLong()
+                val toner = (6000 * (1.5 * intensity)).toLong()
+                val drum = (8000 * 0.33).toLong()    // intensity 非適用 (Python と一致)
+                val paper = (600 * (3.0 * intensity)).toLong()
                 toner + drum + paper
             }
-            "coffee_capsule" -> (80 * 365.0 * intensity).toLong()
+            "coffee_capsule" -> (80 * (365.0 * intensity)).toLong()
             else -> 0L
         }
         val consumablesTotal = consumablesYearly * years

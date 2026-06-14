@@ -3,6 +3,19 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 33: TCOCalculator で差分パリティ実バグ発見・修正 — 2026-06-14)
+
+`TCOCalculator` が `popcoon_core.calculate_tco` との「同一式」を主張していたため**差分パリティ**を
+本ハーネスに追加 (TCO 13 ケース) → **実バグ発見**:
+- **レーザープリンターのドラム**: Python は `ConsumableItem("ドラム", 8000, 0.33)` で **intensity 非適用**
+  (0.33回/年 固定) だが、Kotlin は `(8000 * 0.33 * intensity)` と intensity を掛けていた。
+  → 使用強度 ≠ 1.0 のレーザープリンタで消耗品コスト＝TCO がずれる (i=2.0 で +13,200円 過大、
+  i=0.5 で −6,600円 過少)。実害のある計算ミス。
+- 副次: 各消耗品の結合順を Python の `int(price*(qty*intensity))` に合わせ (`price*(qty*intensity)`)、
+  全 intensity で浮動小数点まで一致するよう統一。
+- 修正後 **93/93 一致** (旧 80 + TCO 13)。kotest 回帰1件 (intensity=2.0 でドラム非スケール) 追加。
+- 教訓: 「同一式」と書かれた箇所こそ差分検査の価値が高い (customs と同じ構図)。
+
 ## 製品改善ループ (Tier 32: JanCodeQuery のチェックデジット実行検証 — 2026-06-14)
 
 Unicode の鉱脈から**独立検証可能なアルゴリズム**へ転換。`JanCodeQuery` (JAN/EAN バーコード検証) の

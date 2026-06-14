@@ -20,6 +20,7 @@ from proto_seasonal_decomp_forecast import seasonal_decompose_forecast
 from proto_cross_mall_cart import optimize_basket
 from proto_darkpattern_signals import detect_dark_patterns as detect_text_patterns
 from proto_seasonal_signal import seasonal_buy_signal
+from popcoon_core import calculate_tco
 
 
 def _parse_cart_items(enc):
@@ -151,6 +152,14 @@ for line in sys.stdin:
         sigs = detect_text_patterns(text, stock)
         exp = ";".join(f"{w['category']}|{w['severity']}|{w['evidence']}" for w in sigs)
         check(got == exp, f"text ({text!r},stock={stock})", got, exp)
+
+    elif kind == "TCO":
+        price, category, years, intensity = int(p[1]), p[2], int(p[3]), float(p[4])
+        got = p[5]
+        r = calculate_tco(price, category, years, intensity)
+        exp = (f"{r.consumables_total};{r.energy_total};{r.maintenance};"
+               f"{r.residual_value};{r.total_tco};{r.tco_per_month}")
+        check(got == exp, f"tco ({category},y={years},i={intensity})", got, exp)
 
     elif kind == "SDOW":
         hist = []
