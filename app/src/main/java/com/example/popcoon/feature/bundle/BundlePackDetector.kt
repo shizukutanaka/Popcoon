@@ -2,7 +2,7 @@ package com.example.popcoon.feature.bundle
 
 /**
  * セット販売の実質単価計算 + お得判定。
- * Python 実装 (bundle_pack_detector.py) と 100% 等価。
+ * 実行検証: popcoon-tdd/kotlin_parity/run_bundle.sh (全角数字含む抽出 + verdict)。
  */
 object BundlePackDetector {
 
@@ -22,13 +22,23 @@ object BundlePackDetector {
 
     data class BundleInfo(val packCount: Int, val unitHint: String?, val isBulk: Boolean)
 
+    // (?U) = UNICODE_CHARACTER_CLASS。\d を Unicode 対応にし、日本語タイトルで頻出する
+    // 全角数字 (「３本セット」「２４本ケース」) を検出する。ASCII 専用の Java/Kotlin 既定では
+    // 取りこぼし、全角表記のセット商品が「単品」扱い (NOT_A_BUNDLE) になっていた。
     private val BUNDLE_PATTERNS = listOf(
-        Regex("""(\d+)\s*(本|個|袋|パック|缶|枚|包|粒|組)\s*(セット|まとめ|まとめ買い|ケース)""") to 0.95,
-        Regex("""[×x]\s*(\d+)\s*(本|個|袋|枚|パック)""") to 0.90,
-        Regex("""(\d+)\s*(本|枚|個|袋|粒|パック|缶|包|組)\s*入""") to 0.85,
-        Regex("""(\d+)\s*(パック|缶|箱|ケース)""") to 0.80,
-        Regex("""(\d+)\s*(本|袋|個|枚)\s*(?:セット)?""") to 0.60,
+        Regex("""(?U)(\d+)\s*(本|個|袋|パック|缶|枚|包|粒|組)\s*(セット|まとめ|まとめ買い|ケース)""") to 0.95,
+        Regex("""(?U)[×x]\s*(\d+)\s*(本|個|袋|枚|パック)""") to 0.90,
+        Regex("""(?U)(\d+)\s*(本|枚|個|袋|粒|パック|缶|包|組)\s*入""") to 0.85,
+        Regex("""(?U)(\d+)\s*(パック|缶|箱|ケース)""") to 0.80,
+        Regex("""(?U)(\d+)\s*(本|袋|個|枚)\s*(?:セット)?""") to 0.60,
     )
+
+    /** 全角数字 (３) を含む数字列を Int に。Java の toIntOrNull は全角を弾くため正規化してから解析。 */
+    private fun parseUnicodeIntOrNull(s: String): Int? {
+        val sb = StringBuilder(s.length)
+        for (c in s) sb.append(if (c in '０'..'９') '0' + (c - '０') else c)
+        return sb.toString().toIntOrNull()
+    }
 
     fun extractBundleInfo(title: String?): BundleInfo? {
         if (title.isNullOrEmpty()) return null
@@ -36,7 +46,7 @@ object BundlePackDetector {
         var bestConf = 0.0
         for ((pattern, confidence) in BUNDLE_PATTERNS) {
             for (m in pattern.findAll(title)) {
-                val count = m.groupValues.getOrNull(1)?.toIntOrNull() ?: continue
+                val count = m.groupValues.getOrNull(1)?.let { parseUnicodeIntOrNull(it) } ?: continue
                 if (count <= 0) continue
                 if (confidence > bestConf) {
                     best = count to (m.groupValues.getOrNull(2) ?: "")

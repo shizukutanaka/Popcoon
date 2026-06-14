@@ -93,4 +93,24 @@ class BundlePackDetectorTest : StringSpec({
         info.shouldNotBeNull()
         info.packCount shouldBe 24
     }
+
+    // ── 回帰: 全角数字 (日本語タイトルで頻出) も検出 — ASCII \\d の乖離を修正 ──
+    "全角「３本セット」を検出" {
+        val info = BundlePackDetector.extractBundleInfo("洗剤 詰替 ３本セット")
+        info.shouldNotBeNull()
+        info.packCount shouldBe 3
+    }
+
+    "全角「５０枚入り」で bulk 判定" {
+        val info = BundlePackDetector.extractBundleInfo("マスク ５０枚入り")
+        info.shouldNotBeNull()
+        info.packCount shouldBe 50
+        info.isBulk shouldBe true
+    }
+
+    "全角「２４缶ケース」" {
+        val info = BundlePackDetector.extractBundleInfo("ビール ２４缶ケース")
+        info.shouldNotBeNull()
+        info.packCount shouldBe 24
+    }
 })

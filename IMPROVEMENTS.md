@@ -3,6 +3,23 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 28: BundlePackDetector で全角数字バグ発見・修正 — 2026-06-14)
+
+「ネイティブ関数は cosmetic な発見のみ」という Tier 27 の総括は**早計**だった。バグの有無は
+オラクルの有無より**関数の種別**(正規表現/文字列) に依る。`BundlePackDetector` (セット販売の
+個数抽出 → 実質単価) を text/regex リスク種別として優先監査し、**実バグを発見・修正**:
+- 正規表現が ASCII `\d`。日本語タイトルで頻出する全角数字「３本セット」「２４本ケース」を
+  取りこぼし、全角表記のセット商品が「単品」(NOT_A_BUNDLE) 扱いになっていた (dark-pattern と同種)。
+  さらに `toIntOrNull("３")` も null を返すため、(?U) だけでは不十分。
+  → BUNDLE_PATTERNS 5本に `(?U)` 付与 + `parseUnicodeIntOrNull` で全角→ASCII 正規化。
+- 派生発見: doc コメントが実在しない `bundle_pack_detector.py` との 100% 等価を主張 → 修正
+  (実行検証は run_bundle.sh に置換)。
+- `run_bundle.sh` + `BundlePackDetectorCheck.kt`: ASCII/全角の抽出 + verdict 独立手計算で実行検証
+  → 修正前 4 件 mismatch (全角)、修正後 全通過。kotest 回帰3件追加。run_all.sh / CI 組込み。
+
+教訓: 残る native 純関数も **text/regex 系を優先**すべき (ReviewTrustScorer 等の数値系より
+バグ潜在性が高い)。Unicode/全角は日本語 EC アプリの構造的弱点。
+
 ## 製品改善ループ (Tier 27: PointSimulator の実質価格表示バグ修正 + 実行回帰 — 2026-06-14)
 
 中核機能「実質価格」(ポイント還元後価格、アプリの差別化要素) の `PointSimulator` を監査。
