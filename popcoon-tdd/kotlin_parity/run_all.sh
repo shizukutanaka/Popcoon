@@ -19,6 +19,7 @@ harnesses=(
   "run_rakuten.sh"  # RakutenMapper: availability -> stockCount
   "run_yahoo.sh"    # YahooMapper: inStock -> stockCount
   "run_jsonld.sh"   # FallbackScraper stockFromAvailability (schema.org)
+  "run_url.sh"      # UrlClassifier: share-intent URL -> Platform+SKU
 )
 
 fail=0

@@ -3,6 +3,17 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 26: UrlClassifier の実行検証 — 共有フロー回帰 — 2026-06-14)
+
+パリティ網羅完了後、Python オラクルを持たないネイティブ Kotlin 純関数のうち**正規表現/文字列
+パース系**(dark-pattern と同じ高リスク種別) を監査。`UrlClassifier` (Share Intent の URL →
+Platform+SKU、中核の「2タップ」フロー) を standalone 実行ハーネスで検証。
+- 精読では bug 無し: Amazon 2段パターン順序、capture 前の query 除去、.html 再正規化は妥当。
+- `run_url.sh` + `UrlClassifierCheck.kt` で実 URL 形式 (Amazon /dp//gp/product//SEO/言語パス/
+  クエリ付き、楽天、Yahoo .html有無、埋め込み URL 救出、非マッチ) を実行検証 → 全 assert 通過。
+- オラクル不在のため bug 発見力は低い (差分が出ない) が、CI 不可な中核機能に実行回帰を追加。
+- run_all.sh / CI parity job に組込み。AffiliateUrlBuilder は android.net.Uri 依存で standalone 不可。
+
 ## 製品改善ループ (Tier 25: SeasonalDowSignal の実行パリティ — パリティ網羅完了 — 2026-06-14)
 
 最後の未直接検査の純関数 `SeasonalDowSignal` (曜日季節性の買い時シグナル) を実行パリティ検査に追加。
