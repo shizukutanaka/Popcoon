@@ -81,6 +81,18 @@ class TrieSuggestTest : StringSpec({
         t.suggest("テ", limit = 0) shouldBe emptyList()
     }
 
+    // 回帰: 子ノードの BFS 訪問順は挿入順 (Python 参照と一致)。
+    // children を HashMap にしていた頃はハッシュ順になり、limit 打ち切り時の候補集合が
+    // リファレンスと乖離していた (LinkedHashMap で修正)。
+    "サジェスト順は挿入順 BFS で決まる (limit 打ち切りの候補集合も決定的)" {
+        val t = Trie().apply {
+            // 'a' 直下の子を非ソート順 (r→n→c→p) で作る
+            listOf("art", "arc", "ark", "ant", "and", "any", "ace", "act").forEach { insert(it) }
+        }
+        // limit=6 は r系3 + n系3 を挿入順で返す (c系 ace/act は打ち切られる)
+        t.suggest("a", limit = 6) shouldBe listOf("art", "arc", "ark", "ant", "and", "any")
+    }
+
     "deque ベースの O(1) 速度: 1000要素挿入後の suggest が高速" {
         val t = Trie()
         val start = System.nanoTime()

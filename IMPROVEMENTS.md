@@ -3,6 +3,25 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 34: Trie オートコンプリートの子訪問順バグ — 差分パリティ — 2026-06-14)
+
+### 長所短所改善点 (継続)
+- **長所**: パリティ主張のある純関数が多く、差分検査で実バグが次々出る (今セッション計9件)。
+- **短所**: **「Python と一致」と書きつつ未検証**の箇所が残っていた (Trie / TCO)。コメントの主張と
+  実装の乖離が放置されやすい。また **コレクション型の選択 (HashMap vs LinkedHashMap)** が
+  暗黙の順序契約を破る — 言語間移植で陥りやすい罠。
+- **改善点**: パリティ主張を grep で全列挙し、ハーネス未収録を体系的に潰す (Trie が最後の1件)。
+
+### 実装 (実バグ発見・修正)
+- 全パリティ主張 Kotlin (13ファイル) を harness と突合 → 未収録は `core/Trie.kt` のみと判明。
+- **実バグ**: `Trie.Node.children` が `HashMap<Char,Node>`。Python の dict は挿入順だが HashMap は
+  ハッシュ順 → BFS の子訪問順が乖離し、`suggest()` の**サジェスト候補順・limit 打ち切り時の集合**が
+  リファレンスと食い違っていた (例: "a" limit6 → Python[art,arc,ark,ant,and,any] vs
+  Kotlin[art,arc,ark,act,ace,ant] — **集合ごと別物**)。ユーザーに見えるオートコンプリートの乖離。
+  → `LinkedHashMap` に変更し挿入順を保持。
+- `run_trie.sh` + `TrieCheck.kt` + `trie_oracle.py` で差分検査 (8クエリ+size) → 修正後 全一致。
+  kotest 回帰1件 (順序アサート) 追加。既存テストは size/contains のみで順序未検査だった。
+
 ## 製品改善ループ (Tier 33: TCOCalculator で差分パリティ実バグ発見・修正 — 2026-06-14)
 
 `TCOCalculator` が `popcoon_core.calculate_tco` との「同一式」を主張していたため**差分パリティ**を

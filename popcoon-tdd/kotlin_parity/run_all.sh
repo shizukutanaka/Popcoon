@@ -24,6 +24,7 @@ harnesses=(
   "run_bundle.sh"   # BundlePackDetector: set-sale count extraction (full-width digits)
   "run_matcher.sh"  # ProductMatcher: model-number extraction + title tokenization (full-width)
   "run_jan.sh"      # JanCodeQuery: JAN/EAN-13/8 check-digit validation + UPC->JAN
+  "run_trie.sh"     # Trie: autocomplete suggest() order vs popcoon_core.Trie
 )
 
 fail=0

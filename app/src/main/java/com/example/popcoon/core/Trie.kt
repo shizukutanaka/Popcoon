@@ -27,7 +27,10 @@ class Trie {
     private val lock = ReentrantReadWriteLock()
 
     private class Node {
-        val children = HashMap<Char, Node>(4)
+        // LinkedHashMap = 挿入順を保持。Python の dict (挿入順) と BFS の子訪問順を一致させ、
+        // suggest() の候補順・limit 打ち切り時の候補集合をリファレンスと揃える
+        // (HashMap だとハッシュ順になり、同じ語彙でもサジェスト結果が乖離していた)。
+        val children = LinkedHashMap<Char, Node>(4)
         // Set で重複排除 (List より遅いが insert コスト O(1))
         val words = LinkedHashSet<String>(2)
     }
