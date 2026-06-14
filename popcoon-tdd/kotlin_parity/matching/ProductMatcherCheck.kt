@@ -50,6 +50,15 @@ fun main() {
     check("isMatch(ascii, full-width) same product", true,
         ProductMatcher.isMatch(asciiListing, zenkakuListing))
 
+    // ── Half-width katakana (NFKC): ｿﾆｰ / ﾊﾞｯﾌｧﾛｰ must normalize to full-width ─
+    val halfKana = prod("Y1", Platform.YAHOO, "ｿﾆｰ WF-1000XM4 ﾜｲﾔﾚｽｲﾔﾎﾝ")
+    check("isMatch(full-kana, half-kana) same product", true,
+        ProductMatcher.isMatch(asciiListing, halfKana))
+    // 半角カナ濁点合成 ﾊﾞｯﾌｧﾛｰ -> バッファロー: トークンが全角カナ版と一致
+    check("half-kana token normalizes (バッファロー)", true,
+        ProductMatcher.normalizeTitle("ﾊﾞｯﾌｧﾛｰ ルーター")
+            .intersect(ProductMatcher.normalizeTitle("バッファロー ルーター")).contains("バッファロー"))
+
     if (fails == 0) {
         println("PRODUCT MATCHER: all assertions passed")
     } else {

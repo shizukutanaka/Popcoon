@@ -1,6 +1,7 @@
 package com.example.popcoon.feature.matching
 
 import com.example.popcoon.data.model.Product
+import java.text.Normalizer
 
 /**
  * クロスプラットフォーム商品名寄せ (Product Matching)。
@@ -106,7 +107,7 @@ object ProductMatcher {
      *  - ノイズ語 (送料無料・正規品・新品等) 除去
      */
     fun normalizeTitle(title: String): Set<String> {
-        val normalized = toHalfWidth(title.lowercase())
+        val normalized = nfkc(title).lowercase()
             .replace(NOISE_REGEX, " ")
             .replace(SYMBOL_REGEX, " ")
 
@@ -115,23 +116,20 @@ object ProductMatcher {
             .toSet()
     }
 
-    /** 全角英数 (Ａ-Ｚａ-ｚ０-９) を半角に。全角タイトルを ASCII 経路と揃える。 */
-    private fun toHalfWidth(s: String): String =
-        s.replace(FULLWIDTH_REGEX) { m -> m.value.map { (it.code - 0xFEE0).toChar() }.joinToString("") }
+    /**
+     * Unicode NFKC 正規化。全角英数→半角、全角ハイフン(－)/全角スペース(U+3000)→ASCII、
+     * **半角カナ→全角カナ** (ｿﾆｰ→ソニー)、濁点合成 (ﾊﾞ→バ) を一括で行う。
+     * 日本語 EC タイトルの表記ゆれを吸収し、名寄せの取りこぼしを防ぐ標準的手段。
+     * (以前は全角英数のみの手製変換で、半角カナ・全角区切りを取りこぼしていた)
+     */
+    private fun nfkc(s: String): String = Normalizer.normalize(s, Normalizer.Form.NFKC)
 
     /**
-     * 型番抽出: 英字+数字の組み合わせ (例: WH-1000XM5, RTX4090)。
-     * 製品の一意識別に最も有効。
-     *
-     * 全角対応: 全角英数 (ＷＦ１０００) と全角ハイフン (－) を半角化してから MODEL_REGEX を当てる。
-     * 以前は title.uppercase() のみで、全角表記の型番 (販売者が全角でタイトルを書く場合) を取りこぼし、
-     * normalizeTitle (全角半角化済み) との整合が崩れていた。
+     * 型番抽出: 英字+数字の組み合わせ (例: WH-1000XM5, RTX4090)。製品の一意識別に最も有効。
+     * NFKC 正規化で全角表記の型番 (ＷＦ－１０００ＸＭ４ / ＲＴＸ　４０９０) も拾う。
      */
     fun extractModelNumber(title: String): String? {
-        // 全角ハイフン(－) と全角スペース(U+3000) も半角化: MODEL_REGEX の [-\s] は ASCII のため、
-        // 「ＲＴＸ　４０９０」のような全角区切りの型番を取りこぼさないように揃える。
-        val ascii = toHalfWidth(title).replace('－', '-').replace('　', ' ').uppercase()
-        val match = MODEL_REGEX.find(ascii) ?: return null
+        val match = MODEL_REGEX.find(nfkc(title).uppercase()) ?: return null
         return match.value.replace("-", "").replace(" ", "")
     }
 
@@ -145,9 +143,6 @@ object ProductMatcher {
 
     // 型番: 英字2文字以上 + 数字、またはハイフン区切り (WH-1000XM5, A2179, RTX-4090)
     private val MODEL_REGEX = Regex("[A-Z]{2,}[-\\s]?\\d{2,}[A-Z0-9-]*")
-
-    // 全角英数字
-    private val FULLWIDTH_REGEX = Regex("[Ａ-Ｚａ-ｚ０-９]+")
 
     // ノイズ語 (マッチに無関係な販促語)
     private val NOISE_REGEX = Regex(

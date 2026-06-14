@@ -3,6 +3,27 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 30: ProductMatcher を NFKC 正規化に刷新 + 長所短所改善点 — 2026-06-14)
+
+### 長所短所改善点の洗い出し (本セッションの知見ベース)
+- **長所**: (1) ロジックが純関数中心で TDD/実行検証しやすい。(2) Python 参照プロトタイプ + パリティ
+  という二重実装の規律があり、差分でバグが出る (customs/dark-pattern を実際に発見)。
+  (3) 機能が豊富 (名寄せ・ポイント・予測・横断カート・ダークパターン暴露)。
+- **短所**: (1) **全角/半角・Unicode 表記ゆれが構造的弱点** — ASCII `\d`/`\s`、手製の全角変換が
+  各所に散在し、日本語 EC タイトルの実データで取りこぼし (本セッションで実バグ6件)。
+  (2) コンパイルに Android SDK 必須で、CI 無効だとローカル検証経路が無い (kotlin_parity で代替中)。
+  (3) 同じ正規化を各所で再実装し不整合 (normalizeTitle vs extractModelNumber)。
+- **改善点 (本 Tier で着手)**: 表記ゆれ正規化を **NFKC に一本化**。手製の全角英数変換・全角ハイフン/
+  スペースの個別 replace を `java.text.Normalizer` NFKC へ置換し、**半角カナ (ｿﾆｰ→ソニー)・
+  濁点合成 (ﾊﾞ→バ)** まで一括対応。今後の表記ゆれ取りこぼしを構造的に断つ。
+
+### 実装
+- `ProductMatcher`: `toHalfWidth`(手製) → `nfkc()` に刷新。`extractModelNumber` から全角ハイフン/
+  スペースの手動 replace を除去 (NFKC が一括処理)。`FULLWIDTH_REGEX` 削除。
+- 検証: run_matcher.sh に半角カナの isMatch + 濁点合成トークン一致を追加 → 全通過 (既存も不変)。
+  kotest 回帰1件追加。
+- 効果: 半角カナ表記の同一商品 (Yahoo に多い) が名寄せされるように。表記ゆれ吸収が NFKC 標準準拠に。
+
 ## 製品改善ループ (Tier 29: 全角バグの体系的掃討 — ProductMatcher で2件発見・修正 — 2026-06-14)
 
 Tier 28 の教訓「全角/Unicode は構造的弱点」を**バグパターン検索**で体系化。

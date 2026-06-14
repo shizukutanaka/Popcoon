@@ -67,6 +67,12 @@ class ProductMatcherTest : StringSpec({
         ProductMatcher.isMatch(a, b) shouldBe true
     }
 
+    "半角カナ表記も一致 (NFKC: ｿﾆｰ→ソニー, ﾜｲﾔﾚｽ→ワイヤレス)" {
+        val a = product("A1", "ソニー WF-1000XM4 ワイヤレスイヤホン")
+        val b = product("Y1", "ｿﾆｰ WF-1000XM4 ﾜｲﾔﾚｽｲﾔﾎﾝ")
+        ProductMatcher.isMatch(a, b) shouldBe true
+    }
+
     // ── タイトル正規化 ────────────────────────────────────────────────────
     "ノイズ語を除去" {
         val tokens = ProductMatcher.normalizeTitle("【送料無料】正規品 コーヒー豆 500g")
