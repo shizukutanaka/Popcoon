@@ -30,5 +30,33 @@ fun main() {
     check(stockFromAvailability(extracted) == 0) { "nested OutOfStock -> 0" }
     check(stockFromAvailability(extractJsonStringMirror("""{"offers":{"availability":"https://schema.org/InStock"}}""", "availability")) == null) { "InStock -> null" }
 
+    // ── normalizeOriginCountry: 表記ゆれ → EcoEthicsScorer の ISO-2 キー ──────
+    val countryCases = listOf(
+        "JP" to "JP", "jp" to "JP", "Japan" to "JP", "日本" to "JP", "JPN" to "JP",
+        "Germany" to "DE", "ドイツ" to "DE", "DEU" to "DE",
+        "USA" to "US", "United States" to "US", "米国" to "US", "America" to "US",
+        "China" to "CN", "中国" to "CN", "CHN" to "CN",
+        "Vietnam" to "VN", "ベトナム" to "VN",
+        "South Korea" to "KR", "韓国" to "KR", "KOR" to "KR",
+        "India" to "IN", "インド" to "IN",
+        "Bangladesh" to "BD", "バングラデシュ" to "BD",
+        // schema.org が URL/コード混在で出す場合も末尾要素で解決
+        "https://schema.org/JP" to "JP",
+        // 未対応・空 → null (既定値 0.60 に落ちる前に検出可能)
+        "Mars" to null, "" to null, "  " to null, "UK" to null, "France" to null,
+    )
+    for ((raw, exp) in countryCases) {
+        val got = normalizeOriginCountry(raw)
+        check(got == exp) { "normalizeOriginCountry($raw) = $got, expected $exp" }
+    }
+    check(normalizeOriginCountry(null) == null) { "null -> null" }
+
+    // End-to-end: JSON-LD countryOfOrigin -> extracted -> normalized to eco key.
+    val ld2 = """{"@type":"Product","name":"X","countryOfOrigin":"Japan","price":"1980"}"""
+    check(normalizeOriginCountry(extractJsonStringMirror(ld2, "countryOfOrigin")) == "JP") {
+        "JSON-LD countryOfOrigin Japan -> JP"
+    }
+
     println("JSON-LD STOCK: all assertions passed")
+    println("ORIGIN COUNTRY: all assertions passed")
 }

@@ -144,6 +144,9 @@ class FallbackScraper {
         val brand = extractJsonString(json, "brand")
         // schema.org Offer.availability から在庫を復元 (在庫切れ系 → stockCount=0)。
         val availability = extractJsonString(json, "availability")
+        // schema.org countryOfOrigin から原産国を復元 → EcoEthicsScorer 用に ISO-2 へ正規化。
+        // これが無いと originCountry は常に null で eco スコアが表示されない (機能が死ぬ)。
+        val origin = normalizeOriginCountry(extractJsonString(json, "countryOfOrigin"))
 
         return Product(
             sku = java.net.URI(url).path.substringAfterLast("/").take(64),
@@ -154,6 +157,7 @@ class FallbackScraper {
             url = url,
             imageUrl = image,
             brand = brand,
+            originCountry = origin,
             stockCount = stockFromAvailability(availability),
         )
     }
