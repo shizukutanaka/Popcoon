@@ -84,3 +84,53 @@ jobs:
       - name: Run pytest
         working-directory: popcoon-tdd
         run: python -m pytest -q --benchmark-disable
+
+  # ── Kotlin パリティ & マッパー: Android SDK 無しで純粋ロジックを実行検証 ──────
+  # Gradle 同梱の kotlin-compiler-embeddable で純関数 (customs/eco/予測/買い時/在庫マッパー)
+  # をコンパイル・実行し、Python オラクルと照合する。app の full ビルド (android job) とは独立に
+  # 「移植ロジックのパリティ」を高速検証する経路。
+  parity:
+    name: Kotlin parity & mappers (no SDK)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Python (compare_oracle.py)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Make scripts executable
+        run: chmod +x ./gradlew popcoon-tdd/kotlin_parity/*.sh
+
+      - name: Run parity & mapper harnesses
+        run: bash popcoon-tdd/kotlin_parity/run_all.sh
+
+  # ── Backend (Cloudflare Worker): アラート/PII/ページネーション/検証の単体テスト ──
+  backend:
+    name: Backend (vitest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm install
+
+      - name: Run vitest
+        working-directory: backend
+        run: npm test
+

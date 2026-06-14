@@ -9,25 +9,27 @@ GitHub Actions CI ワークフローです。
 `workflows` 権限が無く、`.github/workflows/` 配下のファイルを push できません
 （GitHub のセキュリティ制約）。そのため、ここにテンプレートとして配置しています。
 
-## 有効化の手順
+## 有効化の手順（1 コマンド）
 
 リポジトリ管理者が以下を実行してください（ローカルで 1 回だけ）:
 
 ```bash
-mkdir -p .github/workflows
-git mv ci/android.yml .github/workflows/android.yml   # または cp
-git commit -m "ci: enable Android + Python CI workflow"
-git push
+bash ci/enable.sh && git push
 ```
 
+`ci/enable.sh` は `ci/android.yml` を `.github/workflows/` へ `git mv` してコミットするだけです。
 `git mv` できる権限（通常の開発者の push 権限）があれば有効化できます。
+（自動化エージェントの GitHub App トークンには `workflows` 権限が無く、`.github/workflows/`
+配下への push がリモートから拒否されることを実証済みです。人間の push 権限が必要です。）
 
 ## このワークフローが検証する内容
 
 | ジョブ | 内容 |
 |--------|------|
 | **android** | JDK 17 + Android SDK + Gradle キャッシュ。`detekt`（静的解析）→ `lintDebug` → `testDebugUnitTest`（kotest 200+ テスト）→ `assembleDebug`。失敗時はテスト/lint/detekt レポートを artifact として保存。 |
-| **python-oracle** | `popcoon-tdd` の pytest スイート（差分テストの正本、290 テスト）。ベンチマークは CI のノイズになるため無効化。 |
+| **python-oracle** | `popcoon-tdd` の pytest スイート（差分テストの正本、300 テスト）。ベンチマークは CI のノイズになるため無効化。 |
+| **parity** | Android SDK 不要。Gradle 同梱の kotlin-compiler-embeddable で純関数（customs/eco/dark-pattern/predict/buy-timing と各 EC マッパー）をコンパイル・実行し Python オラクルと照合（`popcoon-tdd/kotlin_parity/run_all.sh`）。 |
+| **backend** | Cloudflare Worker の vitest（アラート評価・PII 検査・KV ページネーション・入力検証）。 |
 
 トリガー: `main` / `claude/**` への push、`main` への PR、手動実行（`workflow_dispatch`）。
 同一ブランチで新しい push があれば古い実行を自動キャンセルします。

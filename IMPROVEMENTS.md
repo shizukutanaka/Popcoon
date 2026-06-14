@@ -3,6 +3,21 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 20: CI 有効化のターンキー化 + 検証の CI 配線 — 2026-06-13)
+
+`RobotsTxt.isAllowed` を監査 (REP 19 ケースを実行) → **バグ無し・既存テストも網羅的**で、
+ローカル検証可能な高価値の改善余地が概ね尽きたと判断。残る高価値作業は CI 依存
+(app のコンパイルが前提)。そこで本セッション最大の制約 = CI 有効化に投資した。
+- **`ci/enable.sh`**: 管理者が 1 コマンド (`bash ci/enable.sh && git push`) で
+  `ci/android.yml` を `.github/workflows/` へ移動・有効化できる。
+- **`ci/android.yml` にジョブ追加**: 本セッションの検証群を CI に配線。
+  - `parity`: `kotlin_parity/run_all.sh` (SDK 不要で 6 純関数 + 3 マッパーを実行検証)。
+  - `backend`: backend の vitest (これまで CI 経路ゼロだった — アラート/PII/ページ/検証テスト)。
+- **`kotlin_parity/run_all.sh`**: 全ハーネス (parity 39 + Rakuten/Yahoo/JSON-LD) を集約実行、
+  どれか失敗で非ゼロ終了。ローカルで全 green を確認。
+- ねらい: 管理者が CI を入れた瞬間に、本セッションで積んだ検証 (Python 300 + Kotlin パリティ +
+  backend) が**自動で回る**状態にしておく。CI 有効化の心理的・手順的コストを最小化。
+
 ## 製品改善ループ (Tier 19: FallbackScraper の JSON-LD 在庫抽出 — 2026-06-13)
 
 まず「SortAndFilter の在庫切れ除外が実際に効くか」を実行検証しようとしたが、フィルタ本体は
