@@ -3,6 +3,17 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 21: ConformalInterval の実行パリティ — 監査漏れの是正 — 2026-06-14)
+
+未パリティ検査の純関数を洗い直し。Tier 10 で `predict` の margin を「Kotlin 拡張」と断じたが、
+**誤り** — `proto_conformal_interval.py` という Python 参照が存在した。`ConformalInterval`
+(本番 `PricePredictionEngine.predictionMargin` の置換候補) を実行パリティ検査に追加。
+- 注目点: `k = ceil((n+1)*(1-alpha))` の**浮動小数点境界** (例 n=9,α=0.1 → 10*0.9 が
+  9.0000…2 に丸まり ceil=10 で最大残差ブランチに切替) は、読みでは見落としやすく実行検証向き。
+- ハーネス (run.sh) に CONFORMAL 8 ケース (境界・空・単一・負値含む) を追加し
+  `conformal_margin` と照合 → **47/47 一致** (旧 39 + 8)。Kotlin/Python で同一の IEEE754 結果を確認。
+- バグは無かったが、(1) 監査漏れの是正 (2) 数値敏感コードの実行検証 (3) CI 自動化、の 3 点で前進。
+
 ## 製品改善ループ (Tier 20: CI 有効化のターンキー化 + 検証の CI 配線 — 2026-06-13)
 
 `RobotsTxt.isAllowed` を監査 (REP 19 ケースを実行) → **バグ無し・既存テストも網羅的**で、

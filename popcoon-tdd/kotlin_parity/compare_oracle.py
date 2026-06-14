@@ -15,6 +15,7 @@ from popcoon_core import (
     detect_dark_patterns, predict_price,
 )
 from buy_timing_scorer import score_buy_timing
+from proto_conformal_interval import conformal_margin
 
 # Kotlin ハーネスと同一の決定論的履歴規約。
 _BASE = datetime(2026, 1, 1, tzinfo=timezone.utc)
@@ -98,6 +99,13 @@ for line in sys.stdin:
             got = (int(p[4]), p[5], p[6])
             exp = (bt.total, bt.verdict.value, bt.confidence) if bt else None
             check(bt is not None and got == exp, f"buytiming (cur={current},n={len(prices)})", got, exp)
+
+    elif kind == "CONFORMAL":
+        residuals = [float(x) for x in p[1].split(";") if x != ""]
+        alpha = float(p[2])
+        got = p[3]
+        exp = f"{conformal_margin(residuals, alpha):.10f}"
+        check(got == exp, f"conformal (n={len(residuals)},alpha={alpha})", got, exp)
 
     else:
         fail += 1

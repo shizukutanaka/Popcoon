@@ -2,6 +2,7 @@ import com.example.popcoon.data.model.PriceRecord
 import com.example.popcoon.feature.crossborder.CustomsSimulator
 import com.example.popcoon.feature.darkpattern.DarkPatternDetector
 import com.example.popcoon.feature.ethics.EcoEthicsScorer
+import com.example.popcoon.feature.prediction.ConformalInterval
 import com.example.popcoon.feature.prediction.PricePredictionEngine
 import com.example.popcoon.feature.scorer.BuyTimingScorer
 import java.time.Instant
@@ -100,5 +101,23 @@ fun main() {
         } else {
             println("BUYTIMING\t${h.current}\t${h.listPrice}\t${csv(h.prices)}\t${bt.total}\t${bt.verdict}\t${bt.confidence}")
         }
+    }
+
+    // ── CONFORMAL: split-conformal margin (浮動小数点境界を含む) ────────────────
+    // residuals(';' 区切り Double) と alpha → margin。proto_conformal_interval と照合。
+    data class CC(val residuals: List<Double>, val alpha: Double)
+    val conformal = listOf(
+        CC((1..10).map { it.toDouble() }, 0.1),
+        CC((1..9).map { it.toDouble() }, 0.1),     // 10*0.9 の浮動小数点境界
+        CC((1..9).map { it.toDouble() }, 0.05),
+        CC(listOf(-5.0, 3.0, -1.0, 4.0, 2.0), 0.2),
+        CC(listOf(7.5), 0.1),                       // 単一: k>n → max
+        CC((1..100).map { it.toDouble() }, 0.05),
+        CC(listOf(2.0, 2.0, 2.0), 0.33),
+        CC(emptyList(), 0.1),                        // 空 → 0.0
+    )
+    for (c in conformal) {
+        val m = ConformalInterval.conformalMargin(c.residuals, c.alpha)
+        println("CONFORMAL\t${c.residuals.joinToString(";")}\t${c.alpha}\t${"%.10f".format(m)}")
     }
 }
