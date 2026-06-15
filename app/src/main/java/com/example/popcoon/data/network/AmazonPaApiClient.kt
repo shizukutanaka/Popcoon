@@ -79,6 +79,8 @@ class AmazonPaApiClient(
                 "Images.Primary.Medium",
                 "Offers.Listings.Price",
                 "Offers.Listings.SavingBasis",
+                "Offers.Listings.Availability.Message",
+                "Offers.Listings.Availability.Type",
                 "Offers.Summaries.LowestPrice",
             ),
             searchIndex = "All",
@@ -151,8 +153,9 @@ private data class PaItem(
 ) {
     fun toProduct(): Product? {
         val title = itemInfo?.title?.displayValue ?: return null
-        val price = offers?.listings?.firstOrNull()?.price?.amount?.toLong() ?: 0L
-        val savingBasis = offers?.listings?.firstOrNull()?.savingBasis?.amount?.toLong() ?: price
+        val listing = offers?.listings?.firstOrNull()
+        val price = listing?.price?.amount?.toLong() ?: 0L
+        val savingBasis = listing?.savingBasis?.amount?.toLong() ?: price
         return Product(
             sku = asin,
             title = title,
@@ -162,6 +165,11 @@ private data class PaItem(
             url = detailPageUrl,
             imageUrl = images?.primary?.medium?.url,
             brand = itemInfo.byLineInfo?.brand?.displayValue,
+            // PA-API Availability から在庫切れを復元 (Rakuten/Yahoo と同方針、在庫切れのみ 0)。
+            stockCount = stockFromAmazonAvailability(
+                listing?.availability?.type,
+                listing?.availability?.message,
+            ),
         )
     }
 }
@@ -206,6 +214,13 @@ private data class Offers(
 private data class Listing(
     @kotlinx.serialization.SerialName("Price") val price: PriceInfo? = null,
     @kotlinx.serialization.SerialName("SavingBasis") val savingBasis: PriceInfo? = null,
+    @kotlinx.serialization.SerialName("Availability") val availability: Availability? = null,
+)
+
+@Serializable
+private data class Availability(
+    @kotlinx.serialization.SerialName("Type") val type: String? = null,
+    @kotlinx.serialization.SerialName("Message") val message: String? = null,
 )
 
 @Serializable

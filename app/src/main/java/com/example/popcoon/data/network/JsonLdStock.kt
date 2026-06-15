@@ -61,3 +61,26 @@ internal fun normalizeGtin(raw: String?): String? {
         else -> null
     }
 }
+
+/**
+ * Amazon PA-API 5.0 `Offers.Listings.Availability` (Type + Message) を Product.stockCount に変換する。
+ *
+ * 背景 (三つ目の死んだ継ぎ目): stockCount は Rakuten/Yahoo では availability/inStock から復元済みだが、
+ * **最大プラットフォームの Amazon 経路では常に null** で、在庫切れ除外フィルタ・在庫アラートが
+ * Amazon 商品に対して死蔵していた。PA-API は Availability を返すのに従来 DTO で取りこぼしていた。
+ *
+ * 在庫切れ (Type=OutOfStock/SoldOut、または Message に明確な在庫切れ語) のみ 0。
+ * 「通常 N 日以内に発送」等のバックオーダー表記は在庫あり扱いで null (Rakuten/Yahoo と同じ保守方針)。
+ * amazon.co.jp は Message を日本語で返すため和英両方の語を判定する。
+ */
+internal fun stockFromAmazonAvailability(type: String?, message: String?): Int? {
+    val t = type?.trim()?.lowercase().orEmpty()
+    if (t == "outofstock" || t == "soldout") return 0
+    val m = message?.trim()?.lowercase().orEmpty()  // 日本語は lowercase 無影響
+    if (m.isEmpty()) return null
+    val outOfStockMarkers = listOf(
+        "在庫切れ", "在庫なし", "入荷未定", "お取り扱いできません", "取り扱いを終了",
+        "unavailable", "out of stock",
+    )
+    return if (outOfStockMarkers.any { m.contains(it) }) 0 else null
+}

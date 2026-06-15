@@ -79,7 +79,28 @@ fun main() {
         "JSON-LD gtin13 -> janCode"
     }
 
+    // ── stockFromAmazonAvailability: PA-API Availability -> stockCount ────────
+    // Type が明確な在庫切れ → 0
+    check(stockFromAmazonAvailability("OutOfStock", null) == 0) { "Type OutOfStock -> 0" }
+    check(stockFromAmazonAvailability("SoldOut", null) == 0) { "Type SoldOut -> 0" }
+    check(stockFromAmazonAvailability("outofstock", null) == 0) { "Type lower-case -> 0" }
+    // 在庫あり系 Type / 不明 → null
+    check(stockFromAmazonAvailability("Now", null) == null) { "Type Now -> null" }
+    check(stockFromAmazonAvailability(null, null) == null) { "no availability -> null" }
+    check(stockFromAmazonAvailability("", "") == null) { "empty -> null" }
+    // Message ベース (amazon.co.jp は日本語): 在庫切れ語を含むなら 0
+    check(stockFromAmazonAvailability(null, "在庫切れ") == 0) { "Message 在庫切れ -> 0" }
+    check(stockFromAmazonAvailability(null, "現在在庫切れです。") == 0) { "Message 在庫切れ文中 -> 0" }
+    check(stockFromAmazonAvailability(null, "入荷未定") == 0) { "Message 入荷未定 -> 0" }
+    check(stockFromAmazonAvailability(null, "Currently unavailable") == 0) { "Message unavailable -> 0" }
+    check(stockFromAmazonAvailability(null, "Out of Stock") == 0) { "Message Out of Stock -> 0" }
+    // バックオーダー/発送日数表記は在庫あり扱い (null) — 在庫切れ扱いしない
+    check(stockFromAmazonAvailability(null, "在庫あり。") == null) { "Message 在庫あり -> null" }
+    check(stockFromAmazonAvailability(null, "通常2〜3日以内に発送します") == null) { "Message ships-in-N-days -> null" }
+    check(stockFromAmazonAvailability(null, "残り3点 ご注文はお早めに") == null) { "Message low-stock -> null (still in stock)" }
+
     println("JSON-LD STOCK: all assertions passed")
     println("ORIGIN COUNTRY: all assertions passed")
     println("GTIN/JAN: all assertions passed")
+    println("AMAZON AVAILABILITY: all assertions passed")
 }
