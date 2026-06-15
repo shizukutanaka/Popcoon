@@ -52,21 +52,21 @@ class MainActivity : ComponentActivity() {
             }
             Intent.ACTION_VIEW -> {
                 val data = intent.data?.toString() ?: return
+                val productKey = com.example.popcoon.core.DeepLinks.productKeyOrNull(data)
                 when {
-                    data == "popcoon://barcode" ->
+                    com.example.popcoon.core.DeepLinks.isBarcode(data) ->
                         _intentEvent.value = IntentEvent.OpenBarcode
 
-                    data == "popcoon://watchlist" ->
+                    com.example.popcoon.core.DeepLinks.isWatchlist(data) ->
                         _intentEvent.value = IntentEvent.OpenWatchlist
 
-                    data.startsWith("popcoon://search") -> {
+                    com.example.popcoon.core.DeepLinks.isSearch(data) -> {
                         val query = intent.data?.getQueryParameter("q").orEmpty()
                         _intentEvent.value = IntentEvent.StartSearch(query)
                     }
 
-                    data.startsWith("popcoon://product/") -> {
-                        val key = data.removePrefix("popcoon://product/")
-                        _intentEvent.value = IntentEvent.OpenProduct(productKey = key, url = "")
+                    productKey != null -> {
+                        _intentEvent.value = IntentEvent.OpenProduct(productKey = productKey, url = "")
                     }
 
                     else -> {

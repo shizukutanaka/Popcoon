@@ -29,7 +29,9 @@ class LocalNotificationManager @Inject constructor() {
     companion object {
         /** Context 非依存の純関数 — テストで直接呼ぶ。 */
         fun notificationId(productKey: String): Int = productKey.hashCode()
-        fun deepLinkUri(productKey: String): String = "popcoon://product/$productKey"
+        /** ディープリンクは [DeepLinks] を単一の真実源とする (MainActivity の解析側と一致)。 */
+        fun deepLinkUri(productKey: String): String =
+            com.example.popcoon.core.DeepLinks.product(productKey)
         fun priceAlertText(currentPrice: Long, previousPrice: Long): String =
             "¥${"%,d".format(currentPrice)} (前回: ¥${"%,d".format(previousPrice)})"
     }
