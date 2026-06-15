@@ -3,6 +3,38 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 45: ソクラテス式 — 検証の演劇性 [非識別テストの暴露] — 2026-06-15)
+
+### ソクラテス式問答 (手法そのものへの転回)
+- 問: Tier 40-44 で挙動を変えた。**もし誰かがそれを差し戻したら、どのテストが落ちるか?**
+  → 調べると `SortAndFilterTest` の `PRICE_ASC/DESC` テストは存在する。だが…
+- 問: そのテストの `mkRow` は `effectivePrice` を指定しているか?
+  → **していない。** デフォルト `effectivePrice = price (sticker)`。さらに Amazon・pointsBack=0 では
+  `PointSimulator` 実質価格 == totalPrice。つまりテストデータでは両者が常に一致する。
+- 問: ならば `SortAndFilter` が `totalPrice` でソートしても `effectivePrice` でソートしても、
+  このテストは**同じ結果**になるのでは?
+  → **その通り。** Tier 40 の修正 (totalPrice → effectivePrice) を差し戻してもテストは緑のまま。
+  保護になっていない。「バグと修正の両方で通るテストは、保護ではなく演劇 (theater)」。
+- 結論: 6 連続の正しさ修正を入れたが、その正しさを守るテストを 1 つも追加していなかった。
+  これは「正しさを *主張* したが *保護* していない」状態。Socratic な自己批判: 私は
+  「totalPrice を effectivePrice に変える」作業を機械的に繰り返し、検証ループを閉じていなかった。
+
+### 適用した修正 (識別力のある回帰テスト)
+- `SortAndFilterTest.mkRow` に `effectivePrice` パラメータを追加。
+- **sticker 順と effectivePrice 順が *食い違う* データ**でテストを追加:
+  - `PRICE_ASC/DESC`: sticker では [b,a,c] だが effectivePrice では [c,a,b] になる行集合を使い、
+    sort が effectivePrice に従うことをアサート。totalPrice に差し戻すと**落ちる**。
+  - 価格範囲フィルタ: sticker 枠外/effective 枠内 (3200→2900) と
+    sticker 枠内/effective 枠外 (2900→3100) の商品を混在させ、effectivePrice 判定を強制。
+- スタンドアロン Kotlin で期待値の算術と「識別性」(sticker パスが別結果を出すこと) を実行検証
+  (Android SDK 不要、`/tmp/verify_sort.kt`)。CI では Kotest がこのテストを実行する。
+
+### 一般教訓 (この発見は今後の全 Tier に適用)
+- **テストの識別性チェック**: 新しい挙動を入れたら「旧挙動でこのテストは落ちるか?」を必ず問う。
+  落ちないなら、それはカバレッジの錯覚。データを旧/新で *分岐する* 値に変える。
+- 死蔵フィールド (`effectivePrice`) が「デフォルト値 == 旧フィールド」だと、テストが
+  存在しても新コードパスを一度も踏まない。デフォルトが旧挙動に一致する設計は危険信号。
+
 ## 製品改善ループ (Tier 44: ソクラテス式 — TCO 計算の購入価格 [sticker → effectivePrice] — 2026-06-15)
 
 ### ソクラテス式問答

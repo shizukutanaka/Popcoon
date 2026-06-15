@@ -18,6 +18,7 @@ class SortAndFilterTest : StringSpec({
         listPrice: Long = price,
         title: String = sku,
         stockCount: Int? = null,
+        effectivePrice: Long = price,
     ): SearchRow {
         return SearchRow(
             product = Product(
@@ -28,6 +29,7 @@ class SortAndFilterTest : StringSpec({
             verdict = BuyTimingScorer.Verdict.NEUTRAL,
             warnings = emptyList(),
             score = score,
+            effectivePrice = effectivePrice,
         )
     }
 
@@ -48,6 +50,32 @@ class SortAndFilterTest : StringSpec({
         val rows = listOf(mkRow("a", 3000), mkRow("b", 1000), mkRow("c", 2000))
         val sorted = SortOption.apply(rows, SortOption.PRICE_DESC)
         sorted.map { it.product.sku } shouldBe listOf("a", "c", "b")
+    }
+
+    // ── effectivePrice (ポイント還元後) で並ぶことの回帰防止 ───────────────
+    // 重要: sticker (totalPrice) 順と effectivePrice 順が *食い違う* データを使う。
+    // これにより SortAndFilter が誤って totalPrice に戻された場合にこのテストが落ちる。
+    // (従来の PRICE_ASC テストは effectivePrice==totalPrice のため両実装で通り、保護にならない)
+    "PRICE_ASC: sticker ではなく effectivePrice で並べ替え" {
+        val rows = listOf(
+            // sticker 順: b(995) < a(1000) < c(1010)
+            // effective 順: c(900) < a(990) < b(995)  ← ポイント還元でクロスする
+            mkRow("a", 1000, effectivePrice = 990),
+            mkRow("b", 995, effectivePrice = 995),
+            mkRow("c", 1010, effectivePrice = 900),
+        )
+        val sorted = SortOption.apply(rows, SortOption.PRICE_ASC)
+        sorted.map { it.product.sku } shouldBe listOf("c", "a", "b")
+    }
+
+    "PRICE_DESC: sticker ではなく effectivePrice で並べ替え" {
+        val rows = listOf(
+            mkRow("a", 1000, effectivePrice = 990),
+            mkRow("b", 995, effectivePrice = 995),
+            mkRow("c", 1010, effectivePrice = 900),
+        )
+        val sorted = SortOption.apply(rows, SortOption.PRICE_DESC)
+        sorted.map { it.product.sku } shouldBe listOf("b", "a", "c")
     }
 
     "DISCOUNT_DESC: 割引率の高い順" {
@@ -115,6 +143,23 @@ class SortAndFilterTest : StringSpec({
         val filter = SearchFilter(minPrice = 1000, maxPrice = 3000)
         val filtered = filter.apply(rows)
         filtered.map { it.product.sku } shouldBe listOf("b")
+    }
+
+    // 回帰防止: 価格範囲フィルタは sticker ではなく effectivePrice で判定する。
+    // sticker では枠外、effectivePrice ではポイント還元で枠内に入る商品を残すこと。
+    "価格範囲フィルター: effectivePrice で判定 (sticker 枠外でも還元後は枠内)" {
+        val rows = listOf(
+            // sticker 3200 は maxPrice=3000 を超えるが、effective 2900 なら枠内に残すべき
+            mkRow("a", 3200, effectivePrice = 2900),
+            // sticker 2800 は枠内だが、ここでは effective も枠内 (対照)
+            mkRow("b", 2800, effectivePrice = 2800),
+            // sticker 2900 だが effective 3100 で上限超え → 除外されるべき
+            mkRow("c", 2900, effectivePrice = 3100),
+        )
+        val filter = SearchFilter(minPrice = 1000, maxPrice = 3000)
+        val filtered = filter.apply(rows).map { it.product.sku }
+        filtered shouldBe listOf("a", "b")
+        filtered shouldNotContain "c"
     }
 
     "プラットフォーム絞り込み: Amazon のみ" {
