@@ -352,7 +352,7 @@
       "expect": {
         "co2_kg": 266.666667,
         "co2_score": 90,
-        "green_alternative": "国産代替でCO2-50%削減可",
+        "green_alternative": null,
         "labor_score": 90,
         "overall": 81
       },
