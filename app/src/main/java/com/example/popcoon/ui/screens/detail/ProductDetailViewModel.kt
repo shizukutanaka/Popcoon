@@ -142,10 +142,11 @@ class ProductDetailViewModel @Inject constructor(
                 val inWatchlist = watchlistDao.get(product.key) != null
                 val affiliateOptin = kotlinx.coroutines.flow.first(prefs.affiliateOptin)
                 val prediction = PricePredictionEngine.predict(history)
-                // TCO: 対象カテゴリ (プリンター/PC等) のみ計算
+                // TCO: 対象カテゴリ (プリンター/PC等) のみ計算。
+                // effectivePrice (ポイント還元後) を実質購入価格として供給。
                 val tco = TCOCalculator.inferCategory(product.title)?.let { category ->
                     TCOCalculator.calculate(
-                        purchasePrice = product.totalPrice,
+                        purchasePrice = PointSimulator.simulate(product, userCtx).effectivePrice,
                         category = category,
                     )
                 }

@@ -3,6 +3,21 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 44: ソクラテス式 — TCO 計算の購入価格 [sticker → effectivePrice] — 2026-06-15)
+
+### ソクラテス式問答
+- 問: TCO (Total Cost of Ownership) の「購入価格」に何を渡しているか?
+  → `product.totalPrice` = sticker + shipping、ポイント還元なし。
+- 問: 例えば Rakuten SPU8x ユーザーが 10万円のプリンターを買うと、実質 8000円のポイントが返る。
+  その ユーザーの真のプリンタ所有コストは?
+  → `92000 + 年間消耗品` であるべき。だが TCO は `100000 + 消耗品` で計算されていた。
+- 結論: TCO は「実質コスト」を示すための機能。ポイント還元前の価格では正確でない。
+
+### 適用した修正
+- `ProductDetailViewModel.load()` でのTCO計算:
+  `purchasePrice = product.totalPrice` → `PointSimulator.simulate(product, userCtx).effectivePrice`
+- `userCtx` は既に直前で構築済みなので追加 I/O なし。
+
 ## 製品改善ループ (Tier 43: ソクラテス式 — SmartCartService の自己言及 TODO [effectivePrice 修正] — 2026-06-15)
 
 ### ソクラテス式問答
