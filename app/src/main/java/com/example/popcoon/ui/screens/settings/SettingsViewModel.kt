@@ -7,6 +7,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.popcoon.BuildConfig
+import com.example.popcoon.core.PopcoonLogger
 import com.example.popcoon.data.db.PopcoonDatabase
 import com.example.popcoon.data.repository.BackendClient
 import com.example.popcoon.feature.billing.BillingManager
@@ -129,7 +130,10 @@ class SettingsViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 _state.value = _state.value.copy(isDeleting = false)
                 throw e
-            } catch (_: Exception) { /* ignore DB errors silently */ }
+            } catch (e: Exception) {
+                // UI には握りつぶすが、デバッグのため WARN で記録 (PII は logger 側でサニタイズ)。
+                PopcoonLogger.w(this@SettingsViewModel, "deleteAllData failed: ${e.message}", e)
+            }
             _state.value = _state.value.copy(isDeleting = false)
         }
     }
@@ -140,7 +144,9 @@ class SettingsViewModel @Inject constructor(
                 database.searchHistoryDao().deleteAll()
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: Exception) { }
+            } catch (e: Exception) {
+                PopcoonLogger.w(this@SettingsViewModel, "clearSearchHistory failed: ${e.message}", e)
+            }
         }
     }
 
@@ -150,7 +156,9 @@ class SettingsViewModel @Inject constructor(
                 database.watchlistDao().deleteAll()
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: Exception) { }
+            } catch (e: Exception) {
+                PopcoonLogger.w(this@SettingsViewModel, "clearWatchlist failed: ${e.message}", e)
+            }
         }
     }
 
@@ -166,7 +174,9 @@ class SettingsViewModel @Inject constructor(
                 }
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: Exception) { }
+            } catch (e: Exception) {
+                PopcoonLogger.w(this@SettingsViewModel, "exportCsv failed: ${e.message}", e)
+            }
         }
     }
 

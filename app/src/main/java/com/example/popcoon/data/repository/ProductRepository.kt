@@ -97,6 +97,7 @@ open class ProductRepository @Inject constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            PopcoonLogger.w("ProductRepository", "詳細フォールバック取得失敗", e)
             null
         } ?: product
     }
@@ -105,6 +106,9 @@ open class ProductRepository @Inject constructor(
     override suspend fun getPriceHistory(productKey: String): List<PriceRecord> {
         return try { backend.getPriceHistory(productKey) }
         catch (e: CancellationException) { throw e }
-        catch (e: Exception) { emptyList() }
+        catch (e: Exception) {
+            PopcoonLogger.w("ProductRepository", "価格履歴取得失敗", e)
+            emptyList()
+        }
     }
 }
