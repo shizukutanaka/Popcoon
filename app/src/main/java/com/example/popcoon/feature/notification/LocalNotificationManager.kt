@@ -8,6 +8,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.example.popcoon.MainActivity
 import com.example.popcoon.PopcoonApp
 import com.example.popcoon.R
+import com.example.popcoon.core.PopcoonLogger
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -39,14 +40,17 @@ class LocalNotificationManager @Inject constructor() {
         title: String,
         priceText: String,
     ) {
+        // 通知 ID / Deep Link は検証済みの純関数を単一の真実源として使う
+        // (インラインで再構築すると notificationId/deepLinkUri テストが実挙動を縛れない)。
+        val notifId = notificationId(productKey)
         val deepLinkIntent = Intent(context, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
-            data = android.net.Uri.parse("popcoon://product/$productKey")
+            data = android.net.Uri.parse(deepLinkUri(productKey))
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         val pendingIntent = PendingIntent.getActivity(
             context,
-            productKey.hashCode(),
+            notifId,
             deepLinkIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -63,8 +67,11 @@ class LocalNotificationManager @Inject constructor() {
             .build()
 
         runCatching {
-            NotificationManagerCompat.from(context)
-                .notify(productKey.hashCode(), notification)
+            NotificationManagerCompat.from(context).notify(notifId, notification)
+        }.onFailure { e ->
+            // POST_NOTIFICATIONS 権限欠如等で SecurityException になり得る。
+            // 握りつぶすと「アラート有効なのに通知が来ない」を診断できないため記録する。
+            PopcoonLogger.w(this, "価格アラート通知の発行に失敗: ${e.message}", e)
         }
     }
 
@@ -82,7 +89,11 @@ class LocalNotificationManager @Inject constructor() {
             .build()
 
         runCatching {
-            NotificationManagerCompat.from(context).notify(999, notification)
+            NotificationManagerCompat.from(context).notify(WEEKLY_DIGEST_NOTIF_ID, notification)
+        }.onFailure { e ->
+            PopcoonLogger.w(this, "週間ダイジェスト通知の発行に失敗: ${e.message}", e)
         }
     }
 }
+
+private const val WEEKLY_DIGEST_NOTIF_ID = 999
