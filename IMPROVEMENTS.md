@@ -3,6 +3,25 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 42: ソクラテス式 — 名寄せ最安値の判定基準 [groupByIdentity 再ソート] — 2026-06-15)
+
+### ソクラテス式問答
+- 問: 検索結果で各グループの「代表商品 (最安値)」は何で選ばれているか?
+  → `ProductMatcher.groupByIdentity` が `totalPrice` 順にソートし `group.first()` を代表にする。
+- 問: `totalPrice` = `realPrice + shipping - 0 - 0` (points=0) — これはユーザーの実質価格か?
+  → **否。** SPU8x の楽天会員は Amazon より 7% 安く買える場合でも、
+  totalPrice が低い Amazon が「最安値代表」として選ばれる。
+- 問: 代表選択を effectivePrice に変えると何が直るか?
+  → 各グループで「そのユーザーにとって最も安い」プラットフォームの商品が代表になる。
+  楽天ヘビーユーザーには楽天商品が、Amazon Prime ユーザーには Amazon 商品が前面に出る。
+
+### 適用した修正
+- `SearchViewModel.performSearch` で `groupByIdentity` 結果を `userCtx` 込みの
+  `PointSimulator.simulate(product, userCtx).effectivePrice` で再ソート。
+- `ProductMatcher.groupByIdentity` 自体は変更せず (totalPrice sort は userCtx 非依存の
+  初期グルーピングに引き続き使える)。
+- 再ソートは既に計算済みの `userCtx` を使うので追加 I/O なし (純粋関数)。
+
 ## 製品改善ループ (Tier 41: ソクラテス式 — ATL 近接比較の単位不整合 [BuyTimingScorer バイアス修正] — 2026-06-15)
 
 ### ソクラテス式問答 (ATL 比較の前提)

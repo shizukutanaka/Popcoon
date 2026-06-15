@@ -125,9 +125,12 @@ class SearchViewModel @Inject constructor(
                 _state.value = SearchUiState.Empty
                 return
             }
-            // 名寄せ: 同一商品をグループ化し、各グループの最安値を代表とする
-            // (arXiv 2512.07232 Rough Filtering — 重複排除で価格比較を明確化)
-            val groups = ProductMatcher.groupByIdentity(products)
+            // 名寄せ: 同一商品をグループ化し、各グループの実質最安値を代表とする。
+            // groupByIdentity は totalPrice 順だが userCtx 込みの effectivePrice で再ソート。
+            // 例: 楽天 SPU8x ユーザーには楽天商品が Amazon より実質安くなり得る。
+            val groups = ProductMatcher.groupByIdentity(products).map { group ->
+                group.sortedBy { PointSimulator.simulate(it, userCtx).effectivePrice }
+            }
             // 各グループの価格履歴取得は独立した backend 往復なので並列化する
             // (従来は逐次で、結果数ぶん直列にネットワーク待ちしていた)。
             val rows = coroutineScope {
