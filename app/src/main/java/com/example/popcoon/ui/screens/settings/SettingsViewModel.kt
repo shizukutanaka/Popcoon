@@ -31,6 +31,11 @@ data class SettingsUiState(
     val billingStatus: BillingManager.PremiumStatus = BillingManager.PremiumStatus.UNKNOWN,
     val appVersion: String = "0.1.0",
     val isDeleting: Boolean = false,
+    // EC 会員設定 — PointSimulator.UserContext に供給
+    val rakutenSpu: Int = 1,
+    val yahooPremium: Boolean = false,
+    val paypaySoftbank: Boolean = false,
+    val amazonPrime: Boolean = false,
 )
 
 @HiltViewModel
@@ -64,11 +69,30 @@ class SettingsViewModel @Inject constructor(
                 isPremium = prem,
             )
         }.onEach { _state.value = it }.launchIn(viewModelScope)
+
+        combine(
+            prefs.rakutenSpu,
+            prefs.yahooPremium,
+            prefs.paypaySoftbank,
+            prefs.amazonPrime,
+        ) { spu, yp, sb, ap ->
+            _state.value.copy(
+                rakutenSpu = spu,
+                yahooPremium = yp,
+                paypaySoftbank = sb,
+                amazonPrime = ap,
+            )
+        }.onEach { _state.value = it }.launchIn(viewModelScope)
     }
 
     fun setCrashOptin(v: Boolean) { viewModelScope.launch { prefs.setCrashReportOptin(v) } }
     fun setAiOptin(v: Boolean) { viewModelScope.launch { prefs.setAiAdvisorOptin(v) } }
     fun setAffiliateOptin(v: Boolean) { viewModelScope.launch { prefs.setAffiliateOptin(v) } }
+
+    fun setRakutenSpu(v: Int) { viewModelScope.launch { prefs.setRakutenSpu(v) } }
+    fun setYahooPremium(v: Boolean) { viewModelScope.launch { prefs.setYahooPremium(v) } }
+    fun setPaypaySoftbank(v: Boolean) { viewModelScope.launch { prefs.setPaypaySoftbank(v) } }
+    fun setAmazonPrime(v: Boolean) { viewModelScope.launch { prefs.setAmazonPrime(v) } }
 
     /**
      * Activity からサブスク購入フローを起動する。

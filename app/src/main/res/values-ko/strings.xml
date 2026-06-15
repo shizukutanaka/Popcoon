@@ -69,6 +69,17 @@
     <string name="customs_cat_other">기타</string>
     <string name="settings_tools">도구</string>
 
+    <!-- EC 회원 설정 -->
+    <string name="settings_ec_membership">EC 회원 설정</string>
+    <string name="settings_rakuten_spu">라쿠텐 SPU 배율</string>
+    <string name="settings_rakuten_spu_desc">라쿠텐 슈퍼 포인트 업 프로그램 배율을 설정하세요 (1–15배)</string>
+    <string name="settings_yahoo_premium">Yahoo! 프리미엄 회원</string>
+    <string name="settings_yahoo_premium_desc">Yahoo! 프리미엄 회원은 +2% PayPay 포인트가 적립됩니다</string>
+    <string name="settings_paypay_softbank">SoftBank/Y!mobile 이용자</string>
+    <string name="settings_paypay_softbank_desc">SoftBank 또는 Y!mobile 이용자는 +5% PayPay 포인트가 적립됩니다</string>
+    <string name="settings_amazon_prime">Amazon Prime 회원</string>
+    <string name="settings_amazon_prime_desc">Amazon Prime 회원은 무료 배송 혜택이 적용됩니다</string>
+
     <string name="eco_score">에코 윤리 점수</string>
     <string name="eco_co2">CO2 점수</string>
     <string name="eco_labor">노동 조건</string>

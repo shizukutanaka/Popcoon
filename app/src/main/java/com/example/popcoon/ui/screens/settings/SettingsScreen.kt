@@ -68,6 +68,60 @@ fun SettingsScreen(
                 )
             }
 
+            // ── EC 会員設定 (ポイント還元ランキング個人化) ──────
+            SectionCard(stringResource(R.string.settings_ec_membership)) {
+                // 楽天 SPU: Slider 1–15
+                Column(Modifier.padding(horizontal = Spacing.ml, vertical = Spacing.sm)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            stringResource(R.string.settings_rakuten_spu),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Text(
+                            "${state.rakutenSpu}x",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                    Text(
+                        stringResource(R.string.settings_rakuten_spu_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Slider(
+                        value = state.rakutenSpu.toFloat(),
+                        onValueChange = { viewModel.setRakutenSpu(it.toInt()) },
+                        valueRange = 1f..15f,
+                        steps = 13,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                HorizontalDivider()
+                ToggleRow(
+                    title = stringResource(R.string.settings_yahoo_premium),
+                    description = stringResource(R.string.settings_yahoo_premium_desc),
+                    checked = state.yahooPremium,
+                    onCheckedChange = viewModel::setYahooPremium,
+                )
+                HorizontalDivider()
+                ToggleRow(
+                    title = stringResource(R.string.settings_paypay_softbank),
+                    description = stringResource(R.string.settings_paypay_softbank_desc),
+                    checked = state.paypaySoftbank,
+                    onCheckedChange = viewModel::setPaypaySoftbank,
+                )
+                HorizontalDivider()
+                ToggleRow(
+                    title = stringResource(R.string.settings_amazon_prime),
+                    description = stringResource(R.string.settings_amazon_prime_desc),
+                    checked = state.amazonPrime,
+                    onCheckedChange = viewModel::setAmazonPrime,
+                )
+            }
+
             // ── データ ─────────────────────────────────
             SectionCard(stringResource(R.string.settings_data)) {
                 if (state.isPremium) {

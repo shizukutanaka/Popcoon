@@ -147,6 +147,17 @@
     <string name="customs_cat_other">その他</string>
     <string name="settings_tools">ツール</string>
 
+    <!-- EC 会員設定 (ポイント還元ランキング個人化) -->
+    <string name="settings_ec_membership">EC 会員設定</string>
+    <string name="settings_rakuten_spu">楽天 SPU 倍率</string>
+    <string name="settings_rakuten_spu_desc">楽天スーパーポイントアッププログラムの倍率を設定してください (1–15倍)</string>
+    <string name="settings_yahoo_premium">Yahoo!プレミアム会員</string>
+    <string name="settings_yahoo_premium_desc">Yahoo!プレミアム会員の場合、+2% PayPay 還元が適用されます</string>
+    <string name="settings_paypay_softbank">SoftBank/Y!mobile 利用者</string>
+    <string name="settings_paypay_softbank_desc">SoftBank または Y!mobile を利用している場合、+5% PayPay 還元が適用されます</string>
+    <string name="settings_amazon_prime">Amazon Prime 会員</string>
+    <string name="settings_amazon_prime_desc">Amazon Prime 会員の場合、配送料無料が適用されます</string>
+
     <!-- Eco -->
     <string name="eco_score">エコ倫理スコア</string>
     <string name="eco_co2">CO2 スコア</string>

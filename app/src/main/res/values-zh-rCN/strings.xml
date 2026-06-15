@@ -69,6 +69,17 @@
     <string name="customs_cat_other">其他</string>
     <string name="settings_tools">工具</string>
 
+    <!-- EC 会员设置 -->
+    <string name="settings_ec_membership">EC 会员设置</string>
+    <string name="settings_rakuten_spu">乐天 SPU 倍率</string>
+    <string name="settings_rakuten_spu_desc">请设置乐天超级积分提升计划的倍率 (1–15倍)</string>
+    <string name="settings_yahoo_premium">Yahoo! 高级会员</string>
+    <string name="settings_yahoo_premium_desc">Yahoo! 高级会员可获得 +2% PayPay 积分返还</string>
+    <string name="settings_paypay_softbank">SoftBank/Y!mobile 用户</string>
+    <string name="settings_paypay_softbank_desc">SoftBank 或 Y!mobile 用户可获得 +5% PayPay 积分返还</string>
+    <string name="settings_amazon_prime">Amazon Prime 会员</string>
+    <string name="settings_amazon_prime_desc">Amazon Prime 会员享受免费配送</string>
+
     <string name="eco_score">环保伦理评分</string>
     <string name="eco_co2">CO2 评分</string>
     <string name="eco_labor">劳动条件</string>
