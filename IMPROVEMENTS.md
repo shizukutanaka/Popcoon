@@ -3,6 +3,34 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 43: ソクラテス式 — SmartCartService の自己言及 TODO [effectivePrice 修正] — 2026-06-15)
+
+### ソクラテス式問答
+- 問: `SmartCartService` のコメントに何と書いてあるか?
+  → 「PointSimulator が前計算した実質単価を `options` に載せる想定（現在は totalPrice で代替）」
+- 問: この TODO は誰かが修正したか?
+  → **誰も修正していない。** 自己言及 TODO として放置され、実際は `totalPrice` (sticker+shipping) を
+  CartOptimizer に渡していた。
+- 問: `totalPrice` = `realPrice + shippingFee`。CartOptimizer はさらに MallConfig.shipping を加算する。
+  送料が **二重計上** されるのではないか?
+  → **その通り。** Rakuten 商品は `shippingFee=500` を含む totalPrice を `options` に渡し、
+  さらに MallConfig.shipping=500 が加算される → 購入1件あたり 500円の誤差。
+- 問: `naiveTotal` も同じ問題があるか?
+  → **ある。** 「ウォッチ中プラットフォームでの単純購入合計」も totalPrice + mall shipping で
+  二重計上されていた。比較基準が歪むため、最適化による節約額 `savingVsNaive` も不正確。
+- 問: UserContext が DefaultContext のままだから、ポイント比較も無意味ではないか?
+  → **そうだった。** WatchlistViewModel はすでに UserPreferences を @Inject していたが
+  EC 会員設定 (rakutenSpu 等) は新規追加なので、UserContext を渡していなかった。
+
+### 適用した修正
+- **`SmartCartService.optimize()`**: `userCtx: PointSimulator.UserContext` パラメータを追加。
+  `options` には `PointSimulator.simulate(p, userCtx).let { sticker - pointsBack }` を使用
+  (shipping 除外 → optimizer が mall 送料を別途加算するため整合する)。
+- **`SmartCartService.computeNaiveTotal()`**: 同じく effectivePrice (shipping なし) を使用。
+- **`WatchlistViewModel.smartCart`**: `.map { }` を
+  `combine(rawItems, prefs.rakutenSpu, prefs.yahooPremium, prefs.paypaySoftbank, prefs.amazonPrime) { ... }`
+  に変更し、`UserContext` を構築して `SmartCartService.optimize(list, userCtx = userCtx)` に渡す。
+
 ## 製品改善ループ (Tier 42: ソクラテス式 — 名寄せ最安値の判定基準 [groupByIdentity 再ソート] — 2026-06-15)
 
 ### ソクラテス式問答

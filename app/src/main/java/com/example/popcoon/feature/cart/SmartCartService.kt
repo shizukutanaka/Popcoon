@@ -4,6 +4,7 @@ import com.example.popcoon.data.db.WatchlistItem
 import com.example.popcoon.data.model.Platform
 import com.example.popcoon.data.model.Product
 import com.example.popcoon.feature.matching.ProductMatcher
+import com.example.popcoon.feature.points.PointSimulator
 
 /**
  * ウォッチリスト → CrossMallCartOptimizer への変換ブリッジ。
@@ -35,10 +36,15 @@ object SmartCartService {
      * 同一商品グループは ProductMatcher が判定し、グループ内の各プラットフォームが
      * CartItem の選択肢（options）になる。グループ化できない（ユニーク）商品は
      * 単一オプションとして optimizer に渡す（送料集約の効果だけを受ける）。
+     *
+     * options に載せる価格は PointSimulator 実質価格 (sticker - points)。
+     * CrossMallCartOptimizer が mall-level 送料を別途加算するため、
+     * options には product.realPrice ベースの値を使う（totalPrice は shipping 重複になる）。
      */
     fun optimize(
         items: List<WatchlistItem>,
         mallConfigs: Map<String, CrossMallCartOptimizer.MallConfig> = DEFAULT_MALL_CONFIGS,
+        userCtx: PointSimulator.UserContext = PointSimulator.UserContext(),
     ): SmartCartResult? {
         if (items.isEmpty()) return null
 
@@ -46,7 +52,12 @@ object SmartCartService {
         val groups = ProductMatcher.groupByIdentity(products)
 
         val cartItems = groups.map { group ->
-            val options = group.associate { p -> p.platform.id to p.totalPrice.toDouble() }
+            // effective price = realPrice - points (shipping 抜き; optimizer が別途 mall shipping を加算)
+            val options = group.associate { p ->
+                p.platform.id to PointSimulator.simulate(p, userCtx).let {
+                    (it.sticker - it.pointsBack).toDouble().coerceAtLeast(0.0)
+                }
+            }
             CrossMallCartOptimizer.CartItem(
                 name = group.first().title.take(50),
                 options = options,
@@ -56,7 +67,7 @@ object SmartCartService {
         val result = CrossMallCartOptimizer.optimize(cartItems, mallConfigs)
 
         // 「現状プラン」: 各商品をウォッチ中のプラットフォームから購入した場合の単純合計
-        val naiveTotal = computeNaiveTotal(groups, mallConfigs)
+        val naiveTotal = computeNaiveTotal(groups, mallConfigs, userCtx)
 
         return SmartCartResult(
             cartItems = cartItems,
@@ -69,13 +80,17 @@ object SmartCartService {
     private fun computeNaiveTotal(
         groups: List<List<Product>>,
         mallConfigs: Map<String, CrossMallCartOptimizer.MallConfig>,
+        userCtx: PointSimulator.UserContext,
     ): Double {
         // 各グループの first() プラットフォーム（ウォッチ中プラット）で買ったときのモール別合計
+        // effective price (sticker - points) を使い、mall shipping を別途加算
         val perMall = mutableMapOf<String, Double>()
         for (group in groups) {
             val p = group.first()
             val mallId = p.platform.id
-            perMall[mallId] = (perMall[mallId] ?: 0.0) + p.totalPrice.toDouble()
+            val sim = PointSimulator.simulate(p, userCtx)
+            val effectiveSticker = (sim.sticker - sim.pointsBack).toDouble().coerceAtLeast(0.0)
+            perMall[mallId] = (perMall[mallId] ?: 0.0) + effectiveSticker
         }
         var total = 0.0
         for ((mallId, sub) in perMall) {

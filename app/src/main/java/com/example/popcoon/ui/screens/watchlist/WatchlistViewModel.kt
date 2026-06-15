@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.popcoon.data.db.WatchlistDao
 import com.example.popcoon.data.db.WatchlistItem
 import com.example.popcoon.feature.cart.SmartCartService
+import com.example.popcoon.feature.points.PointSimulator
 import com.example.popcoon.feature.settings.UserPreferences
 import com.example.popcoon.feature.watchlist.WatchlistSort
 import com.example.popcoon.widget.WidgetUpdater
@@ -47,9 +48,24 @@ class WatchlistViewModel @Inject constructor(
      * 2件以上あれば自動計算。最適化は総当たり (最大 200k 通り) になり得るため
      * Dispatchers.Default に逃がし、メインスレッドをブロックしない。
      * 並べ替え順は最適化結果に影響しないため raw を使う。
+     * EC 会員設定 (UserPreferences) から UserContext を構築して PointSimulator に供給。
      */
-    val smartCart = rawItems
-        .map { list -> if (list.size >= 2) SmartCartService.optimize(list) else null }
+    val smartCart = combine(
+        rawItems,
+        prefs.rakutenSpu,
+        prefs.yahooPremium,
+        prefs.paypaySoftbank,
+        prefs.amazonPrime,
+    ) { list, spu, yp, sb, ap ->
+        if (list.size < 2) return@combine null
+        val userCtx = PointSimulator.UserContext(
+            rakutenSpu = spu,
+            yahooPremium = yp,
+            paypaySoftbank = sb,
+            amazonPrime = ap,
+        )
+        SmartCartService.optimize(list, userCtx = userCtx)
+    }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
