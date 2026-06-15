@@ -1,16 +1,13 @@
 package com.example.popcoon.data.network
 
 /**
- * stockFromAvailability (FallbackScraper の在庫抽出) の実行検証ハーネス (Android SDK 不要)。
+ * JsonLdStock.kt の純関数群の実行検証ハーネス (Android SDK 不要)。
  * run_jsonld.sh から JsonLdStock.kt と一緒にコンパイル・実行する。
  *
- * extractJsonString は ktor 依存の FallbackScraper 内にあるためここでは正規表現を複製して
- * 「flat キー検索が nested offers.availability に届く」ことを demonstrate する
- * (検証の主対象は本物の stockFromAvailability)。
+ * 抽出は**実関数** extractJsonLdString を直接呼ぶ (以前は正規表現を複製した mirror を使っていたが、
+ * 複製がドリフトすると production が壊れてもハーネスが緑のまま = 検証の演劇だった。
+ * 本関数を JsonLdStock.kt へ抽出し、FallbackScraper.extractJsonString はそこへ委譲する)。
  */
-private fun extractJsonStringMirror(json: String, key: String): String? =
-    Regex("""["']$key["']\s*:\s*["']((?:[^"\\]|\\.)*)["']""").find(json)?.groupValues?.get(1)
-
 fun main() {
     val cases = listOf(
         "https://schema.org/OutOfStock" to 0, "OutOfStock" to 0,
@@ -25,10 +22,10 @@ fun main() {
 
     // End-to-end: nested JSON-LD offers.availability -> extracted -> mapped to 0.
     val ld = """{"@type":"Product","name":"X","offers":{"@type":"Offer","price":"1980","availability":"https://schema.org/OutOfStock"}}"""
-    val extracted = extractJsonStringMirror(ld, "availability")
+    val extracted = extractJsonLdString(ld, "availability")
     check(extracted == "https://schema.org/OutOfStock") { "extract failed: $extracted" }
     check(stockFromAvailability(extracted) == 0) { "nested OutOfStock -> 0" }
-    check(stockFromAvailability(extractJsonStringMirror("""{"offers":{"availability":"https://schema.org/InStock"}}""", "availability")) == null) { "InStock -> null" }
+    check(stockFromAvailability(extractJsonLdString("""{"offers":{"availability":"https://schema.org/InStock"}}""", "availability")) == null) { "InStock -> null" }
 
     // ── normalizeOriginCountry: 表記ゆれ → EcoEthicsScorer の ISO-2 キー ──────
     val countryCases = listOf(
@@ -53,7 +50,7 @@ fun main() {
 
     // End-to-end: JSON-LD countryOfOrigin -> extracted -> normalized to eco key.
     val ld2 = """{"@type":"Product","name":"X","countryOfOrigin":"Japan","price":"1980"}"""
-    check(normalizeOriginCountry(extractJsonStringMirror(ld2, "countryOfOrigin")) == "JP") {
+    check(normalizeOriginCountry(extractJsonLdString(ld2, "countryOfOrigin")) == "JP") {
         "JSON-LD countryOfOrigin Japan -> JP"
     }
 
@@ -75,7 +72,7 @@ fun main() {
     check(normalizeGtin(null) == null) { "gtin null -> null" }
     // End-to-end: JSON-LD gtin13 -> extracted -> normalized janCode.
     val ld3 = """{"@type":"Product","name":"X","gtin13":"4901234567894"}"""
-    check(normalizeGtin(extractJsonStringMirror(ld3, "gtin13")) == "4901234567894") {
+    check(normalizeGtin(extractJsonLdString(ld3, "gtin13")) == "4901234567894") {
         "JSON-LD gtin13 -> janCode"
     }
 

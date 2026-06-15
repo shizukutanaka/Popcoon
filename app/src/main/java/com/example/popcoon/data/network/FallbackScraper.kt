@@ -44,9 +44,6 @@ class FallbackScraper {
     // robots.txt 本文のホスト別キャッシュ (取得不能時は "" を格納 = 全許可扱い)。
     private val robotsCache = java.util.concurrent.ConcurrentHashMap<String, String>()
 
-    // キー別の抽出用 Regex キャッシュ (呼び出しごとの再コンパイルを回避)。
-    private val keyPatternCache = java.util.concurrent.ConcurrentHashMap<String, Regex>()
-
     companion object {
         const val USER_AGENT =
             "Popcoon-Fallback/0.1 (+https://github.com/shizukutanaka/popcoon)"
@@ -170,13 +167,8 @@ class FallbackScraper {
         )
     }
 
-    internal fun extractJsonString(json: String, key: String): String? {
-        // キーごとに Regex を 1 度だけコンパイルしてキャッシュする (name/price/image 等の固定キー)。
-        // (?:[^"\\]|\\.)*: バックスラッシュエスケープ (\", \\) を含む値に対応。
-        // [^"\\] (シングルクォートを除外しない) により "John's Store" のようなアポストロフィ入り値も正しく抽出。
-        val pattern = keyPatternCache.getOrPut(key) {
-            Regex("""["']$key["']\s*:\s*["']((?:[^"\\]|\\.)*)["']""")
-        }
-        return pattern.find(json)?.groupValues?.get(1)
-    }
+    // 抽出ロジックは ktor 非依存の extractJsonLdString (JsonLdStock.kt) に集約。
+    // パリティハーネスがその実関数を直接検証できるよう委譲する (正規表現の複製を排除)。
+    internal fun extractJsonString(json: String, key: String): String? =
+        extractJsonLdString(json, key)
 }

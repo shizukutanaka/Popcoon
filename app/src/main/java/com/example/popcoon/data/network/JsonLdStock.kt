@@ -1,6 +1,28 @@
 package com.example.popcoon.data.network
 
 /**
+ * JSON-LD (schema.org) のフラットな `"key":"value"` 文字列値を抽出する純関数。
+ *
+ * ktor 非依存に独立させ、Android SDK 無しでコンパイル・実行検証できる
+ * (popcoon-tdd/kotlin_parity/run_jsonld.sh が**実関数**を直接呼ぶ)。
+ * 以前は本関数が ktor 結合した FallbackScraper 内にあり、ハーネスは正規表現を**複製**して
+ * 検証していた (複製がドリフトしても気付けない「検証の演劇」)。ここへ抽出し
+ * FallbackScraper.extractJsonString は本関数へ委譲する。
+ *
+ * `(?:[^"\\]|\\.)*`: バックスラッシュエスケープ (\", \\) を含む値に対応。
+ * `[^"\\]` (シングルクォートを除外しない) により "John's Store" のようなアポストロフィ入り値も抽出。
+ * キーごとに Regex を 1 度だけコンパイルしてキャッシュする (固定キーの再コンパイル回避)。
+ */
+private val jsonLdKeyPatternCache = java.util.concurrent.ConcurrentHashMap<String, Regex>()
+
+internal fun extractJsonLdString(json: String, key: String): String? {
+    val pattern = jsonLdKeyPatternCache.getOrPut(key) {
+        Regex("""["']$key["']\s*:\s*["']((?:[^"\\]|\\.)*)["']""")
+    }
+    return pattern.find(json)?.groupValues?.get(1)
+}
+
+/**
  * schema.org の Offer.availability (JSON-LD) を Product.stockCount に変換する純粋関数。
  *
  * ktor 非依存に独立させ、Android SDK 無しでコンパイル・実行検証できる
