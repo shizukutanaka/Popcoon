@@ -194,4 +194,11 @@ data class SearchRow(
     val score: Int = 0,
     /** 同一商品の他モール価格 (名寄せ結果、最安値順、自身を除く) */
     val alternatives: List<Product> = emptyList(),
+    /**
+     * PointSimulator が算出した実質価格 (EC ポイント還元後)。
+     * 価格ソート・フィルタの単一の真実源。ViewModel が UserContext 込みで計算して注入する。
+     * デフォルトは UserContext() (日付のみ自動、会員設定は後述の Settings から供給)。
+     */
+    val effectivePrice: Long = com.example.popcoon.feature.points.PointSimulator
+        .simulate(product).effectivePrice,
 )

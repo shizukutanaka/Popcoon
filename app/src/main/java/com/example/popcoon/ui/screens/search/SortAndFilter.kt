@@ -27,9 +27,9 @@ enum class SortOption(@androidx.annotation.StringRes val labelRes: Int) {
             BUY_TIMING ->
                 rows.sortedByDescending { it.score }
             PRICE_ASC ->
-                rows.sortedBy { it.product.totalPrice }
+                rows.sortedBy { it.effectivePrice }
             PRICE_DESC ->
-                rows.sortedByDescending { it.product.totalPrice }
+                rows.sortedByDescending { it.effectivePrice }
             DISCOUNT_DESC ->
                 rows.sortedByDescending { row ->
                     val list = row.product.listPrice
@@ -93,9 +93,9 @@ data class SearchFilter(
             if (r < min) return@filter false
         }
 
-        // 価格範囲
-        minPrice?.let { if (p.totalPrice < it) return@filter false }
-        maxPrice?.let { if (p.totalPrice > it) return@filter false }
+        // 価格範囲: PointSimulator 実質価格で比較 (ポイント還元後の実支払額)
+        minPrice?.let { if (row.effectivePrice < it) return@filter false }
+        maxPrice?.let { if (row.effectivePrice > it) return@filter false }
 
         // プラットフォーム絞り込み
         if (platforms.isNotEmpty() && p.platform !in platforms) return@filter false

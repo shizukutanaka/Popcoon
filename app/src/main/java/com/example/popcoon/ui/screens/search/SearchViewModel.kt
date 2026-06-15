@@ -9,7 +9,9 @@ import com.example.popcoon.data.db.SearchHistoryEntry
 import com.example.popcoon.data.repository.IProductRepository
 import com.example.popcoon.feature.darkpattern.DarkPatternDetector
 import com.example.popcoon.feature.matching.ProductMatcher
+import com.example.popcoon.feature.points.PointSimulator
 import com.example.popcoon.feature.scorer.BuyTimingScorer
+import com.example.popcoon.feature.settings.UserPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.FlowPreview
@@ -42,6 +44,7 @@ class SearchViewModel @Inject constructor(
     private val repository: IProductRepository,
     private val historyDao: SearchHistoryDao,
     private val savedStateHandle: SavedStateHandle,
+    private val prefs: UserPreferences,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
@@ -108,6 +111,15 @@ class SearchViewModel @Inject constructor(
         }
         _state.value = SearchUiState.Loading
         runCatching {
+            // EC 会員設定を一度読み取って UserContext を構築 (検索中は変わらない)
+            val userCtx = PointSimulator.UserContext(
+                rakutenSpu = prefs.rakutenSpu.first(),
+                yahooPremium = prefs.yahooPremium.first(),
+                paypaySoftbank = prefs.paypaySoftbank.first(),
+                amazonPrime = prefs.amazonPrime.first(),
+                purchaseDate = java.time.LocalDate.now(),
+            )
+
             val products = repository.search(query, limit = 30)
             if (products.isEmpty()) {
                 _state.value = SearchUiState.Empty
@@ -153,6 +165,7 @@ class SearchViewModel @Inject constructor(
                     warnings = warnings,
                     score = score?.total ?: 0,
                     alternatives = alternatives,
+                    effectivePrice = PointSimulator.simulate(product, userCtx).effectivePrice,
                 )
                     }
                 }.awaitAll()

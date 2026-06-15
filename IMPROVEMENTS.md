@@ -3,6 +3,46 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 40: ソクラテス式 — UserContext が空だったら? [UserContext Vacuum の修正] — 2026-06-15)
+
+### ソクラテス式問答 (新視点: 単一真実源のインプットを誰が供給するのか)
+- 問: PointSimulator を単一の真実源にした。では PointSimulator は「ユーザーの会員情報」をどこから得るのか?
+- 答: `UserContext()` デフォルト = SPU=1、プレミアム全 false。日付のみ `LocalDate.now()` で自動設定。
+- 問: `UserPreferences` (DataStore) に楽天 SPU・Yahoo Premium・SoftBank・Amazon Prime キーはあったか?
+- 答: **なかった。** 設定に `isPremium` はあるが、これは Popcoon 自身のプレミアムフラグ (課金)。EC 会員情報はゼロ。
+- 問: つまり Diamond+SPU8x のヘビーユーザーも SPU=1 のゲスト同様に並ぶのか?
+- 答: **そうだった。** ポイント差が最大 8% 近くある Heavy user が最も利益を受けるはずの機能が、全員 base rate。
+- 結論: 「単一の真実源を作る」だけでは不十分。その真実源が「誰のコンテキストで計算するか」も配線しなければ、
+  精度の高い計算エンジンが全員に同じ (default) 結果を返すだけ — **UserContext Vacuum** と呼ぶ。
+
+### 適用した修正 (Tier 40 = 単一真実源 + UserContext 個人化)
+1. **`UserPreferences`** に EC 会員設定キーを追加:
+   - `KEY_RAKUTEN_SPU: Int` (1–15, default 1) → `val rakutenSpu: Flow<Int>` + `setRakutenSpu(Int)`
+   - `KEY_YAHOO_PREMIUM: Bool` → `val yahooPremium: Flow<Boolean>` + `setYahooPremium(Boolean)`
+   - `KEY_PAYPAY_SOFTBANK: Bool` → `val paypaySoftbank: Flow<Boolean>` + `setPaypaySoftbank(Boolean)`
+   - `KEY_AMAZON_PRIME: Bool` → `val amazonPrime: Flow<Boolean>` + `setAmazonPrime(Boolean)`
+2. **`SearchViewModel`** に `UserPreferences` を @Inject で追加。`performSearch` 冒頭で `first()` 収集し
+   `PointSimulator.UserContext` を組み立てる (検索中は変わらない → 毎 Row 再取得不要)。
+3. **`SearchRow`** に `effectivePrice: Long` フィールドを追加。SearchViewModel が
+   `PointSimulator.simulate(product, userCtx).effectivePrice` を明示的に渡す
+   (デフォルトは `PointSimulator.simulate(product).effectivePrice` でテスト・プレビュー用に保全)。
+4. **`SortAndFilter`**: `PRICE_ASC/PRICE_DESC` が `row.effectivePrice` でソート (従来 `product.totalPrice`)。
+   `SearchFilter.apply` の価格範囲フィルタも `row.effectivePrice` に変更。
+- 日付自動対応はそのまま: `LocalDate.now()` から 5と0のつく日/5のつく日/日曜日 ボーナスを反映。
+
+### 日付のみ有効だった期間の正確な状況
+- 6月15日現在: Rakuten の「5と0のつく日(15日)」+1%、Yahoo「5のつく日(15日)」+4% は
+  デフォルト UserContext でも自動付与されていた。**日付感応ボーナスは元から機能していた**。
+  会員ランク・プレミアム設定だけが空だった。
+
+### 次の Tier (スコープ外)
+- **SettingsScreen に EC 会員設定 UI を追加**: 楽天 SPU スライダー (1–15)、Yahoo Premium / SoftBank /
+  Amazon Prime トグル。キーは既に UserPreferences に追加済み。
+- `SettingsViewModel` に `setRakutenSpu / setYahooPremium / setPaypaySoftbank / setAmazonPrime` を
+  expose して SettingsScreen の UI に束ねれば完成。
+- BuyTimingScorer の `current = product.totalPrice` は歴史価格との相対比較なので
+  `effectivePrice` 化すると非対称になる → 現状 totalPrice のまま維持が正しい。
+
 ## 製品改善ループ (Tier 39: ソクラテス式 — 中核の価値命題が成立しているか? [診断] — 2026-06-14)
 
 ### ソクラテス式問答 (最も根本的な前提)
