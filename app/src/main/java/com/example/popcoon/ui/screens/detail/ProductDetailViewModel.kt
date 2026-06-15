@@ -150,11 +150,13 @@ class ProductDetailViewModel @Inject constructor(
                         category = category,
                     )
                 }
-                // バンドル: タイトルから「N個セット」を抽出し実質単価を計算
+                // バンドル: タイトルから「N個セット」を抽出し実質単価を計算。
+                // effectivePrice を使うことで「ポイント後の1個あたり実質単価」を示す。
+                val effectivePriceForBundle = PointSimulator.simulate(product, userCtx).effectivePrice
                 val bundle = BundlePackDetector.extractBundleInfo(product.title)?.let { info ->
                     if (info.packCount > 1) {
                         BundlePackDetector.detectValue(
-                            bundlePrice = product.totalPrice,
+                            bundlePrice = effectivePriceForBundle,
                             packCount = info.packCount,
                             singlePrice = null,  // 単品価格は将来 API 拡張で取得
                         )
