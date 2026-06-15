@@ -3,6 +3,27 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 41: ソクラテス式 — ATL 近接比較の単位不整合 [BuyTimingScorer バイアス修正] — 2026-06-15)
+
+### ソクラテス式問答 (ATL 比較の前提)
+- 問: `signalAtlProximity(current, history)` は何を比較しているか?
+  → `current` = `product.totalPrice` (sticker + shipping)、`history` = `PriceRecord.realPrice` (sticker のみ)。
+- 問: 同じ「価格」を比較しているのか?
+  → **否。** shipping 500円の商品は `current` が 500円分かさ上げされ、
+  過去最安値1000円 / 最高値2000円の中で (1500+500=2000) ≈ 過去最高値圏と判定される。
+  実際の sticker は (1500) = ちょうど中間なのに「高い」シグナルを出す。
+- 問: Python オラクルは何を渡すと仮定しているか?
+  → `test_buy_timing_scorer.py` の `_history` は `real_price = p`、`current` もそのまま `p` を
+  単独で渡す (shipping なし)。つまり Python oracle は **sticker 同士**を比較する設計。
+- 結論: Kotlin が `totalPrice` (sticker+shipping) を `current` に渡すのはオラクル仮定を破る。
+  shipping が高い商品ほど ATL シグナルが「割高」方向にバイアスし、買い時スコアが低めに出る。
+
+### 適用した修正
+- `SearchViewModel.performSearch` の `BuyTimingScorer.score(current = ...)` を
+  `product.totalPrice` → `product.realPrice` に変更。
+- `DarkPatternDetector.detect(currentPrice = product.totalPrice)` は変更せず
+  (ダークパターン検出は shipping 込みの「支払総額」で判定するのが正しい)。
+
 ## 製品改善ループ (Tier 40: ソクラテス式 — UserContext が空だったら? [UserContext Vacuum の修正] — 2026-06-15)
 
 ### ソクラテス式問答 (新視点: 単一真実源のインプットを誰が供給するのか)

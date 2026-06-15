@@ -141,7 +141,9 @@ class SearchViewModel @Inject constructor(
                     .getOrDefault(emptyList())
 
                 val score = BuyTimingScorer.score(
-                    current = product.totalPrice,
+                    // realPrice matches PriceRecord.realPrice unit (sticker, no shipping).
+                    // totalPrice includes shipping and would bias ATL proximity vs history.
+                    current = product.realPrice,
                     listPrice = product.listPrice,
                     history = history,
                     today = java.time.LocalDate.now(),
