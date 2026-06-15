@@ -144,7 +144,7 @@ private fun LoadedContent(s: DetailUiState.Loaded, affiliateOptin: Boolean) {
     ))
 
     // ─ ポイント還元 実質価格 (ほぼやすねっと/最安値.com 対抗)
-    com.example.popcoon.ui.components.PointSimulatorCard(product = s.product)
+    com.example.popcoon.ui.components.PointSimulatorCard(product = s.product, userCtx = s.userCtx)
 
     // ─ 価格履歴チャート (Keepa/Pricey 標準機能)
     if (s.priceHistory.isNotEmpty()) {

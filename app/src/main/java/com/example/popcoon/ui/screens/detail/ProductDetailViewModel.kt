@@ -14,6 +14,7 @@ import com.example.popcoon.feature.prediction.PricePredictionEngine
 import com.example.popcoon.feature.bundle.BundlePackDetector
 import com.example.popcoon.feature.review.ReviewTrustScorer
 import com.example.popcoon.feature.scorer.BuyTimingScorer
+import com.example.popcoon.feature.points.PointSimulator
 import com.example.popcoon.feature.settings.UserPreferences
 import com.example.popcoon.feature.tco.TCOCalculator
 import com.example.popcoon.core.PopcoonLogger
@@ -46,6 +47,8 @@ sealed interface DetailUiState {
         val bundle: BundlePackDetector.Analysis? = null,
         val ethics: EcoEthicsScorer.Score? = null,
         val affiliateOptin: Boolean = false,
+        /** EC 会員設定から構築。PointSimulatorCard に渡してポイント還元を個人化する。 */
+        val userCtx: PointSimulator.UserContext = PointSimulator.UserContext(),
     ) : DetailUiState
 }
 
@@ -89,9 +92,19 @@ class ProductDetailViewModel @Inject constructor(
                 val product = ProductNavCache.consume(productKey)
                     ?: buildProductFromKey(productKey, history)
 
-                // 3. スコア計算 (pure function — fast)
+                // 3. EC 会員設定から UserContext 構築 (PointSimulatorCard 個人化に供給)
+                val userCtx = PointSimulator.UserContext(
+                    rakutenSpu = kotlinx.coroutines.flow.first(prefs.rakutenSpu),
+                    yahooPremium = kotlinx.coroutines.flow.first(prefs.yahooPremium),
+                    paypaySoftbank = kotlinx.coroutines.flow.first(prefs.paypaySoftbank),
+                    amazonPrime = kotlinx.coroutines.flow.first(prefs.amazonPrime),
+                    purchaseDate = java.time.LocalDate.now(),
+                )
+
+                // 4. スコア計算 (pure function — fast)
+                // realPrice を渡す: PriceRecord.realPrice と単位が一致し ATL バイアスを避ける。
                 val score = BuyTimingScorer.score(
-                    current = product.totalPrice,
+                    current = product.realPrice,
                     listPrice = product.listPrice,
                     history = history,
                     today = java.time.LocalDate.now(),
@@ -172,6 +185,7 @@ class ProductDetailViewModel @Inject constructor(
                     bundle = bundle,
                     ethics = ethics,
                     affiliateOptin = affiliateOptin,
+                    userCtx = userCtx,
                 )
 
                 // 6. AI advice をキャッシュ確認 → 必要なら背景取得

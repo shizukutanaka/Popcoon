@@ -33,12 +33,11 @@ import com.example.popcoon.feature.points.PointSimulator
 fun PointSimulatorCard(
     product: Product,
     modifier: Modifier = Modifier,
+    userCtx: PointSimulator.UserContext = remember { PointSimulator.UserContext() },
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    // 簡易 context (5のつく日 等の判定)
-    val ctx = remember { PointSimulator.UserContext() }
-    val result = remember(product) { PointSimulator.simulate(product, ctx) }
+    val result = remember(product, userCtx) { PointSimulator.simulate(product, userCtx) }
 
     if (result.pointsBack == 0L) return  // ポイントなしなら表示しない
 
