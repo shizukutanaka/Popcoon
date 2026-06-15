@@ -3,6 +3,7 @@ package com.example.popcoon.core
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import java.util.Locale
 
 class CurrencyFormatterTest : StringSpec({
 
@@ -48,5 +49,21 @@ class CurrencyFormatterTest : StringSpec({
 
     "pointsBack: フォーマット確認" {
         CurrencyFormatter.pointsBack(100, "1.0%") shouldBe "+¥100 (1.0%)"
+    }
+
+    // 回帰防止: CurrencyFormatter が Locale.US を明示する目的そのもの。
+    // de_DE ロケール下では既定書式が "1.234.567" (ピリオド区切り) に反転する。
+    // Locale.US guard が効いていれば依然カンマ区切りを保つ。guard を消すとこのテストが落ちる
+    // (従来テストは既定ロケール下のみで、guard 削除を検出できなかった = 検証の演劇)。
+    "yen: 非US (de_DE) ロケールでも桁区切りはカンマを維持" {
+        val saved = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.GERMANY)
+            CurrencyFormatter.yen(1_234_567) shouldBe "¥1,234,567"
+            CurrencyFormatter.yenAccessible(1_234_567) shouldBe "1,234,567円"
+            CurrencyFormatter.yenDiff(-1_234_567) shouldBe "-¥1,234,567"
+        } finally {
+            Locale.setDefault(saved)
+        }
     }
 })

@@ -3,6 +3,49 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 47: CurrencyFormatter のロケール反転 guard を識別テストで固定 — 2026-06-15)
+
+### 発見 (Tier 45 の系: guard はあるがテストが守っていない)
+- `CurrencyFormatter` は docstring 通り「EU ロケール端末で桁区切りが反転するのを防ぐ」ため
+  `String.format(Locale.US, "%,d", ...)` と**明示**している。これがこのクラスの存在意義。
+- だが `CurrencyFormatterTest` は既定ロケール下でしか走らず、`Locale.US` 引数を削除しても緑のまま。
+  → クラスの目的そのものが回帰テストで保護されていなかった (非識別テスト = 検証の演劇)。
+- 実証: de_DE ロケール下で `"%,d".format(1234567)` は `1.234.567` (ピリオド区切り) になる。
+  `Locale.US` guard 有りなら `1,234,567` を保つ。両者は異なる → de_DE 下のテストは識別的。
+
+### 適用した改善
+- **`run_currency.sh` (12 個目のハーネス)** + `CurrencyFormatterCheck.kt`: US / de_DE / ar の
+  各ロケールに `Locale.setDefault` して全フォーマッタを実行し、どのロケールでも ASCII 数字+カンマを
+  保つことをアサート (実行後 finally で既定ロケール復元)。guard 削除で de_DE ブロックが落ちる。
+- **Kotest 側にも識別テストを追加** (CI 用): de_DE ロケール下で `yen(1_234_567) == "¥1,234,567"` 等。
+- 教訓の一般化 (Tier 45 と同根): 「このクラスが防ぐと宣言しているバグを、実際に起こして
+  防げることを示すテスト」が無ければ guard は保護されていない。
+
+## 製品改善ループ (Tier 46: アクセシビリティ補助モジュールが全面的に未配線 [監査所見] — 2026-06-15)
+
+### ソクラテス式問答 (どの層がテストの死角か)
+- 問: `ui/a11y/AccessibilityExt.kt` の 6 関数 (a11yMinTouchTarget / a11yHeading / a11yDescription /
+  verdictA11yLabel / priceA11yLabel / darkPatternA11yLabel) は production で何箇所から呼ばれる?
+  → **0 箇所。** モジュール全体が死蔵。WCAG AAA 準拠を謳う docstring に反し、どの Composable も
+  これらの集約ヘルパーを使っていない。
+- 問: ではアプリにアクセシビリティは皆無か?
+  → **否。** 各画面 (SearchScreen/WatchlistScreen/ProductDetailScreen 等) は `contentDescription` を
+  **インラインで直接**付けている。つまり AccessibilityExt は「重複した未使用インフラ」であって、
+  アプリが a11y 皆無というわけではない (verdict バッジ等の可視テキストは TalkBack が読む)。
+- 問: verdictA11yLabel / darkPatternA11yLabel は和文ハードコードでもある。配線すべきか削除すべきか?
+  → 判断保留。これは**意図的に作られた a11y インフラに見え**、私が書いたものでもないため、
+  削除せず所見として surface する (CLAUDE 行動指針: 自分が作っていない・説明と矛盾する対象は
+  削除前に報告)。
+
+### 推奨 (将来 Android ビルド/CI が使える担当者向け、本セッションでは未実施)
+- 集約ヘルパーに一本化するなら: 各画面のインライン `contentDescription` を `a11yDescription` に寄せ、
+  クリック可能要素 (IconButton/チップ計 8 箇所) に `a11yMinTouchTarget` を適用。
+- verdictA11yLabel/darkPatternA11yLabel を配線するなら**ローカライズが前提** (現状和文ハードコード)。
+  `@StringRes` 化 + Composable 側 `stringResource` 解決が必要。score 文脈を読み上げるなら
+  VerdictBadge に score を渡す signature 変更が要る。
+- 本セッションで未実施の理由: いずれも Compose UI 変更で、当環境は Android SDK 不在のため
+  コンパイル検証不能。未検証の UI コードは出さない方針 (検証できる純層のみ実装した)。
+
 ## 製品改善ループ (Tier 45: ソクラテス式 — 検証の演劇性 [非識別テストの暴露] — 2026-06-15)
 
 ### ソクラテス式問答 (手法そのものへの転回)

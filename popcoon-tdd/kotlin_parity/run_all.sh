@@ -26,6 +26,7 @@ harnesses=(
   "run_jan.sh"      # JanCodeQuery: JAN/EAN-13/8 check-digit validation + UPC->JAN
   "run_trie.sh"     # Trie: autocomplete suggest() order vs popcoon_core.Trie
   "run_deeplinks.sh" # DeepLinks: producer/consumer round-trip (notif/widget vs MainActivity)
+  "run_currency.sh" # CurrencyFormatter: locale-independent yen formatting (de_DE/ar guard)
 )
 
 fail=0
