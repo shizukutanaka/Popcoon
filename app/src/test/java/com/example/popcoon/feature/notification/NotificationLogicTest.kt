@@ -24,15 +24,8 @@ class NotificationLogicTest : StringSpec({
             LocalNotificationManager.notificationId(key)
     }
 
-    "値下がりテキスト: 5000→4000 の形式確認" {
-        LocalNotificationManager.priceAlertText(4000L, 5000L) shouldBe
-            "¥4,000 (前回: ¥5,000)"
-    }
-
-    "値下がりテキスト: 3桁区切り" {
-        LocalNotificationManager.priceAlertText(99_800L, 120_000L) shouldBe
-            "¥99,800 (前回: ¥120,000)"
-    }
+    // 価格本文の形式テストは削除: priceAlertText は和文ハードコード・未使用のため本体ごと削除し、
+    // ローカライズ済み string resource notif_price_detail (4ロケール) + test_i18n_parity に置換した。
 
     "Deep Link URI 形式: popcoon://product/{productKey}" {
         LocalNotificationManager.deepLinkUri("amazon:B0TEST001") shouldBe

@@ -291,4 +291,11 @@
     <string name="price_chart_insufficient">Not enough price history</string>
     <string name="point_effective_price">Effective price after points</string>
     <string name="point_breakdown">Breakdown</string>
-    <string name="point_effective_subtitle">%2$s back off list price %1$s</string></resources>
+    <string name="point_effective_subtitle">%2$s back off list price %1$s</string>
+
+    <!-- Notifications (PriceSyncWorker / LocalNotificationManager) -->
+    <string name="notif_target_reached">Target price reached (≤ %1$s)</string>
+    <string name="notif_price_drop">Price dropped (%1$d%% off)</string>
+    <string name="notif_price_detail">%1$s\n%2$s (was: %3$s)</string>
+    <string name="notif_weekly_digest_title">Weekly price summary</string>
+</resources>

@@ -10,6 +10,7 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.example.popcoon.R
 import com.example.popcoon.core.CurrencyFormatter
 import com.example.popcoon.core.PopcoonLogger
 import com.example.popcoon.data.db.WatchlistDao
@@ -139,15 +140,23 @@ class PriceSyncWorker @AssistedInject constructor(
             .forEach { drop ->
                 priceDropCount++
                 val title = if (drop.targetReached) {
-                    "目標価格に到達 (${CurrencyFormatter.yen(drop.item.targetPrice ?: drop.latest)}以下)"
+                    applicationContext.getString(
+                        R.string.notif_target_reached,
+                        CurrencyFormatter.yen(drop.item.targetPrice ?: drop.latest),
+                    )
                 } else {
-                    "値下がりしました (${drop.pct}% OFF)"
+                    applicationContext.getString(R.string.notif_price_drop, drop.pct)
                 }
                 notificationManager.sendPriceAlert(
                     context = applicationContext,
                     productKey = drop.item.productKey,
                     title = title,
-                    priceText = "${drop.item.title.take(20)}\n${CurrencyFormatter.yen(drop.latest)} (前回: ${CurrencyFormatter.yen(drop.prev)})",
+                    priceText = applicationContext.getString(
+                        R.string.notif_price_detail,
+                        drop.item.title.take(20),
+                        CurrencyFormatter.yen(drop.latest),
+                        CurrencyFormatter.yen(drop.prev),
+                    ),
                 )
             }
 

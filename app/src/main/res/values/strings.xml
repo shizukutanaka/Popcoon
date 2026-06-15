@@ -314,4 +314,11 @@
     <string name="price_chart_insufficient">価格履歴データ不足</string>
     <string name="point_effective_price">ポイント還元後 実質価格</string>
     <string name="point_breakdown">内訳</string>
-    <string name="point_effective_subtitle">定価 %1$s より %2$s 還元</string></resources>
+    <string name="point_effective_subtitle">定価 %1$s より %2$s 還元</string>
+
+    <!-- 通知 (PriceSyncWorker / LocalNotificationManager) -->
+    <string name="notif_target_reached">目標価格に到達 (%1$s以下)</string>
+    <string name="notif_price_drop">値下がりしました (%1$d%% OFF)</string>
+    <string name="notif_price_detail">%1$s\n%2$s (前回: %3$s)</string>
+    <string name="notif_weekly_digest_title">週間価格まとめ</string>
+</resources>

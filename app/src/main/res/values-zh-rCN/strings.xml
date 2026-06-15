@@ -286,4 +286,11 @@
     <string name="price_chart_insufficient">价格历史数据不足</string>
     <string name="point_effective_price">积分返还后实付价</string>
     <string name="point_breakdown">明细</string>
-    <string name="point_effective_subtitle">原价 %1$s 返还 %2$s</string></resources>
+    <string name="point_effective_subtitle">原价 %1$s 返还 %2$s</string>
+
+    <!-- 通知 (PriceSyncWorker / LocalNotificationManager) -->
+    <string name="notif_target_reached">已达到目标价格 (≤ %1$s)</string>
+    <string name="notif_price_drop">降价了 (%1$d%% OFF)</string>
+    <string name="notif_price_detail">%1$s\n%2$s (上次: %3$s)</string>
+    <string name="notif_weekly_digest_title">每周价格汇总</string>
+</resources>

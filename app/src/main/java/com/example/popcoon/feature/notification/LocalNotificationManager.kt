@@ -32,8 +32,8 @@ class LocalNotificationManager @Inject constructor() {
         /** ディープリンクは [DeepLinks] を単一の真実源とする (MainActivity の解析側と一致)。 */
         fun deepLinkUri(productKey: String): String =
             com.example.popcoon.core.DeepLinks.product(productKey)
-        fun priceAlertText(currentPrice: Long, previousPrice: Long): String =
-            "¥${"%,d".format(currentPrice)} (前回: ¥${"%,d".format(previousPrice)})"
+        // 価格本文はローカライズ済み notif_price_detail (string resource) で組み立てる。
+        // 旧 priceAlertText は和文ハードコードかつ未使用だったため削除した。
     }
 
     fun sendPriceAlert(
@@ -83,7 +83,7 @@ class LocalNotificationManager @Inject constructor() {
     ) {
         val notification = NotificationCompat.Builder(context, PopcoonApp.CHANNEL_WEEKLY_DIGEST)
             .setSmallIcon(R.drawable.ic_shortcut_star)
-            .setContentTitle("週間価格まとめ")
+            .setContentTitle(context.getString(R.string.notif_weekly_digest_title))
             .setContentText(summary)
             .setStyle(NotificationCompat.BigTextStyle().bigText(summary))
             .setAutoCancel(true)
