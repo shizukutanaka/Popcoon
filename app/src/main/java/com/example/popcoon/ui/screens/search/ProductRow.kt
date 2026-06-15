@@ -75,6 +75,16 @@ internal fun ProductRow(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
+                    // 実質価格がステッカー価格と異なる場合 (ポイント還元あり) に副行表示。
+                    // ソートが effectivePrice で行われていることを視覚的に示す。
+                    if (row.effectivePrice < row.product.totalPrice) {
+                        Text(
+                            text = stringResource(R.string.points_effective) +
+                                " " + com.example.popcoon.core.CurrencyFormatter.yen(row.effectivePrice),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
             }
             Spacer(Modifier.height(Spacing.sm))
