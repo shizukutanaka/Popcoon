@@ -2,8 +2,10 @@ package com.example.popcoon.feature.scorer
 
 import com.example.popcoon.data.model.PriceRecord
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.collections.shouldExist
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.ints.shouldBeLessThan
+import io.kotest.matchers.ints.shouldBeInRange
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -107,10 +109,10 @@ class BuyTimingScorerTest : StringSpec({
         // signals の和 == total (クリップが無い場合)
         s.signals.sumOf { it.contribution } shouldBe 67
         // 主要シグナルの存在を識別
-        s.signals.any { it.name == "中立スコア" && it.contribution == 50 } shouldBe true
-        s.signals.any { it.name.contains("33%OFF") && it.contribution == 10 } shouldBe true
-        s.signals.any { it.name == "極めて安定" && it.contribution == 10 } shouldBe true
-        s.signals.any { it.name.contains("ダークパターン") && it.contribution == -8 } shouldBe true
+        s.signals.shouldExist { it.name == "中立スコア" && it.contribution == 50 }
+        s.signals.shouldExist { it.name.contains("33%OFF") && it.contribution == 10 }
+        s.signals.shouldExist { it.name == "極めて安定" && it.contribution == 10 }
+        s.signals.shouldExist { it.name.contains("ダークパターン") && it.contribution == -8 }
     }
 
     // ── listPrice == 0 の安全性 ──────────────────────────────────────────────
@@ -124,7 +126,7 @@ class BuyTimingScorerTest : StringSpec({
         checkAll(Arb.long(100L..100_000L), Arb.long(0L..200_000L)) { current, list ->
             val h = stableHistory(current, 30)
             BuyTimingScorer.score(current, list, h)?.let { s ->
-                (s.total in 0..100) shouldBe true
+                s.total shouldBeInRange 0..100
             }
         }
     }
@@ -160,7 +162,7 @@ class BuyTimingScorerTest : StringSpec({
             BuyTimingScorer.score(
                 current, current * 2, stableHistory(current, 30),
                 today = java.time.LocalDate.of(2026, 11, 25),
-            )?.let { (it.total in 0..100) shouldBe true }
+            )?.let { it.total shouldBeInRange 0..100 }
         }
     }
 })

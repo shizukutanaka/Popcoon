@@ -3,6 +3,9 @@ package com.example.popcoon.feature.matching
 import com.example.popcoon.data.model.Platform
 import com.example.popcoon.data.model.Product
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.collections.shouldExist
+import io.kotest.matchers.collections.shouldNotContain
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.doubles.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.doubles.shouldBeLessThan
@@ -76,13 +79,13 @@ class ProductMatcherTest : StringSpec({
     // ── タイトル正規化 ────────────────────────────────────────────────────
     "ノイズ語を除去" {
         val tokens = ProductMatcher.normalizeTitle("【送料無料】正規品 コーヒー豆 500g")
-        tokens.contains("送料無料") shouldBe false
-        tokens.contains("正規品") shouldBe false
+        tokens shouldNotContain "送料無料"
+        tokens shouldNotContain "正規品"
     }
 
     "全角英数を半角化" {
         val tokens = ProductMatcher.normalizeTitle("ＡＢＣ１２３ 商品")
-        tokens.any { it.contains("abc123") } shouldBe true
+        tokens.shouldExist { it.contains("abc123") }
     }
 
     // ── グルーピング ──────────────────────────────────────────────────────
@@ -126,7 +129,9 @@ class ProductMatcherTest : StringSpec({
         )
         val groups = ProductMatcher.groupByIdentity(products)
         // 少なくともコーヒー豆は独立グループ
-        groups.any { g -> g.any { it.title.contains("コーヒー") } && g.size == 1 } shouldBe true
+        val coffeeGroup = groups.find { g -> g.any { it.title.contains("コーヒー") } }
+        coffeeGroup.shouldNotBeNull()
+        coffeeGroup.size shouldBe 1
     }
 
     // ── JAN-less グループ内の任意メンバーへのマッチ ───────────────────────────

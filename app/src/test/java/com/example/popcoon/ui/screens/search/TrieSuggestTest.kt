@@ -7,6 +7,7 @@ import io.kotest.matchers.collections.shouldHaveAtMostSize
 import io.kotest.matchers.longs.shouldBeLessThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldStartWith
 
 /**
  * Trie のオートコンプリート挙動。
@@ -33,7 +34,7 @@ class TrieSuggestTest : StringSpec({
         }
         val results = t.suggest("ハーゲン", limit = 6)
         results.size shouldBe 3
-        results.all { it.startsWith("ハーゲン") } shouldBe true
+        results.forEach { it shouldStartWith "ハーゲン" }
     }
 
     "limit を超えない" {
