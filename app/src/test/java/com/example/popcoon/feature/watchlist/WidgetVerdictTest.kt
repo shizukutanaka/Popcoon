@@ -58,4 +58,13 @@ class WidgetVerdictTest : StringSpec({
         WidgetVerdict.forItem(realPrice = 900, targetPrice = 0, addedPrice = 1000) shouldBe
             WidgetVerdict.BUY_NOW
     }
+
+    // 識別: 上昇側の境界 (4% は NEUTRAL、5% は WAIT) が対称に正しく実装されているか
+    // 旧テストは -4% NEUTRAL のみ。+4% NEUTRAL がなければ上昇側 SIGNIFICANT_MOVE_PERCENT が
+    // 誤った閾値 (3% 等) でも旧テストが緑になる。
+    "追加時から +4% (閾値未満) → NEUTRAL (上昇側境界識別)" {
+        // 1000 → 1040 = +4% → NEUTRAL (threshold=5 未満)
+        WidgetVerdict.forItem(realPrice = 1040, targetPrice = null, addedPrice = 1000) shouldBe
+            WidgetVerdict.NEUTRAL
+    }
 })
