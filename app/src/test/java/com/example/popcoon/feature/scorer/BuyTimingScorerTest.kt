@@ -131,18 +131,21 @@ class BuyTimingScorerTest : StringSpec({
         without?.total shouldBe withNull?.total
     }
 
-    "大型セール直前は待ち方向に補正される" {
+    // 回帰防止: 旧テストは 7/8 (プライムデーまで8日) を使っていたが、
+    // signalUpcomingSale は daysUntil ∈ 4..7 しかシグナルを返さない (8日はシグナル=0)。
+    // base (today=null) と nearSale (7/8) の rawSum は同じになり、<= は x<=x で常に真。
+    // 識別テスト: 7/12 = プライムデー (7/16) 4 日前 (daysUntil=4 → 「大型セール接近」−6)。
+    // 一定価格履歴で DOW シグナル = 0、唯一の差分は sale proximity シグナルのみ。
+    // "大型セール接近 (...)" という名前のシグナルが −6 で存在することを直接検証する。
+    "大型セール 4日前は -6 シグナルが発火する (識別: 具体シグナル名・値を固定)" {
         val h = stableHistory(1000, 30)
-        // プライムデー想定の近傍日付を渡す — セールがある月なら補正シグナルが入る
-        val base = BuyTimingScorer.score(1000, 1500, h, today = null)
         val nearSale = BuyTimingScorer.score(
             1000, 1500, h,
-            today = java.time.LocalDate.of(2026, 7, 8), // プライムデー近辺想定
-        )
-        // セール接近シグナルが存在する場合、total は base 以下になる
-        if (nearSale != null && base != null) {
-            (nearSale.total <= base.total) shouldBe true
-        }
+            today = java.time.LocalDate.of(2026, 7, 12), // プライムデー (7/16) 4日前
+        )!!
+        val saleSig = nearSale.signals.find { it.name.contains("大型セール接近") }
+        saleSig shouldNotBe null
+        saleSig!!.contribution shouldBe -6
     }
 
     "セール接近シグナルでも total は 0-100 範囲内" {
