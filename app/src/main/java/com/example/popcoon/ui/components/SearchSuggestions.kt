@@ -16,6 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.popcoon.R
+import com.example.popcoon.ui.a11y.a11yMinTouchTarget
 import com.example.popcoon.ui.theme.Spacing
 import com.example.popcoon.ui.theme.IconSize
 
@@ -83,6 +84,7 @@ private fun SuggestionRow(item: SuggestionItem, onSelect: (String) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .a11yMinTouchTarget()
             .clickable { onSelect(item.text) }
             .padding(horizontal = Spacing.lg, vertical = Spacing.ml),
         verticalAlignment = Alignment.CenterVertically,

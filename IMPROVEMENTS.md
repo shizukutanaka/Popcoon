@@ -3,6 +3,50 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 50: BundleCard の unit price 表示バグ修正 + i18n 完全化 — 2026-06-16)
+
+### 発見 (format 引数が無言で捨てられていた)
+
+- `BundleCard.kt` で `stringResource(R.string.bundle_unit_price, CurrencyFormatter.yen(price))` を
+  呼んでいたが、4 ロケール全ての `bundle_unit_price` にプレースホルダーが無かった (`"実質単価"` のみ)。
+  `String.format()` は余分な引数を**黙って捨てる**ため、単価 (`¥800` 等) が画面に表示されず、
+  「実質単価」という固定ラベルしか出ていなかった。
+- `bundle_savings_discount / markup` (節約率 `−20%` / 上乗せ率 `+20%`) も 4 ロケール間で
+  ハードコード (`"−${pct}%"`) されており、ロケール別文字列として管理されていなかった。
+
+### 適用した改善 (commit 5018289)
+
+- 4 ロケール全ての `bundle_unit_price` を format string に変更 (ja: `"1個 %1$s"`, en: `"%1$s / item"` 等)
+- `bundle_savings_discount` (`−%1$d%%`) / `bundle_savings_markup` (`+%1$d%%`) を 4 ロケールに追加
+- `BundleCard.kt` でこれらを使用、また `titleMedium` ヘッダーに `a11yHeading()` を追加
+
+## 製品改善ループ (Tier 49: AccessibilityExt を生産コードに配線 — 2026-06-16)
+
+### 発見 (Tier 46 の続き: 部分的に配線済みだったが 3 箇所が抜けていた)
+
+- Tier 46 では「AccessibilityExt 6 関数すべて未配線」と診断。本ターンで実際に配線した。
+- `VerdictBadge`: TalkBack は `contentDescription` 未設定時、**ラベル文字列** (「買い時」) を読む。
+  一見問題ないが、スコアを含まない (「買い時」 vs 「買い時、85点」) → `verdictA11yLabel(verdict.name, score)` で補完。
+  `ProductRow` 側で `score = row.score` を渡す signature 変更も実施。
+- 価格 `Text`: `"¥29,800"` は TalkBack が「¥記号 2万9千800」と読みがちで不自然 →
+  `priceA11yLabel(row.product.totalPrice)` = `"29,800円"` を `contentDescription` に設定。
+- `SaleCalendarScreen.SectionHeader` + `BundleCard` タイトル: `a11yHeading()` で TalkBack が「見出し」として扱うよう設定。
+
+## 製品改善ループ (Tier 48: 検索空状態・クロスモールチップの i18n 漏れ修正 — 2026-06-16)
+
+### 発見 (4 ロケール対応しているはずの UI にハードコード和文が残存)
+
+- `SearchHelpers.kt` 空状態本文: `"Amazon・楽天・Yahoo! の価格を\n一度に比較できます"` /
+  `"別のキーワードや JAN コードで\n再度お試しください"` — 英語/韓国語/中国語環境で日本語が出ていた。
+- `ProductRow.kt` クロスモールチップ: `"${count+1}モール最安 (-¥200)"` / `"${count}モールで比較"` —
+  同上。カウント数が動的にもかかわらず完全にハードコード。
+
+### 適用した改善
+
+- `search_idle_body` / `search_no_results_body` / `product_cross_mall_cheapest` / `product_cross_mall_compare`
+  を 4 ロケール全てに追加。`SearchHelpers.kt` と `ProductRow.kt` から `stringResource()` に切り替え。
+- i18n parity test (test_i18n_parity.py): 3 tests 全て緑を確認。
+
 ## 製品改善ループ (Tier 47: CurrencyFormatter のロケール反転 guard を識別テストで固定 — 2026-06-15)
 
 ### 発見 (Tier 45 の系: guard はあるがテストが守っていない)
