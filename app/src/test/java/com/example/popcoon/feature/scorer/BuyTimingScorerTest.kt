@@ -94,17 +94,23 @@ class BuyTimingScorerTest : StringSpec({
     }
 
     // ── Signals ─────────────────────────────────────────────────────────────
-    "signals は空でない" {
-        val h = stableHistory(1000, 30)
-        BuyTimingScorer.score(1000, 1500, h)!!.signals.isNotEmpty() shouldBe true
-    }
-
-    "signals の合計 == total (正規化後)" {
+    // Python oracle (popcoon-tdd/buy_timing_scorer.py) で検証:
+    //   stableHistory(1000, 30): 31件全て realPrice=1000, listPrice=1500
+    //   → belowRate = 1.0 ≥ 0.9 → ALWAYS_ON_DISCOUNT 発火 → -8ペナルティ
+    //   → total = 50(中立) + 10(定価比33%OFF) + 10(極めて安定) + 5(十分な履歴) - 8(ダークパターン) = 67
+    //   旧コメントは「volatility 0」と書いていたが、cv=0 < 0.02 なので「極めて安定 +10」が正しい。
+    "signals の内容が Python オラクルと一致する (識別テスト)" {
         val h = stableHistory(1000, 30)
         val s = BuyTimingScorer.score(1000, 1500, h)!!
-        // total は signals.sum().coerceIn(0,100) なので直接比較は正規化前後で異なる可能性あり
-        // ここでは「signals が存在し total が適正範囲内」のみ保証
-        s.total in 0..100 shouldBe true
+        // 具体値を固定: ロジックの変更で即座に検出できる
+        s.total shouldBe 67
+        // signals の和 == total (クリップが無い場合)
+        s.signals.sumOf { it.contribution } shouldBe 67
+        // 主要シグナルの存在を識別
+        s.signals.any { it.name == "中立スコア" && it.contribution == 50 } shouldBe true
+        s.signals.any { it.name.contains("33%OFF") && it.contribution == 10 } shouldBe true
+        s.signals.any { it.name == "極めて安定" && it.contribution == 10 } shouldBe true
+        s.signals.any { it.name.contains("ダークパターン") && it.contribution == -8 } shouldBe true
     }
 
     // ── listPrice == 0 の安全性 ──────────────────────────────────────────────

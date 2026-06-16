@@ -24,20 +24,19 @@ class AffiliateUrlBuilderTest : StringSpec({
         AffiliateUrlBuilder.build(Platform.YAHOO, yahooUrl, optOut = true) shouldBe yahooUrl
     }
 
-    "API key 未設定なら素の URL を返す (CI 環境安全)" {
-        // BuildConfig.AMAZON_PARTNER_TAG が空文字のとき
-        // AffiliateUrlBuilder.build は rawUrl をそのまま返す
+    // CI では BuildConfig.AMAZON_PARTNER_TAG = "" (環境変数未設定) → buildAmazon が rawUrl を
+    // 即時返却 (Uri.parse を呼ばない)。従来の「result == url || contains("tag=")」は
+    // 後半ブランチが CI で死蔵しており、任意の URL でも片方が真になる可能性があった。
+    "API key 未設定なら Amazon は素の URL を返す (CI 環境)" {
         val result = AffiliateUrlBuilder.build(Platform.AMAZON, amazonUrl, optOut = false)
-        // tag が空の場合は URL 変更なし (安全な振る舞い)
-        (result == amazonUrl || result.contains("tag=")) shouldBe true
+        result shouldBe amazonUrl
     }
 
-    "Amazon URL に既存 tag= があっても重複しない" {
+    "API key 未設定なら既存 tag= 付き URL もそのまま返す (重複 tag の恐れなし)" {
         val withTag = "https://www.amazon.co.jp/dp/B0TEST?tag=existing"
         val result = AffiliateUrlBuilder.build(Platform.AMAZON, withTag, optOut = false)
-        // tag パラメータは 1 つだけ
-        val tagCount = result.split("tag=").size - 1
-        (tagCount <= 1) shouldBe true
+        // tag 未設定 → rawUrl 即時返却: 既存 tag はそのまま保持、重複追加なし
+        result shouldBe withTag
     }
 
     "楽天 URL: opt-out なら変換なし" {
@@ -45,18 +44,15 @@ class AffiliateUrlBuilderTest : StringSpec({
         result shouldBe rakutenUrl
     }
 
-    "Yahoo URL: sc_e パラメータが付与されるか optOut で変わらない" {
-        // sid が空ならそのまま
+    "API key 未設定なら Yahoo は素の URL を返す (CI 環境)" {
         val result = AffiliateUrlBuilder.build(Platform.YAHOO, yahooUrl, optOut = false)
-        (result == yahooUrl || result.contains("sc_e=")) shouldBe true
+        result shouldBe yahooUrl
     }
 
-    "Platform 別ルーティングが正しい" {
-        // プラットフォームと URL のミスマッチ時も crash しない
+    "API key 未設定なら楽天は素の URL を返す (CI 環境: RAKUTEN_AFFILIATE_ID = 空)" {
         val r1 = AffiliateUrlBuilder.build(Platform.RAKUTEN, amazonUrl, optOut = false)
         val r2 = AffiliateUrlBuilder.build(Platform.YAHOO, rakutenUrl, optOut = false)
-        // 認証情報なし (CI): 素のURLを返す。あり: アフィリエイトURLを生成する。
-        (r1 == amazonUrl || r1.startsWith("https://hb.afl.rakuten.co.jp")) shouldBe true
-        (r2 == rakutenUrl || r2.contains("sc_e=")) shouldBe true
+        r1 shouldBe amazonUrl
+        r2 shouldBe rakutenUrl
     }
 })

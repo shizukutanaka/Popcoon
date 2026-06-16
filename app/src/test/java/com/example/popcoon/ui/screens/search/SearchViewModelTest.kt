@@ -9,6 +9,7 @@ import com.example.popcoon.data.model.Product
 import com.example.popcoon.data.repository.IProductRepository
 import com.example.popcoon.feature.settings.IUserPreferences
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.Dispatchers
@@ -124,10 +125,11 @@ class SearchViewModelTest : StringSpec({
             val vm = makeViewModel(repo = repo)
             vm.onQueryChange("ハーゲン")
             advanceTimeBy(500)
-            // Trie にタイトルが登録されたはず → サジェストで出てくる
+            // Trie に商品タイトルが登録されたはず → 同一クエリで具体的な候補が返る
             vm.onQueryChange("ハーゲン")
             advanceTimeBy(100)
-            vm.suggestions.value.isNotEmpty() shouldBe true
+            // isNotEmpty() では「何かある」しか検証できない。実際に挿入したタイトルを確認。
+            vm.suggestions.value shouldContain "ハーゲンダッツ バニラ"
         }
     }
 })
