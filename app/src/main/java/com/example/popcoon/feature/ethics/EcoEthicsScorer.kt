@@ -30,6 +30,11 @@ object EcoEthicsScorer {
         "VN" to 48, "BD" to 40, "IN" to 55, "KR" to 72,
     )
 
+    // overall の固定構成要素: 個別データ未取得のため業界平均値を暫定使用。
+    // overall = co2Score×35% + laborScore×30% + supplyChain×20% + circular×15%
+    private const val SUPPLY_CHAIN_SCORE_DEFAULT = 60  // 供給連鎖透明性 (100点満点の業界中間値)
+    private const val CIRCULAR_ECONOMY_SCORE_DEFAULT = 70  // 循環経済/廃棄容易性 (業界中間値)
+
     // カテゴリ別 基準 CO2 (kg) — popcoon_core.CO2_BY_CATEGORY と一致
     private val CO2_BY_CATEGORY = mapOf(
         "smartphone" to 70.0,
@@ -58,7 +63,8 @@ object EcoEthicsScorer {
             co2Score = minOf(100, co2Score + 10)
         }
 
-        val overall = (co2Score * 0.35 + laborFactor * 0.30 + 60 * 0.20 + 70 * 0.15).toInt()
+        val overall = (co2Score * 0.35 + laborFactor * 0.30 +
+            SUPPLY_CHAIN_SCORE_DEFAULT * 0.20 + CIRCULAR_ECONOMY_SCORE_DEFAULT * 0.15).toInt()
 
         // 原産国が日本より低炭素 (co2Factor < 0.45、例: DE 0.30 / US 0.38) の場合 savingPct <= 0。
         // 「国産代替で削減」は成立しない (むしろ増加) ため提案しない。負の削減率を表示するバグだった。
