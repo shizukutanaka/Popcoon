@@ -168,12 +168,8 @@ private fun tierColor(tier: SaleCalendar.Tier): Color = when (tier) {
     SaleCalendar.Tier.RECURRING -> MaterialTheme.colorScheme.onSurface
 }
 
-private fun platformLabel(platform: Platform?): String = when (platform) {
-    Platform.AMAZON -> "Amazon "
-    Platform.RAKUTEN -> "楽天 "
-    Platform.YAHOO -> "Yahoo! "
-    null -> ""
-}
+private fun platformLabel(platform: Platform?): String =
+    platform?.let { "${it.displayName} " } ?: ""
 
 private val DATE_FMT: DateTimeFormatter = DateTimeFormatter.ofPattern("M/d")
 

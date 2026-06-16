@@ -32,7 +32,7 @@ object InstantIso8601Serializer : KSerializer<Instant> {
 enum class Platform(val id: String, val displayName: String, val brandColor: Long) {
     @SerialName("amazon")  AMAZON("amazon",  "Amazon", 0xFFFF9900),
     @SerialName("rakuten") RAKUTEN("rakuten", "楽天",   0xFFBF0000),
-    @SerialName("yahoo")   YAHOO("yahoo",     "Yahoo",  0xFFFF0033);
+    @SerialName("yahoo")   YAHOO("yahoo",     "Yahoo!", 0xFFFF0033);
 
     companion object {
         fun fromIdOrNull(id: String?): Platform? = entries.firstOrNull { it.id == id }

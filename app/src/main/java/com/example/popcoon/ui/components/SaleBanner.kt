@@ -15,7 +15,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.popcoon.data.model.Platform
 import com.example.popcoon.feature.calendar.SaleCalendar
 import com.example.popcoon.ui.theme.PopcoonTheme
 import java.time.LocalDate
@@ -73,12 +72,7 @@ private fun SaleChip(event: SaleCalendar.Event) {
         )
     }
 
-    val platformLabel = when (event.platform) {
-        Platform.AMAZON -> "Amazon "
-        Platform.RAKUTEN -> "楽天 "
-        Platform.YAHOO -> "Yahoo! "
-        null -> ""
-    }
+    val platformLabel = event.platform?.let { "${it.displayName} " } ?: ""
 
     Surface(
         color = bg,

@@ -78,13 +78,25 @@ class SmartCartServiceTest : StringSpec({
         r.savingVsNaive shouldBe (r.naiveTotal - r.optimized.total plusOrMinus 1e-9)
     }
 
-    "savings は常に非負" {
-        val items = listOf(
-            item("a:001", "商品A", "amazon", 1000),
-            item("r:002", "商品B", "rakuten", 800),
+    // 識別テスト: 旧テストは noShipMalls で savings=0 の場合に 0>=0 を確認するだけ
+    // (savingVsNaive が常に 0 でも緑)。同一商品を 2 プラットフォームでウォッチすると
+    // optimizer が一方を選択して重複購入を排除し、naiveTotal より安くなる。
+    "同一商品クロスモール: optimizer が安い方を選び savingVsNaive > 0" {
+        val malls = mapOf(
+            "amazon"  to CrossMallCartOptimizer.MallConfig(shipping = 500.0, freeThreshold = 50_000.0),
+            "rakuten" to CrossMallCartOptimizer.MallConfig(shipping = 800.0, freeThreshold = 50_000.0),
         )
-        val r = SmartCartService.optimize(items, noShipMalls).shouldNotBeNull()
-        (r.savingVsNaive >= 0.0) shouldBe true
+        // 同一商品 "ソニー WH-1000XM5" が amazon で 30000、rakuten で 32000
+        // (同タイトルなので ProductMatcher がグループ化 → optimizer は1点のみ購入)
+        val items = listOf(
+            item("a:WH", "ソニー WH-1000XM5 ワイヤレスヘッドホン", "amazon",  30_000),
+            item("r:WH", "ソニー WH-1000XM5 ワイヤレスヘッドホン", "rakuten", 32_000),
+        )
+        val r = SmartCartService.optimize(items, malls).shouldNotBeNull()
+        // naive は両モールで別々に購入 (30000+500 + 32000+800 = 63300)
+        // 最適化は amazon の 1 点のみ購入 (30000+500 = 30500) → savings > 0
+        (r.savingVsNaive > 0.0) shouldBe true
+        r.savingVsNaive shouldBe (r.naiveTotal - r.optimized.total plusOrMinus 1e-9)
     }
 
     "DEFAULT_MALL_CONFIGS はすべての主要3モールを含む" {

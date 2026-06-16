@@ -98,7 +98,7 @@ fun PointSimulatorCard(
                     shape = RoundedCornerShape(CornerRadius.tag),
                 ) {
                     Text(
-                        platformLabel(product.platform),
+                        product.platform.displayName,
                         Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimary,
@@ -127,10 +127,4 @@ fun PointSimulatorCard(
             }
         }
     }
-}
-
-private fun platformLabel(p: Platform): String = when (p) {
-    Platform.AMAZON -> "Amazon"
-    Platform.RAKUTEN -> "楽天"
-    Platform.YAHOO -> "Yahoo!"
 }

@@ -69,7 +69,9 @@ class PriceSyncWorkerLogicTest : StringSpec({
         alert.shouldNotify shouldBe true
     }
 
-    "WORK_NAME は一意識別子 (非空)" {
-        PriceSyncWorker.WORK_NAME.isNotEmpty() shouldBe true
+    // 識別: WorkManager は WORK_NAME で enqueue/cancel を紐付ける。値が変わると
+    // 旧スケジュールがキャンセルされず二重同期になるため、具体値を固定する。
+    "WORK_NAME は 'price_sync_daily' (WorkManager スケジュール一意識別子)" {
+        PriceSyncWorker.WORK_NAME shouldBe "price_sync_daily"
     }
 })

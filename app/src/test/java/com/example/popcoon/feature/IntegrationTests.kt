@@ -122,8 +122,11 @@ class IntegrationTests : StringSpec({
         val dp = com.example.popcoon.feature.darkpattern.DarkPatternDetector
         val urgency = dp.detectInText("本日限り タイムセール 残り3点")
         val drip = dp.detectDripPricing(basePrice = 1000, totalPrice = 1400)
-        // 緊急性 + 希少性で2件以上
-        (urgency.size >= 2) shouldBe true
+        // 識別: FAKE_SCARCITY (残り3点) + COUNTDOWN_MANIPULATION (本日限り/タイムセール) の2種類のみ
+        urgency.size shouldBe 2
+        val types = urgency.map { it.type }
+        types.contains(com.example.popcoon.feature.darkpattern.DarkPatternDetector.WarningType.FAKE_SCARCITY) shouldBe true
+        types.contains(com.example.popcoon.feature.darkpattern.DarkPatternDetector.WarningType.COUNTDOWN_MANIPULATION) shouldBe true
         drip.shouldNotBeNull()
     }
 
