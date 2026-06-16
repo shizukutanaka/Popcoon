@@ -24,6 +24,9 @@ import com.example.popcoon.ui.theme.AppIcons
 import com.example.popcoon.ui.theme.CornerRadius
 import com.example.popcoon.ui.theme.PopcoonTheme
 import com.example.popcoon.ui.theme.Spacing
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import com.example.popcoon.ui.a11y.priceA11yLabel
 import com.example.popcoon.ui.components.VerdictBadge
 
 /**
@@ -67,13 +70,15 @@ internal fun ProductRow(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         PlatformChip(row.product.platform)
                         Spacer(Modifier.width(Spacing.sm))
-                        row.verdict?.let { VerdictBadge(it) }
+                        row.verdict?.let { VerdictBadge(it, score = row.score) }
                     }
                     Spacer(Modifier.height(Spacing.sm))
+                    val priceDesc = priceA11yLabel(row.product.totalPrice)
                     Text(
                         text = com.example.popcoon.core.CurrencyFormatter.yen(row.product.totalPrice),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
+                        modifier = Modifier.semantics { contentDescription = priceDesc },
                     )
                     // 実質価格がステッカー価格と異なる場合 (ポイント還元あり) に副行表示。
                     // ソートが effectivePrice で行われていることを視覚的に示す。
@@ -101,9 +106,13 @@ internal fun ProductRow(
                 ) {
                     Text(
                         text = if (saving > 0) {
-                            "${row.alternatives.size + 1}モール最安 (-${com.example.popcoon.core.CurrencyFormatter.yen(saving)})"
+                            stringResource(
+                                R.string.product_cross_mall_cheapest,
+                                row.alternatives.size + 1,
+                                com.example.popcoon.core.CurrencyFormatter.yen(saving),
+                            )
                         } else {
-                            "${row.alternatives.size + 1}モールで比較"
+                            stringResource(R.string.product_cross_mall_compare, row.alternatives.size + 1)
                         },
                         modifier = Modifier.padding(horizontal = Spacing.sm, vertical = 2.dp),
                         style = MaterialTheme.typography.bodySmall,

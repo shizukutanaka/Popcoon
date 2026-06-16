@@ -17,6 +17,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.popcoon.R
 import com.example.popcoon.core.CurrencyFormatter
 import com.example.popcoon.feature.bundle.BundlePackDetector
+import com.example.popcoon.ui.a11y.a11yHeading
 import com.example.popcoon.ui.theme.CornerRadius
 import com.example.popcoon.ui.theme.PopcoonTheme
 import com.example.popcoon.ui.theme.Spacing
@@ -48,6 +49,7 @@ fun BundleCard(
                 text = stringResource(R.string.bundle_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
+                modifier = Modifier.a11yHeading(),
             )
             Row(
                 Modifier.fillMaxWidth().padding(top = Spacing.sm),
@@ -70,9 +72,9 @@ fun BundleCard(
             analysis.savingsPercent?.let { pct ->
                 Text(
                     text = if (pct >= 0) {
-                        "−${pct.toInt()}%"
+                        stringResource(R.string.bundle_savings_discount, pct.toInt())
                     } else {
-                        "+${(-pct).toInt()}%"
+                        stringResource(R.string.bundle_savings_markup, (-pct).toInt())
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = if (pct >= 0) {

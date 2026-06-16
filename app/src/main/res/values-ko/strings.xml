@@ -33,8 +33,10 @@
     <string name="warn_pre_sale_markup">세일 전 가격 인상</string>
     <string name="warn_charm_pricing">단수 가격</string>
 
-    <string name="bundle_unit_price">실제 단가</string>
+    <string name="bundle_unit_price">개당 %1$s</string>
     <string name="bundle_savings">할인율</string>
+    <string name="bundle_savings_discount">−%1$d%%</string>
+    <string name="bundle_savings_markup">+%1$d%%</string>
     <string name="bundle_exceptional">파격 할인</string>
     <string name="bundle_good">이득</string>
     <string name="bundle_neutral">보통</string>
@@ -293,4 +295,12 @@
     <string name="notif_price_drop">가격 인하 (%1$d%% 할인)</string>
     <string name="notif_price_detail">%1$s\n%2$s (이전: %3$s)</string>
     <string name="notif_weekly_digest_title">주간 가격 요약</string>
+
+    <!-- 검색 빈 상태 (SearchHelpers) -->
+    <string name="search_idle_body">Amazon・楽天・Yahoo! 가격을 한번에 비교할 수 있습니다</string>
+    <string name="search_no_results_body">다른 키워드나 JAN 코드로 다시 시도해 주세요</string>
+
+    <!-- 상품 행: 복수 쇼핑몰 비교 칩 (ProductRow) -->
+    <string name="product_cross_mall_cheapest">%1$d 쇼핑몰 최저가 (-%2$s)</string>
+    <string name="product_cross_mall_compare">%1$d 쇼핑몰 비교</string>
 </resources>

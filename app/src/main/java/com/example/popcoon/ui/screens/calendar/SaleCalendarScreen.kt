@@ -30,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.popcoon.R
 import com.example.popcoon.data.model.Platform
 import com.example.popcoon.feature.calendar.SaleCalendar
+import com.example.popcoon.ui.a11y.a11yHeading
 import com.example.popcoon.ui.theme.AppIcons
 import com.example.popcoon.ui.theme.CornerRadius
 import com.example.popcoon.ui.theme.PopcoonTheme
@@ -106,7 +107,7 @@ private fun SectionHeader(text: String) {
         text = text,
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(top = Spacing.sm),
+        modifier = Modifier.padding(top = Spacing.sm).a11yHeading(),
     )
 }
 

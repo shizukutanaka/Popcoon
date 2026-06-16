@@ -54,13 +54,13 @@ internal fun EmptyState(status: EmptyStatus, customText: String = "") {
     when (status) {
         EmptyStatus.IDLE -> {
             icon = "🔍"
-            heading = stringResource(R.string.search_hint)   // 「キーワードで商品を検索」
-            body = "Amazon・楽天・Yahoo! の価格を\n一度に比較できます"
+            heading = stringResource(R.string.search_hint)
+            body = stringResource(R.string.search_idle_body)
         }
         EmptyStatus.NO_RESULTS -> {
             icon = "🤷"
-            heading = stringResource(R.string.search_empty)  // 「見つかりませんでした」
-            body = "別のキーワードや JAN コードで\n再度お試しください"
+            heading = stringResource(R.string.search_empty)
+            body = stringResource(R.string.search_no_results_body)
         }
         EmptyStatus.GENERIC -> {
             icon = "📋"

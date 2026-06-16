@@ -110,8 +110,10 @@
     <string name="warn_charm_pricing">端数価格</string>
 
     <!-- Bundle pack -->
-    <string name="bundle_unit_price">実質単価</string>
+    <string name="bundle_unit_price">1個 %1$s</string>
     <string name="bundle_savings">お得率</string>
+    <string name="bundle_savings_discount">−%1$d%%</string>
+    <string name="bundle_savings_markup">+%1$d%%</string>
     <string name="bundle_exceptional">驚異のお得</string>
     <string name="bundle_good">お得</string>
     <string name="bundle_neutral">普通</string>
@@ -321,4 +323,12 @@
     <string name="notif_price_drop">値下がりしました (%1$d%% OFF)</string>
     <string name="notif_price_detail">%1$s\n%2$s (前回: %3$s)</string>
     <string name="notif_weekly_digest_title">週間価格まとめ</string>
+
+    <!-- 検索空状態 (SearchHelpers) -->
+    <string name="search_idle_body">Amazon・楽天・Yahoo! の価格を\n一度に比較できます</string>
+    <string name="search_no_results_body">別のキーワードや JAN コードで\n再度お試しください</string>
+
+    <!-- 商品行: 複数モール比較チップ (ProductRow) -->
+    <string name="product_cross_mall_cheapest">%1$dモール最安 (-%2$s)</string>
+    <string name="product_cross_mall_compare">%1$dモールで比較</string>
 </resources>

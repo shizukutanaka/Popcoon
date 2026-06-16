@@ -33,8 +33,10 @@
     <string name="warn_pre_sale_markup">促销前涨价</string>
     <string name="warn_charm_pricing">尾数定价</string>
 
-    <string name="bundle_unit_price">实际单价</string>
+    <string name="bundle_unit_price">单价 %1$s</string>
     <string name="bundle_savings">优惠率</string>
+    <string name="bundle_savings_discount">−%1$d%%</string>
+    <string name="bundle_savings_markup">+%1$d%%</string>
     <string name="bundle_exceptional">超值优惠</string>
     <string name="bundle_good">优惠</string>
     <string name="bundle_neutral">一般</string>
@@ -293,4 +295,12 @@
     <string name="notif_price_drop">降价了 (%1$d%% OFF)</string>
     <string name="notif_price_detail">%1$s\n%2$s (上次: %3$s)</string>
     <string name="notif_weekly_digest_title">每周价格汇总</string>
+
+    <!-- 搜索空状态 (SearchHelpers) -->
+    <string name="search_idle_body">同时比较亚马逊、乐天、雅虎的价格</string>
+    <string name="search_no_results_body">请尝试其他关键词或 JAN 条形码</string>
+
+    <!-- 商品行: 多平台比价标签 (ProductRow) -->
+    <string name="product_cross_mall_cheapest">%1$d 平台最低价 (-%2$s)</string>
+    <string name="product_cross_mall_compare">%1$d 平台比较</string>
 </resources>

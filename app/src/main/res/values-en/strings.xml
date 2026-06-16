@@ -33,8 +33,10 @@
     <string name="warn_pre_sale_markup">Pre-sale markup</string>
     <string name="warn_charm_pricing">Charm pricing</string>
 
-    <string name="bundle_unit_price">Effective unit price</string>
+    <string name="bundle_unit_price">%1$s / item</string>
     <string name="bundle_savings">Savings</string>
+    <string name="bundle_savings_discount">−%1$d%%</string>
+    <string name="bundle_savings_markup">+%1$d%%</string>
     <string name="bundle_exceptional">Exceptional deal</string>
     <string name="bundle_good">Good deal</string>
     <string name="bundle_neutral">Neutral</string>
@@ -298,4 +300,12 @@
     <string name="notif_price_drop">Price dropped (%1$d%% off)</string>
     <string name="notif_price_detail">%1$s\n%2$s (was: %3$s)</string>
     <string name="notif_weekly_digest_title">Weekly price summary</string>
+
+    <!-- Search empty states (SearchHelpers) -->
+    <string name="search_idle_body">Compare prices across Amazon, Rakuten, and Yahoo! at once</string>
+    <string name="search_no_results_body">Try a different keyword or JAN barcode</string>
+
+    <!-- Product row: cross-mall comparison chip (ProductRow) -->
+    <string name="product_cross_mall_cheapest">Cheapest of %1$d stores (-%2$s)</string>
+    <string name="product_cross_mall_compare">Compare %1$d stores</string>
 </resources>
