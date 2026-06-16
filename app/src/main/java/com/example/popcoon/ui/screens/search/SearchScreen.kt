@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.example.popcoon.ui.UiText
 import com.example.popcoon.ui.theme.AppIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -127,7 +128,7 @@ fun SearchScreen(
                         repeat(5) { ProductCardSkeleton() }
                     }
                 is SearchUiState.Error ->
-                    ErrorCard(message = s.message)
+                    ErrorCard(message = s.message.asString())
                 SearchUiState.Empty ->
                     EmptyState(EmptyStatus.NO_RESULTS)
                 is SearchUiState.Results -> {

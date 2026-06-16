@@ -15,7 +15,9 @@ import com.example.popcoon.feature.bundle.BundlePackDetector
 import com.example.popcoon.feature.review.ReviewTrustScorer
 import com.example.popcoon.feature.scorer.BuyTimingScorer
 import com.example.popcoon.feature.points.PointSimulator
+import com.example.popcoon.R
 import com.example.popcoon.feature.settings.UserPreferences
+import com.example.popcoon.ui.UiText
 import com.example.popcoon.feature.tco.TCOCalculator
 import com.example.popcoon.core.PopcoonLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -30,7 +32,7 @@ import javax.inject.Inject
 
 sealed interface DetailUiState {
     data object Loading : DetailUiState
-    data class Error(val msg: String) : DetailUiState
+    data class Error(val msg: UiText) : DetailUiState
     data class Loaded(
         val product: Product,
         val score: Int,
@@ -38,7 +40,7 @@ sealed interface DetailUiState {
         val confidence: String?,
         val signals: List<BuyTimingScorer.Signal>,
         val warnings: List<String>,
-        val aiAdvice: String?,
+        val aiAdvice: UiText?,
         val priceHistory: List<PriceRecord> = emptyList(),
         val isInWatchlist: Boolean = false,
         val prediction: PricePredictionEngine.Prediction? = null,
@@ -198,23 +200,28 @@ class ProductDetailViewModel @Inject constructor(
                         // キャッシュヒット → 即時反映 (_state.update で productKey 一致確認)
                         _state.update { cur ->
                             if (cur is DetailUiState.Loaded && cur.product.key == product.key) {
-                                cur.copy(aiAdvice = cached)
+                                cur.copy(aiAdvice = UiText.DynamicString(cached))
                             } else cur
                         }
                     } else {
                         // キャッシュミス → API call (UI ブロックなし)
                         viewModelScope.launch {
-                            val advice = runCatching {
+                            runCatching {
                                 advisor.advise(product, score)
-                            }.getOrElse { e ->
+                            }.onSuccess { text ->
+                                adviceCache.put(product, score, text)
+                                _state.update { cur ->
+                                    if (cur is DetailUiState.Loaded && cur.product.key == product.key) {
+                                        cur.copy(aiAdvice = UiText.DynamicString(text))
+                                    } else cur
+                                }
+                            }.onFailure { e ->
                                 if (e is CancellationException) throw e
-                                "AI 助言取得失敗"
-                            }
-                            adviceCache.put(product, score, advice)
-                            _state.update { cur ->
-                                if (cur is DetailUiState.Loaded && cur.product.key == product.key) {
-                                    cur.copy(aiAdvice = advice)
-                                } else cur
+                                _state.update { cur ->
+                                    if (cur is DetailUiState.Loaded && cur.product.key == product.key) {
+                                        cur.copy(aiAdvice = UiText.StringResource(R.string.error_ai_advisor_failed))
+                                    } else cur
+                                }
                             }
                         }
                     }
@@ -222,7 +229,8 @@ class ProductDetailViewModel @Inject constructor(
             }.onFailure { e ->
                 if (e is CancellationException) throw e
                 _state.value = DetailUiState.Error(
-                    e.message?.take(80) ?: "詳細ロード失敗"
+                    e.message?.take(80)?.let { UiText.DynamicString(it) }
+                        ?: UiText.StringResource(R.string.error_detail_load_failed)
                 )
             }
         }

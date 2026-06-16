@@ -331,4 +331,9 @@
     <!-- 商品行: 複数モール比較チップ (ProductRow) -->
     <string name="product_cross_mall_cheapest">%1$dモール最安 (-%2$s)</string>
     <string name="product_cross_mall_compare">%1$dモールで比較</string>
+
+    <!-- エラーメッセージ (UiText.StringResource で使用: ViewModel は R.string のみ保持) -->
+    <string name="error_search_failed">検索に失敗しました</string>
+    <string name="error_detail_load_failed">商品情報の取得に失敗しました</string>
+    <string name="error_ai_advisor_failed">AI アドバイスを取得できませんでした</string>
 </resources>

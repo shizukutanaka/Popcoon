@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import com.example.popcoon.R
+import com.example.popcoon.ui.UiText
 import com.example.popcoon.feature.affiliate.AffiliateUrlBuilder
 import com.example.popcoon.ui.util.HapticFeedback
 import androidx.compose.ui.unit.dp
@@ -87,7 +88,7 @@ fun ProductDetailScreen(
                             Text("⚠️", style = MaterialTheme.typography.displayMedium,
                                 modifier = Modifier.semantics { contentDescription = warningDesc })
                             Text(
-                                s.msg,
+                                s.msg.asString(),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.error,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -210,7 +211,7 @@ private fun LoadedContent(s: DetailUiState.Loaded, affiliateOptin: Boolean) {
             Column(Modifier.padding(Spacing.ml)) {
                 Text(stringResource(R.string.detail_ai_advice), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(Spacing.ml))
-                Text(advice, style = MaterialTheme.typography.bodyMedium)
+                Text(advice.asString(), style = MaterialTheme.typography.bodyMedium)
             }
         }
     }

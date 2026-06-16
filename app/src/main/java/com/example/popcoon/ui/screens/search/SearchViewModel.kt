@@ -12,6 +12,8 @@ import com.example.popcoon.feature.matching.ProductMatcher
 import com.example.popcoon.feature.points.PointSimulator
 import com.example.popcoon.feature.scorer.BuyTimingScorer
 import com.example.popcoon.feature.settings.IUserPreferences
+import com.example.popcoon.R
+import com.example.popcoon.ui.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.FlowPreview
@@ -35,7 +37,7 @@ sealed interface SearchUiState {
     data object Loading : SearchUiState
     data object Empty : SearchUiState
     data class Results(val items: List<SearchRow>) : SearchUiState
-    data class Error(val message: String) : SearchUiState
+    data class Error(val message: UiText) : SearchUiState
 }
 
 @OptIn(FlowPreview::class)
@@ -186,7 +188,10 @@ class SearchViewModel @Inject constructor(
             _state.value = SearchUiState.Results(rows)
         }.onFailure { e ->
             if (e is CancellationException) throw e
-            _state.value = SearchUiState.Error(e.message?.take(80) ?: "検索失敗")
+            _state.value = SearchUiState.Error(
+                e.message?.take(80)?.let { UiText.DynamicString(it) }
+                    ?: UiText.StringResource(R.string.error_search_failed)
+            )
         }
     }
 }

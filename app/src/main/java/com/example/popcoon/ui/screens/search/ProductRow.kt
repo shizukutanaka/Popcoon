@@ -26,6 +26,7 @@ import com.example.popcoon.ui.theme.PopcoonTheme
 import com.example.popcoon.ui.theme.Spacing
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import com.example.popcoon.ui.a11y.a11yDescription
 import com.example.popcoon.ui.a11y.priceA11yLabel
 import com.example.popcoon.ui.components.VerdictBadge
 
@@ -127,7 +128,9 @@ internal fun ProductRow(
                         Surface(
                             shape = RoundedCornerShape(CornerRadius.tag),
                             color = MaterialTheme.colorScheme.errorContainer,
-                            modifier = Modifier.padding(end = Spacing.sm),
+                            modifier = Modifier
+                                .padding(end = Spacing.sm)
+                                .a11yDescription("⚠ $w"),
                         ) {
                             Text(
                                 w, Modifier.padding(horizontal = Spacing.sm, vertical = 2.dp),
