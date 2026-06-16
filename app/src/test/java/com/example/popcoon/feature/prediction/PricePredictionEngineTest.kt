@@ -7,6 +7,9 @@ import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.ints.shouldBeInRange
 import io.kotest.matchers.longs.shouldBeGreaterThan
+import io.kotest.matchers.longs.shouldBeGreaterThanOrEqualTo
+import io.kotest.matchers.longs.shouldBeLessThan
+import io.kotest.matchers.longs.shouldBeLessThanOrEqualTo
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.list
@@ -57,22 +60,23 @@ class PricePredictionEngineTest : StringSpec({
     "下降トレンドは predicted_30d が current より低い" {
         val history = fixedHistory((0 until 30).map { (10000L - it * 100L) })
         val p = PricePredictionEngine.predict(history)!!
-        (p.predicted30d < p.currentPrice) shouldBe true
+        p.predicted30d shouldBeLessThan p.currentPrice
     }
 
     "上昇トレンドは predicted_30d が current より高い" {
         val history = fixedHistory((0 until 30).map { (1000L + it * 100L) })
         val p = PricePredictionEngine.predict(history)!!
-        (p.predicted30d > p.currentPrice) shouldBe true
+        p.predicted30d shouldBeGreaterThan p.currentPrice
     }
 
-    "スコアは必ず 0..100 の範囲" {
+    "buyNowProbability は必ず 0.0-1.0 の範囲" {
         checkAll(Arb.list(Arb.int(100..100_000), 14..100)) { prices ->
             val history = fixedHistory(prices.map { it.toLong() })
             val p = PricePredictionEngine.predict(history)
             if (p != null) {
                 val prob = p.buyNowProbability
-                (prob >= 0f && prob <= 1f) shouldBe true
+                (prob >= 0f) shouldBe true
+                (prob <= 1f) shouldBe true
             }
         }
     }
@@ -91,8 +95,8 @@ class PricePredictionEngineTest : StringSpec({
             val history = fixedHistory(prices.map { it.toLong() })
             val p = PricePredictionEngine.predict(history)
             if (p != null) {
-                (p.predicted7d >= 0L) shouldBe true
-                (p.predicted30d >= 0L) shouldBe true
+                p.predicted7d shouldBeGreaterThanOrEqualTo 0L
+                p.predicted30d shouldBeGreaterThanOrEqualTo 0L
             }
         }
     }
@@ -109,20 +113,20 @@ class PricePredictionEngineTest : StringSpec({
         val stable = List(30) { 1000L }
         val p = PricePredictionEngine.predict(fixedHistory(stable))!!
         // 完全に一定なら margin はほぼ 0
-        (p.predictionMargin <= 10L) shouldBe true
+        p.predictionMargin shouldBeLessThanOrEqualTo 10L
     }
 
     "変動の大きい系列では予測区間が大きい" {
         val volatile = (0 until 30).map { if (it % 2 == 0) 1000L else 2000L }
         val p = PricePredictionEngine.predict(fixedHistory(volatile))!!
         // 大きく振動するので margin > 0
-        (p.predictionMargin > 0L) shouldBe true
+        p.predictionMargin shouldBeGreaterThan 0L
     }
 
     "予測区間は常に非負" {
         checkAll(Arb.list(Arb.int(0..5000), 14..40)) { prices ->
             val p = PricePredictionEngine.predict(fixedHistory(prices.map { it.toLong() }))
-            if (p != null) (p.predictionMargin >= 0L) shouldBe true
+            if (p != null) p.predictionMargin shouldBeGreaterThanOrEqualTo 0L
         }
     }
 

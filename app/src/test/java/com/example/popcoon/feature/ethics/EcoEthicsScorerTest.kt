@@ -62,16 +62,18 @@ class EcoEthicsScorerTest : StringSpec({
         r.laborScore shouldBeInRange 0..100
     }
 
-    "CN 製造は JP より CO2 スコアが低い" {
+    "CN 製造は JP より CO2 スコアが低い (Python oracle: JP=45, CN=25)" {
         val jp = EcoEthicsScorer.score("JP", "laptop", emptyList())
         val cn = EcoEthicsScorer.score("CN", "laptop", emptyList())
-        (jp.co2Score > cn.co2Score) shouldBe true
+        jp.co2Score shouldBe 45
+        cn.co2Score shouldBe 25
     }
 
-    "DE は環境先進国 → 高スコア" {
+    "DE は環境先進国 → 高スコア (Python oracle: DE=77, CN=46)" {
         val de = EcoEthicsScorer.score("DE", "laptop", emptyList())
         val cn = EcoEthicsScorer.score("CN", "laptop", emptyList())
-        (de.overall > cn.overall) shouldBe true
+        de.overall shouldBe 77
+        cn.overall shouldBe 46
     }
 
     // 回帰: 日本より低炭素な原産国 (DE 0.30 / US 0.38 < JP 0.45) には「国産代替で削減」を
@@ -83,10 +85,11 @@ class EcoEthicsScorerTest : StringSpec({
         EcoEthicsScorer.score("CN", "laptop", emptyList()).greenAlternative.shouldNotBeNull()
     }
 
-    "エコマーク認証で CO2 スコアが +10" {
+    "エコマーク認証で CO2 スコアが +10 (Python oracle: bare=45 → 55)" {
         val noLabel = EcoEthicsScorer.score("JP", "tv", emptyList())
         val withLabel = EcoEthicsScorer.score("JP", "tv", listOf("エコマーク"))
-        (withLabel.co2Score >= noLabel.co2Score) shouldBe true
+        noLabel.co2Score shouldBe 45
+        withLabel.co2Score shouldBe 55
     }
 
     // 代替案は「国産か否か」で決まる (スコアではない、Python と同仕様)
@@ -94,8 +97,10 @@ class EcoEthicsScorerTest : StringSpec({
         EcoEthicsScorer.score("JP", "laptop", emptyList()).greenAlternative.shouldBeNull()
     }
 
-    "非JP + 既知カテゴリ は代替案あり" {
-        EcoEthicsScorer.score("DE", "laptop", listOf("EcoLabel"))
+    // 高炭素国 (CO2係数 > JP=0.45) + 既知カテゴリ → 国産代替案を提示。
+    // DEは低炭素 (0.30) なので提示されない (上の回帰テストを参照)。
+    "非JP 高炭素国 (CN) + 既知カテゴリ は代替案あり" {
+        EcoEthicsScorer.score("CN", "laptop", emptyList())
             .greenAlternative.shouldNotBeNull()
     }
 
@@ -110,10 +115,11 @@ class EcoEthicsScorerTest : StringSpec({
         }
     }
 
-    "CO2 計算: smartphone は tv より低い" {
+    "CO2 計算: smartphone は tv より低い (Python oracle: phone=70.0, tv=400.0)" {
         val phone = EcoEthicsScorer.score("JP", "smartphone", emptyList())
         val tv = EcoEthicsScorer.score("JP", "tv", emptyList())
-        (phone.co2Kg < tv.co2Kg) shouldBe true
+        phone.co2Kg shouldBe (70.0 plusOrMinus 1e-6)
+        tv.co2Kg shouldBe (400.0 plusOrMinus 1e-6)
     }
 
     "null 国コードは fallback (例外なし)" {
