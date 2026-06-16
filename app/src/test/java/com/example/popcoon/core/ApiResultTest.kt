@@ -2,6 +2,7 @@ package com.example.popcoon.core
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.shouldBeInstanceOf
 import java.io.IOException
 
@@ -53,19 +54,19 @@ class ApiResultTest : StringSpec({
 
     // エラー種別
     "Network.userMessage はネットワーク系メッセージ" {
-        ApiError.Network().userMessage().contains("ネットワーク") shouldBe true
+        ApiError.Network().userMessage() shouldContain "ネットワーク"
     }
 
     "RateLimit.userMessage は待機系メッセージ" {
-        ApiError.RateLimit(60).userMessage().contains("時間") shouldBe true
+        ApiError.RateLimit(60).userMessage() shouldContain "時間"
     }
 
     "NotFound.userMessage にリソース名が含まれる" {
-        ApiError.NotFound("プリンター").userMessage().contains("プリンター") shouldBe true
+        ApiError.NotFound("プリンター").userMessage() shouldContain "プリンター"
     }
 
     "ParseFailed.userMessage はパース系メッセージ" {
-        ApiError.ParseFailed().userMessage().contains("解析") shouldBe true
+        ApiError.ParseFailed().userMessage() shouldContain "解析"
     }
 
     // apiCall
