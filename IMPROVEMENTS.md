@@ -812,6 +812,37 @@ NOT_RECOMMENDED**。検証済み Python は逆で、免税級の掘り出し物 
 - **最重要は依然 CI/SDK の有効化**: `:app` の Kotlin/Compose 層は今も未コンパイル。
   Python 層が緑でも Android 本体の検証は別問題。`git mv ci/android.yml .github/workflows/` が前提。
 
+## ソクラテス監査 (Tier 11: 多言語/アクセシビリティ一貫性への反問 — 2026-06-16)
+
+反問: 「4ロケール対応」を長所として掲げるが、**ロジック層に埋め込まれた表示文字列**は
+本当にロケールに追従しているか? data/feature 層の定数は `stringResource` を経由しないため、
+端末を英語/韓国語/中国語にしても日本語のまま漏れ出ているのではないか?
+
+### 実装 (今回修正)
+| # | 分類 | 内容 | 対応 |
+|---|------|------|------|
+| 56 | **i18n 漏れ** | `Platform.displayName` は data 層の定数 (`"楽天"`/`"Yahoo!"`) で日本語固定。英語/韓国語/中国語 UI でも商品バッジ・カート集計・セールバナー・カレンダーに「楽天」が出ていた (UI 5箇所) | UI 層に `@Composable Platform.localizedName()` を新設し端末ロケールの `platform_*` を引く。`displayName` はロジック/シリアライズ専用に限定。全4ロケールに `platform_amazon/rakuten/yahoo` を追加。`?.let` ラムダは Composable スコープ外のため `localizedName()` を先に解決する形へ修正 |
+| 57 | **i18n 漏れ + 重複** | `verdictA11yLabel` が verdict→語の対応 (買い時/様子見/待ち推奨) を `VerdictBadge` の可視ラベル (`R.string.verdict_*`) と**二重持ち**し、しかも日本語固定。TalkBack が全ロケールで日本語を読み上げていた | 可視ラベルを再利用し `a11y_verdict_score` テンプレートでスコア文を組む方式へ。重複した `verdictA11yLabel` と旧テスト3件を削除 (翻訳が分岐するリスクも消去) |
+
+### 確認した非ギャップ (誤検知防止メモ)
+- **検索の in-flight キャンセル**: `SearchViewModel` は `searchJob?.cancel()` + `debounce(300)` +
+  `distinctUntilChanged()` + `CancellationException` 再送出で**既に正しく**古い結果の上書きを防いでいる。バグではない。
+- **`normalizeOriginCountry` ↔ `EcoEthicsScorer` のキー整合**: 正規化の出力キー (JP/DE/US/CN/VN/BD/IN/KR) と
+  `CO2_BY_COUNTRY` の対応国が**完全一致**。到達不能な対応国は無い。バグではない。
+
+### 未着手 (リスク/スコープで今回見送り — 要 CI/SDK 有効化後の検証)
+- **ダークパターン警告ラベルの i18n**: `DarkPatternDetector.Warning.label` も日本語固定 (`"常設セール"` 等) で
+  可視表示・a11y 両方に漏れている。ただし label は静的 (type ベース) と動的 (`"送料込みで割高 (実質+15%)"`,
+  テキスト検出の evidence) が混在し、2つの ViewModel が `List<String>` へ畳んで type を捨てている。
+  正しい修正は `WarningType` を UI まで通し `@Composable` で解決する大規模リファクタで、Android 未コンパイル環境では高リスク。
+  死蔵中の `darkPatternA11yLabel` (本番呼び出し 0、テスト9件) はこの配線が前提。
+- **`CurrencyFormatter.yenAccessible` の `"円"` 固定**: 非 Composable の純関数で Context/locale を持たないため、
+  英語 TalkBack でも "1,234円" を読む。価格は常に JPY だが読み上げ語の locale 化は設計変更が要る。
+- **`FallbackScraper` の JSON-LD 抽出**: 「最初のキー一致」方式は `offers` 内の `availability`/`price` を
+  拾うために**意図的に**ネストを跨ぐが、その副作用で `"brand":{"name":...}` がトップレベル `name` より前に
+  来ると商品名を誤抽出し得る。トップレベル限定にすると nested 抽出が壊れるため、正しい修正は実 JSON パーサ
+  (kotlinx.serialization) への置換。ktor 結合面の未コンパイルリスクが高く今回見送り。
+
 ## 製品分析 (Tier 7: 長所・短所・不足機能の洗い出しと実装)
 
 プロダクトとしての強み・弱み・不足機能を棚卸しし、価値が高く自己完結する
@@ -1042,8 +1073,11 @@ Popcoon に欠けていた最も普遍的な機能と、その検証基盤を実
 - ProductDetailViewModel / WatchlistViewModel / SettingsViewModel の単体テスト追加。
 - CI: ~~ワークフロー新設~~ (#9 で実装、要有効化) → 次は detekt / Kover カバレッジを
   マージゲート化、baseline profile 検証。
-- a11y 文字列: ~~`VerdictBadge.kt` の i18n~~ (実装済み) → 残りは `AccessibilityExt.kt`
-  (Context 引数が必要な非 Composable のため要設計)。
+- a11y 文字列: ~~`VerdictBadge.kt` の i18n~~ (Tier 11 #57 で実装、`verdictA11yLabel` 廃止) →
+  残りは ① `darkPatternA11yLabel` (死蔵・日本語固定、警告 type を UI まで通す配線が前提) と
+  ② `CurrencyFormatter.yenAccessible` の `"円"` 固定 (非 Composable のため locale 化に設計変更が要る)。
+- Platform 表示名: ~~data 層 `displayName` 固定の i18n 漏れ~~ → Tier 11 #56 で `Platform.localizedName()` 実装済み。
+- ダークパターン警告ラベルの i18n: `Warning.label` 日本語固定。`WarningType` を UI へ通す大規模リファクタが前提 (Tier 11 参照)。
 
 ### 競合調査バックログ (同種 OSS 価格追跡アプリ由来)
 GitHub 調査で確認した、競合にあり Popcoon に未実装だった機能。インパクト順:
