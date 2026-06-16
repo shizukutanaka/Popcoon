@@ -3,6 +3,8 @@ package com.example.popcoon.feature.watchlist
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.longs.shouldBeGreaterThan
+import io.kotest.matchers.longs.shouldBeLessThan
 import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.long
@@ -51,9 +53,9 @@ class WatchlistPriceDeltaTest : StringSpec({
         checkAll(Arb.long(1L..1_000_000L), Arb.long(1L..1_000_000L)) { added, current ->
             val d = WatchlistPriceDelta.since(added, current)!!
             when (d.direction) {
-                WatchlistPriceDelta.Direction.DOWN -> (d.amount < 0) shouldBe true
-                WatchlistPriceDelta.Direction.UP -> (d.amount > 0) shouldBe true
-                WatchlistPriceDelta.Direction.FLAT -> (d.amount == 0L) shouldBe true
+                WatchlistPriceDelta.Direction.DOWN -> d.amount shouldBeLessThan 0L
+                WatchlistPriceDelta.Direction.UP -> d.amount shouldBeGreaterThan 0L
+                WatchlistPriceDelta.Direction.FLAT -> d.amount shouldBe 0L
             }
         }
     }

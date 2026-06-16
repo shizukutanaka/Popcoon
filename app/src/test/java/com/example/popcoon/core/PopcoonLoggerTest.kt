@@ -1,12 +1,15 @@
 package com.example.popcoon.core
 
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.ints.shouldBeLessThan
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 
 class PopcoonLoggerTest : StringSpec({
 
     "Level.VERBOSE は最低優先度" {
-        (PopcoonLogger.Level.VERBOSE.priority < PopcoonLogger.Level.ERROR.priority) shouldBe true
+        PopcoonLogger.Level.VERBOSE.priority shouldBeLessThan PopcoonLogger.Level.ERROR.priority
     }
 
     "Level は 5 段階" {
@@ -43,50 +46,50 @@ class PopcoonLoggerTest : StringSpec({
             "GET https://api.example.com/x?AWSAccessKeyId=AKIAIOSFODNN7EXAMPLE" +
                 "&Signature=abc123XYZ&q=test",
         )
-        out.contains("AKIAIOSFODNN7EXAMPLE") shouldBe false
-        out.contains("abc123XYZ") shouldBe false
-        out.contains("q=test") shouldBe false
-        out.contains("[redacted]") shouldBe true
+        out shouldNotContain "AKIAIOSFODNN7EXAMPLE"
+        out shouldNotContain "abc123XYZ"
+        out shouldNotContain "q=test"
+        out shouldContain "[redacted]"
     }
 
     "AWS アクセスキー ID はクエリ外でも伏せる" {
         val out = PopcoonLogger.sanitize("Credential=AKIAIOSFODNN7EXAMPLE/20240101/us-west-2")
-        out.contains("AKIAIOSFODNN7EXAMPLE") shouldBe false
-        out.contains("[aws-key]") shouldBe true
+        out shouldNotContain "AKIAIOSFODNN7EXAMPLE"
+        out shouldContain "[aws-key]"
     }
 
     "Authorization: Bearer トークンを伏せる" {
         val out = PopcoonLogger.sanitize("Authorization: Bearer sk-ant-secrettoken123")
-        out.contains("sk-ant-secrettoken123") shouldBe false
-        out.contains("[redacted]") shouldBe true
+        out shouldNotContain "sk-ant-secrettoken123"
+        out shouldContain "[redacted]"
     }
 
     "api_key= の値を伏せる" {
         val out = PopcoonLogger.sanitize("config api_key=supersecretvalue loaded")
-        out.contains("supersecretvalue") shouldBe false
-        out.contains("[redacted]") shouldBe true
+        out shouldNotContain "supersecretvalue"
+        out shouldContain "[redacted]"
     }
 
     "JSON 形式 \"secret\":\"v\" の値を伏せる" {
         val out = PopcoonLogger.sanitize("body {\"secret\":\"toplevelsecret\"}")
-        out.contains("toplevelsecret") shouldBe false
-        out.contains("[redacted]") shouldBe true
+        out shouldNotContain "toplevelsecret"
+        out shouldContain "[redacted]"
     }
 
     "接頭辞付きキー MY_SECRET_KEY= の値を伏せる" {
         val out = PopcoonLogger.sanitize("env MY_SECRET_KEY=leakme123")
-        out.contains("leakme123") shouldBe false
+        out shouldNotContain "leakme123"
     }
 
     "Authorization: Basic 資格情報を伏せる" {
         val out = PopcoonLogger.sanitize("Authorization: Basic dXNlcjpwYXNz")
-        out.contains("dXNlcjpwYXNz") shouldBe false
-        out.contains("[redacted]") shouldBe true
+        out shouldNotContain "dXNlcjpwYXNz"
+        out shouldContain "[redacted]"
     }
 
     "email / ip / tel は従来どおり伏せる" {
-        PopcoonLogger.sanitize("user foo@bar.com").contains("foo@bar.com") shouldBe false
-        PopcoonLogger.sanitize("ip 192.168.1.1").contains("192.168.1.1") shouldBe false
-        PopcoonLogger.sanitize("tel +81-90-1234-5678").contains("1234-5678") shouldBe false
+        PopcoonLogger.sanitize("user foo@bar.com") shouldNotContain "foo@bar.com"
+        PopcoonLogger.sanitize("ip 192.168.1.1") shouldNotContain "192.168.1.1"
+        PopcoonLogger.sanitize("tel +81-90-1234-5678") shouldNotContain "1234-5678"
     }
 })

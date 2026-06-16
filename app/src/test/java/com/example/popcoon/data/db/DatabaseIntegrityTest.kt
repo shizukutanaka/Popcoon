@@ -3,6 +3,7 @@ package com.example.popcoon.data.db
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.longs.shouldBeGreaterThan
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import java.time.Instant
 
@@ -41,7 +42,7 @@ class DatabaseIntegrityTest : StringSpec({
         // 識別: SearchHistoryEntry と同じブラケット方式 (>= now-1000 では未来値を検出できない)
         (item.addedAt in before..after) shouldBe true
         // v2/v3 で追加したカラムの既定値
-        (item.targetPrice == null) shouldBe true
+        item.targetPrice.shouldBeNull()
         item.addedPrice shouldBe 0L
     }
 
@@ -122,6 +123,6 @@ class DatabaseIntegrityTest : StringSpec({
         )
         item.realPrice shouldBe 2980L
         item.listPrice shouldBe 3980L
-        (item.listPrice > item.realPrice) shouldBe true
+        item.listPrice shouldBeGreaterThan item.realPrice
     }
 })

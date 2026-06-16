@@ -3,6 +3,7 @@ package com.example.popcoon.feature.tco
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.longs.shouldBeGreaterThan
+import io.kotest.matchers.longs.shouldBeGreaterThanOrEqualTo
 import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.int
@@ -35,7 +36,7 @@ class TCOCalculatorTest : StringSpec({
         r.consumablesTotal shouldBeGreaterThan 0L
         // レーザーはインクジェットより消耗品が高い (トナー6000円/本 × 1.5回/年)
         val inkjet = TCOCalculator.calculate(25_000, "inkjet_printer", 5)
-        (r.consumablesTotal > inkjet.consumablesTotal) shouldBe true
+        r.consumablesTotal shouldBeGreaterThan inkjet.consumablesTotal
     }
 
     // 回帰: ドラムは使用強度 (intensity) で増減しない (0.33/年 固定)。Python 参照と一致。
@@ -55,7 +56,7 @@ class TCOCalculatorTest : StringSpec({
         val laptop = TCOCalculator.calculate(100_000, "laptop", 5)
         val fridge = TCOCalculator.calculate(100_000, "refrigerator", 5)
         // 35W × 24h vs 45W × 6h — 総wh は冷蔵庫(840/日) > laptop(270/日)
-        (fridge.energyTotal > laptop.energyTotal) shouldBe true
+        fridge.energyTotal shouldBeGreaterThan laptop.energyTotal
     }
 
     "エアコン: 高消費電力" {
@@ -63,7 +64,7 @@ class TCOCalculatorTest : StringSpec({
         r.energyTotal shouldBeGreaterThan 0L
         // 700W × 8h → 最も電気代が高いはず
         val laptop = TCOCalculator.calculate(80_000, "laptop", 5)
-        (r.energyTotal > laptop.energyTotal) shouldBe true
+        r.energyTotal shouldBeGreaterThan laptop.energyTotal
     }
 
     "コーヒーカプセル: 365日 × 80円 × intensity" {
@@ -82,7 +83,7 @@ class TCOCalculatorTest : StringSpec({
     "intensity 2.0: 消耗品が倍増" {
         val normal = TCOCalculator.calculate(15_000, "inkjet_printer", 5, intensity = 1.0)
         val heavy = TCOCalculator.calculate(15_000, "inkjet_printer", 5, intensity = 2.0)
-        (heavy.consumablesTotal > normal.consumablesTotal) shouldBe true
+        heavy.consumablesTotal shouldBeGreaterThan normal.consumablesTotal
     }
 
     "レーザープリンター intensity 2.0: ドラムも intensity に比例 (drum bug regression)" {
@@ -121,7 +122,7 @@ class TCOCalculatorTest : StringSpec({
             Arb.int(1..20),
         ) { price, years ->
             val r = TCOCalculator.calculate(price, "laptop", years)
-            (r.totalTco >= 0L) shouldBe true
+            r.totalTco shouldBeGreaterThanOrEqualTo 0L
         }
     }
 

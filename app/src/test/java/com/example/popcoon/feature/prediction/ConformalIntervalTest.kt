@@ -3,6 +3,7 @@ package com.example.popcoon.feature.prediction
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.doubles.plusOrMinus
+import io.kotest.matchers.doubles.shouldBeGreaterThanOrEqualTo
 import io.kotest.matchers.shouldBe
 
 /**
@@ -34,7 +35,7 @@ class ConformalIntervalTest : StringSpec({
     "margin は alpha に対して単調 (小さいほど広い)" {
         val strict = ConformalInterval.conformalMargin(residuals, 0.05)
         val loose = ConformalInterval.conformalMargin(residuals, 0.4)
-        (strict >= loose) shouldBe true
+        strict shouldBeGreaterThanOrEqualTo loose
     }
 
     "非空で不正な alpha は例外" {
