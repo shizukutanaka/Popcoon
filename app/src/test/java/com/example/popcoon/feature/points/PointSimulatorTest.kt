@@ -74,10 +74,28 @@ class PointSimulatorTest : StringSpec({
         r.effectivePrice shouldBe 5_450L
     }
 
-    "ポイント超過しても実質価格は負にならない" {
-        val ctx = PointSimulator.UserContext(rakutenSpu = 15)
-        val r = PointSimulator.simulate(product(Platform.RAKUTEN, 100), ctx)
-        (r.effectivePrice >= 0L) shouldBe true
+    // 回帰防止: 旧テストは rakutenSpu=15 で effectivePrice >= 0 しか確認せず、
+    // SPU 計算を完全に無効化しても緑だった (10_000 - 0 = 10_000 >= 0 は常に真)。
+    // 識別テストは SPU=15 が生む pointsBack の具体値を検証し、計算削除で必ず落ちる。
+    "SPU 15 = 15% 還元 (識別テスト: 具体値で SPU 計算ロジックを固定)" {
+        val ctx = PointSimulator.UserContext(
+            rakutenSpu = 15,
+            purchaseDate = LocalDate.of(2026, 4, 1),  // 1日 = 5と0のつく日でない
+        )
+        val r = PointSimulator.simulate(product(Platform.RAKUTEN, 10_000), ctx)
+        r.pointsBack shouldBe 1_500L      // 10,000 × 15% = 1,500
+        r.effectivePrice shouldBe 8_500L  // 10,000 − 1,500
+    }
+
+    // 実質価格クランプの識別テスト: Amazon pointsBack が price を上回る場合に 0 以下にならない。
+    // SPU=15 の楽天商品は最大 15% 還元なので sticker を超えず、こちらが本来の clamp テスト。
+    "Amazon pointsBack が price を超過しても effectivePrice は 0 (max clamp)" {
+        val highPointsProduct = Product(
+            sku = "B0CLAMP01", title = "超高ポイント商品", platform = Platform.AMAZON,
+            listPrice = 100, realPrice = 100, pointsBack = 9_999,
+        )
+        val r = PointSimulator.simulate(highPointsProduct)
+        r.effectivePrice shouldBe 0L
     }
 
     "breakdown は透明性のため全項目を返す" {

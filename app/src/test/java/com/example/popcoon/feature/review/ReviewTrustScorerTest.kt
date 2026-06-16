@@ -48,6 +48,15 @@ class ReviewTrustScorerTest : StringSpec({
         ReviewTrustScorer.evaluate(4.2f, 50).reasonKey shouldBe null
     }
 
+    // 回帰防止: MANY_REVIEWS=1000 境界テスト。片側だけでは境界値 off-by-one を検出できない。
+    // guard を 1001 にずらしても「大量レビューで満点は LOW」テストはパスするが、このテストが落ちる。
+    "999件+高評価は HIGH (MANY_REVIEWS 境界の識別)" {
+        ReviewTrustScorer.evaluate(4.95f, 999).trust shouldBe ReviewTrustScorer.Trust.HIGH
+    }
+    "1000件+4.9評価は LOW (MANY_REVIEWS 境界の識別)" {
+        ReviewTrustScorer.evaluate(4.9f, 1000).trust shouldBe ReviewTrustScorer.Trust.LOW
+    }
+
     "どんな入力でも例外なし" {
         checkAll(Arb.float(0f..5f), Arb.int(0..100000)) { rating, count ->
             ReviewTrustScorer.evaluate(rating, count)
