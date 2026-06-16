@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import com.example.popcoon.R
 import com.example.popcoon.ui.theme.CornerRadius
 import com.example.popcoon.feature.scorer.BuyTimingScorer
-import com.example.popcoon.ui.a11y.verdictA11yLabel
 
 @Composable
 fun VerdictBadge(verdict: BuyTimingScorer.Verdict, score: Int? = null) {
@@ -29,7 +28,11 @@ fun VerdictBadge(verdict: BuyTimingScorer.Verdict, score: Int? = null) {
             Triple(R.string.verdict_wait, Color(0xFFC0392B), Color.White)
     }
     val label = stringResource(labelRes)
-    val a11yLabel = verdictA11yLabel(verdict.name, score)
+    // TalkBack 用ラベルは可視ラベル (ロケール対応済み) を再利用し、スコア有無で文を補う。
+    // 旧 verdictA11yLabel は verdict→語の対応を二重持ちし日本語固定だったため廃止。
+    val a11yLabel = if (score != null)
+        stringResource(R.string.a11y_verdict_score, label, score)
+    else label
     Surface(
         color = bg,
         shape = RoundedCornerShape(CornerRadius.tag),

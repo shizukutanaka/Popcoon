@@ -312,4 +312,6 @@
     <string name="platform_amazon">亚马逊</string>
     <string name="platform_rakuten">乐天</string>
     <string name="platform_yahoo">雅虎!</string>
+    <!-- TalkBack: 购买判定徽章朗读 (%1$s=判定标签, %2$d=评分) -->
+    <string name="a11y_verdict_score">%1$s，购买时机评分 %2$d 分</string>
 </resources>

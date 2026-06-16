@@ -317,4 +317,6 @@
     <string name="platform_amazon">Amazon</string>
     <string name="platform_rakuten">Rakuten</string>
     <string name="platform_yahoo">Yahoo!</string>
+    <!-- TalkBack: verdict badge readout (%1$s=verdict label, %2$d=score) -->
+    <string name="a11y_verdict_score">%1$s, buy-timing score %2$d</string>
 </resources>

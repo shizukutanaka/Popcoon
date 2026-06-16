@@ -30,22 +30,6 @@ fun Modifier.a11yHeading(): Modifier = this.semantics { heading() }
 fun Modifier.a11yDescription(description: String): Modifier =
     this.semantics { contentDescription = description }
 
-/**
- * Verdict バッジ用のアクセシブルラベル生成。
- *
- * 「BUY_NOW」だけでは TalkBack で意味不明 →
- * 「買い時、スコア85点」のような完全な文を読み上げる。
- */
-fun verdictA11yLabel(verdictName: String, score: Int? = null): String {
-    val verdict = when (verdictName) {
-        "BUY_NOW" -> "買い時"
-        "NEUTRAL" -> "様子見"
-        "WAIT" -> "待ち推奨"
-        else -> verdictName
-    }
-    return if (score != null) "$verdict、買い時スコア${score}点" else verdict
-}
-
 /** 価格を読み上げ用に整形 (¥1,234 → 「1,234円」) */
 fun priceA11yLabel(yenAmount: Long): String =
     CurrencyFormatter.yenAccessible(yenAmount)
