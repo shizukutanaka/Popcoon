@@ -4,6 +4,7 @@ import com.example.popcoon.core.Trie
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveAtMostSize
+import io.kotest.matchers.longs.shouldBeLessThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 
@@ -100,7 +101,7 @@ class TrieSuggestTest : StringSpec({
         val results = t.suggest("商品", limit = 10)
         val elapsedMs = (System.nanoTime() - start) / 1_000_000
         results.size shouldBe 10
-        // 1000 件挿入 + 10 件サジェスト合計 100ms 以下を期待
-        (elapsedMs < 500) shouldBe true
+        // 1000 件挿入 + 10 件サジェスト合計 500ms 以下を期待
+        elapsedMs shouldBeLessThan 500L
     }
 })

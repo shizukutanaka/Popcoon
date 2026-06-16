@@ -1,6 +1,7 @@
 package com.example.popcoon.feature.crossborder
 
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.longs.shouldBeGreaterThanOrEqualTo
 import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.long
@@ -70,7 +71,7 @@ class CustomsSimulatorKotlinTest : StringSpec({
         ) { price, ship ->
             val r1 = CustomsSimulator.simulate(price, ship, "電子機器")
             val r2 = CustomsSimulator.simulate(price + 1000, ship, "電子機器")
-            (r2.totalLandedCost >= r1.totalLandedCost) shouldBe true
+            r2.totalLandedCost shouldBeGreaterThanOrEqualTo r1.totalLandedCost
         }
     }
 
