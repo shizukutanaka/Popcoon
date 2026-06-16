@@ -1,6 +1,12 @@
 package com.example.popcoon.feature.bundle
 
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.doubles.shouldBeGreaterThan
+import io.kotest.matchers.doubles.shouldBeGreaterThanOrEqualTo
+import io.kotest.matchers.doubles.shouldBeLessThan
+import io.kotest.matchers.doubles.shouldBeLessThanOrEqualTo
+import io.kotest.matchers.longs.shouldBeGreaterThan
+import io.kotest.matchers.longs.shouldBeLessThan
 import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.int
@@ -26,10 +32,16 @@ class BundlePackDetectorPropertyTest : StringSpec({
             val pct = r.savingsPercent ?: 0.0
             // 境界一貫性
             when (r.verdict) {
-                BundlePackDetector.Verdict.EXCEPTIONAL_DEAL -> (pct >= 30.0) shouldBe true
-                BundlePackDetector.Verdict.GOOD_DEAL -> (pct >= 5.0 && pct < 30.0) shouldBe true
-                BundlePackDetector.Verdict.NEUTRAL -> (pct > -5.0 && pct < 5.0) shouldBe true
-                BundlePackDetector.Verdict.BAD_DEAL -> (pct <= -5.0) shouldBe true
+                BundlePackDetector.Verdict.EXCEPTIONAL_DEAL -> pct shouldBeGreaterThanOrEqualTo 30.0
+                BundlePackDetector.Verdict.GOOD_DEAL -> {
+                    pct shouldBeGreaterThanOrEqualTo 5.0
+                    pct shouldBeLessThan 30.0
+                }
+                BundlePackDetector.Verdict.NEUTRAL -> {
+                    pct shouldBeGreaterThan -5.0
+                    pct shouldBeLessThan 5.0
+                }
+                BundlePackDetector.Verdict.BAD_DEAL -> pct shouldBeLessThanOrEqualTo -5.0
                 BundlePackDetector.Verdict.UNKNOWN -> Unit  // single == null のみ
                 BundlePackDetector.Verdict.NOT_A_BUNDLE -> Unit  // count == 1 のみ
             }
@@ -45,10 +57,10 @@ class BundlePackDetectorPropertyTest : StringSpec({
 
     "savings 符号: positive = 得、negative = 損" {
         val good = BundlePackDetector.detectValue(900, 3, 350)
-        good.savingsPerUnit?.let { (it > 0) shouldBe true }
+        good.savingsPerUnit?.let { it shouldBeGreaterThan 0L }
 
         val bad = BundlePackDetector.detectValue(1200, 3, 300)
-        bad.savingsPerUnit?.let { (it < 0) shouldBe true }
+        bad.savingsPerUnit?.let { it shouldBeLessThan 0L }
     }
 
     "extract: 数字 + 単位 + セット指示 のパターン全網羅" {

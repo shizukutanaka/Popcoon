@@ -10,7 +10,13 @@ import com.example.popcoon.feature.prediction.PricePredictionEngine
 import com.example.popcoon.feature.scorer.BuyTimingScorer
 import com.example.popcoon.feature.tco.TCOCalculator
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.doubles.plusOrMinus
+import io.kotest.matchers.ints.shouldBeGreaterThan
+import io.kotest.matchers.ints.shouldBeInRange
+import io.kotest.matchers.longs.shouldBeGreaterThan
+import io.kotest.matchers.longs.shouldBeGreaterThanOrEqualTo
+import io.kotest.matchers.longs.shouldBeLessThanOrEqualTo
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -45,7 +51,7 @@ class IntegrationTests : StringSpec({
         checkAll(Arb.long(0L..1_000_000L), Arb.long(0L..50_000L)) { price, ship ->
             val r1 = CustomsSimulator.simulate(price, ship, "衣類")
             val r2 = CustomsSimulator.simulate(price + 1000, ship, "衣類")
-            (r2.totalLandedCost >= r1.totalLandedCost) shouldBe true
+            r2.totalLandedCost shouldBeGreaterThanOrEqualTo r1.totalLandedCost
         }
     }
 
@@ -60,15 +66,15 @@ class IntegrationTests : StringSpec({
     "使用年数増加で total_tco 単調増加" {
         val r1 = TCOCalculator.calculate(50_000, "laptop", 2)
         val r2 = TCOCalculator.calculate(50_000, "laptop", 5)
-        (r2.totalTco > r1.totalTco - r2.residualValue) shouldBe true
+        r2.totalTco shouldBeGreaterThan (r1.totalTco - r2.residualValue)
     }
 
     "使用強度増加で消耗品単調増加" {
         val low = TCOCalculator.calculate(10_000, "inkjet_printer", 5, 0.5)
         val med = TCOCalculator.calculate(10_000, "inkjet_printer", 5, 1.0)
         val high = TCOCalculator.calculate(10_000, "inkjet_printer", 5, 2.0)
-        (low.consumablesTotal <= med.consumablesTotal) shouldBe true
-        (med.consumablesTotal <= high.consumablesTotal) shouldBe true
+        low.consumablesTotal shouldBeLessThanOrEqualTo med.consumablesTotal
+        med.consumablesTotal shouldBeLessThanOrEqualTo high.consumablesTotal
     }
 
     // ── BuyTimingScorer ──────────────────────────────────────────────────
@@ -91,7 +97,7 @@ class IntegrationTests : StringSpec({
             val hist = history(List(30) { p.toLong() })
             val score = BuyTimingScorer.score(p.toLong(), (p * 2).toLong(), hist)
             if (score != null) {
-                (score.total >= 0 && score.total <= 100) shouldBe true
+                score.total shouldBeInRange 0..100
             }
         }
     }
@@ -108,7 +114,7 @@ class IntegrationTests : StringSpec({
         val hist = history((0 until 30).map { (1000L + it) })
         val scoreLow = BuyTimingScorer.score(1000, 2000, hist)!!
         val scoreHigh = BuyTimingScorer.score(1029, 2000, hist)!!
-        (scoreLow.total > scoreHigh.total) shouldBe true
+        scoreLow.total shouldBeGreaterThan scoreHigh.total
     }
 
     // ── クロス機能シナリオ (現実的な複合ケース) ──────────────────────────
@@ -125,8 +131,8 @@ class IntegrationTests : StringSpec({
         // 識別: FAKE_SCARCITY (残り3点) + COUNTDOWN_MANIPULATION (本日限り/タイムセール) の2種類のみ
         urgency.size shouldBe 2
         val types = urgency.map { it.type }
-        types.contains(com.example.popcoon.feature.darkpattern.DarkPatternDetector.WarningType.FAKE_SCARCITY) shouldBe true
-        types.contains(com.example.popcoon.feature.darkpattern.DarkPatternDetector.WarningType.COUNTDOWN_MANIPULATION) shouldBe true
+        types shouldContain com.example.popcoon.feature.darkpattern.DarkPatternDetector.WarningType.FAKE_SCARCITY
+        types shouldContain com.example.popcoon.feature.darkpattern.DarkPatternDetector.WarningType.COUNTDOWN_MANIPULATION
         drip.shouldNotBeNull()
     }
 
@@ -165,8 +171,8 @@ class IntegrationTests : StringSpec({
         val volatile = history((0 until 30).map { if (it % 2 == 0) 1000L else 2000L })
         val ps = PricePredictionEngine.predict(stable)!!
         val pv = PricePredictionEngine.predict(volatile)!!
-        (ps.predictionMargin <= 10L) shouldBe true
-        (pv.predictionMargin > 0L) shouldBe true
+        ps.predictionMargin shouldBeLessThanOrEqualTo 10L
+        pv.predictionMargin shouldBeGreaterThan 0L
     }
 
     "A1 配線: 週次季節性がある系列で seasonalForecast7d が返る" {
@@ -174,16 +180,16 @@ class IntegrationTests : StringSpec({
         val seasonal = history((0 until 28).map { if (it % 7 in 0..4) 1000L else 800L })
         val p = PricePredictionEngine.predict(seasonal)!!
         // 季節分解が有効に動作している → 非ゼロ
-        (p.seasonalForecast7d > 0L) shouldBe true
+        p.seasonalForecast7d shouldBeGreaterThan 0L
     }
 
     "DarkPatternTextDetector: 5カテゴリを複合検出できる" {
         val text = "本日限り！残り3点。8人がカートに入れました"
         val signals = DarkPatternTextDetector.detect(text)
         val cats = signals.map { it.category }.toSet()
-        DarkPatternTextDetector.Category.URGENCY in cats shouldBe true
-        DarkPatternTextDetector.Category.SCARCITY in cats shouldBe true
-        DarkPatternTextDetector.Category.SOCIAL_PROOF in cats shouldBe true
+        cats shouldContain DarkPatternTextDetector.Category.URGENCY
+        cats shouldContain DarkPatternTextDetector.Category.SCARCITY
+        cats shouldContain DarkPatternTextDetector.Category.SOCIAL_PROOF
         // category 昇順保証
         signals.map { it.category } shouldBe signals.map { it.category }.sorted()
     }

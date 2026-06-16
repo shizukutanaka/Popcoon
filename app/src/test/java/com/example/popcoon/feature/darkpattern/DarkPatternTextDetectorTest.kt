@@ -2,7 +2,9 @@ package com.example.popcoon.feature.darkpattern
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.shouldBe
 
 /**
@@ -76,7 +78,7 @@ class DarkPatternTextDetectorTest : StringSpec({
     }
 
     "SCARCITY: stock_count>3 は検出しない" {
-        DarkPatternTextDetector.Category.SCARCITY !in cats("通常の商品説明", stockCount = 50) shouldBe true
+        cats("通常の商品説明", stockCount = 50) shouldNotContain DarkPatternTextDetector.Category.SCARCITY
     }
 
     // ── 回帰: Python 参照との乖離を実行パリティで検出 → 修正済み ──────────────
@@ -91,7 +93,7 @@ class DarkPatternTextDetectorTest : StringSpec({
     }
 
     "SCARCITY: 全角空白「残り　3　点」(U+3000) も検出（\\s の Unicode 対応）" {
-        DarkPatternTextDetector.Category.SCARCITY in cats("残り　3　点") shouldBe true
+        cats("残り　3　点") shouldContain DarkPatternTextDetector.Category.SCARCITY
     }
 
     "SCARCITY: 可視テキストが空でも stock_count<=3 なら検出（旧 isBlank 早期 return を修正）" {
