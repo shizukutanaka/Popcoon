@@ -108,12 +108,14 @@ object CrossMallCartOptimizer {
                 }
                 if (p < 0) break
             }
-            val assignment = bestCombo!!.withIndex().associate { (i, m) -> i to m }
-            return best!!.copy(assignment = assignment)
+            val assignment = checkNotNull(bestCombo) { "brute-force loop ran zero iterations" }
+                .withIndex().associate { (i, m) -> i to m }
+            return checkNotNull(best) { "brute-force loop ran zero iterations" }.copy(assignment = assignment)
         }
 
         // 貪欲フォールバック: item ごとに最安モール（送料・クーポン無視）
-        val combo = items.map { it.options.minByOrNull { e -> e.value }!!.key }
+        // require(isNotEmpty) 済みなので minBy は安全。
+        val combo = items.map { it.options.minBy { e -> e.value }.key }
         val detail = cost(items, malls, combo)
         val assignment = combo.withIndex().associate { (i, m) -> i to m }
         return detail.copy(assignment = assignment, greedy = true)
