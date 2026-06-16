@@ -31,6 +31,7 @@ import com.example.popcoon.R
 import com.example.popcoon.data.model.Platform
 import com.example.popcoon.feature.calendar.SaleCalendar
 import com.example.popcoon.ui.a11y.a11yHeading
+import com.example.popcoon.ui.localizedName
 import com.example.popcoon.ui.theme.AppIcons
 import com.example.popcoon.ui.theme.CornerRadius
 import com.example.popcoon.ui.theme.PopcoonTheme
@@ -168,8 +169,9 @@ private fun tierColor(tier: SaleCalendar.Tier): Color = when (tier) {
     SaleCalendar.Tier.RECURRING -> MaterialTheme.colorScheme.onSurface
 }
 
+@Composable
 private fun platformLabel(platform: Platform?): String =
-    platform?.let { "${it.displayName} " } ?: ""
+    platform?.localizedName()?.let { "$it " } ?: ""
 
 private val DATE_FMT: DateTimeFormatter = DateTimeFormatter.ofPattern("M/d")
 

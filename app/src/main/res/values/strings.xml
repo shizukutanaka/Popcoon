@@ -336,4 +336,8 @@
     <string name="error_search_failed">検索に失敗しました</string>
     <string name="error_detail_load_failed">商品情報の取得に失敗しました</string>
     <string name="error_ai_advisor_failed">AI アドバイスを取得できませんでした</string>
+    <!-- プラットフォーム表示名 (Composable Platform.localizedName() から使用) -->
+    <string name="platform_amazon">Amazon</string>
+    <string name="platform_rakuten">楽天</string>
+    <string name="platform_yahoo">Yahoo!</string>
 </resources>

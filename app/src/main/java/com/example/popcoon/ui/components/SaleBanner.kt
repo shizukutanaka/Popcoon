@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.popcoon.feature.calendar.SaleCalendar
+import com.example.popcoon.ui.localizedName
 import com.example.popcoon.ui.theme.PopcoonTheme
 import java.time.LocalDate
 
@@ -72,7 +73,8 @@ private fun SaleChip(event: SaleCalendar.Event) {
         )
     }
 
-    val platformLabel = event.platform?.let { "${it.displayName} " } ?: ""
+    // ?.let のラムダは Composable スコープでないため localizedName() を先に呼ぶ
+    val platformLabel = event.platform?.localizedName()?.let { "$it " } ?: ""
 
     Surface(
         color = bg,

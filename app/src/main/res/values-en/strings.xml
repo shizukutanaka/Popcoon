@@ -313,4 +313,8 @@
     <string name="error_search_failed">Search failed</string>
     <string name="error_detail_load_failed">Failed to load product details</string>
     <string name="error_ai_advisor_failed">Could not load AI advice</string>
+    <!-- Platform display names (used from Composable Platform.localizedName()) -->
+    <string name="platform_amazon">Amazon</string>
+    <string name="platform_rakuten">Rakuten</string>
+    <string name="platform_yahoo">Yahoo!</string>
 </resources>

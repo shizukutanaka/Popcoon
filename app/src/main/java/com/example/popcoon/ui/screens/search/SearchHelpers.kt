@@ -15,6 +15,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.popcoon.R
 import com.example.popcoon.data.model.Platform
+import com.example.popcoon.ui.localizedName
 import com.example.popcoon.ui.theme.CornerRadius
 import com.example.popcoon.ui.theme.Spacing
 
@@ -28,7 +29,7 @@ internal fun PlatformChip(p: Platform) {
         color = Color(p.brandColor),
     ) {
         Text(
-            p.displayName,
+            p.localizedName(),
             Modifier.padding(horizontal = Spacing.ml, vertical = Spacing.sm),
             style = MaterialTheme.typography.labelMedium,
             color = Color.White,

@@ -20,6 +20,7 @@ import com.example.popcoon.core.CurrencyFormatter
 import com.example.popcoon.data.model.Platform
 import com.example.popcoon.feature.cart.CrossMallCartOptimizer
 import com.example.popcoon.feature.cart.SmartCartService
+import com.example.popcoon.ui.localizedName
 import com.example.popcoon.ui.theme.CornerRadius
 import com.example.popcoon.ui.theme.PopcoonTheme
 import com.example.popcoon.ui.theme.Spacing
@@ -63,12 +64,20 @@ fun SmartCartCard(
             }
 
             // モール別振り分けサマリ
+            // localizedName() は @Composable のため joinToString のラムダ内では呼べない。
+            // 端末ロケールの表示名を先に Map へ解決してから組み立てる。
+            val platformNames = mapOf(
+                Platform.AMAZON to Platform.AMAZON.localizedName(),
+                Platform.RAKUTEN to Platform.RAKUTEN.localizedName(),
+                Platform.YAHOO to Platform.YAHOO.localizedName(),
+            )
             val mallSummary = result.assignment.values
                 .groupBy { it }
                 .entries
                 .sortedBy { it.key }
                 .joinToString(" · ") { (mall, indices) ->
-                    "${Platform.fromIdOrNull(mall)?.displayName ?: mall} ${indices.size}点"
+                    val name = Platform.fromIdOrNull(mall)?.let { platformNames[it] } ?: mall
+                    "$name ${indices.size}点"
                 }
             Text(
                 text = mallSummary,

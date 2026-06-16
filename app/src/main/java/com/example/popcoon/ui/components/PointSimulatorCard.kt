@@ -15,6 +15,7 @@ import com.example.popcoon.R
 import com.example.popcoon.data.model.Platform
 import com.example.popcoon.data.model.Product
 import com.example.popcoon.feature.points.PointSimulator
+import com.example.popcoon.ui.localizedName
 
 /**
  * ポイント還元シミュレーターカード。
@@ -98,7 +99,7 @@ fun PointSimulatorCard(
                     shape = RoundedCornerShape(CornerRadius.tag),
                 ) {
                     Text(
-                        product.platform.displayName,
+                        product.platform.localizedName(),
                         Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimary,
