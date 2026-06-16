@@ -19,7 +19,7 @@ import javax.inject.Singleton
 @Singleton
 class UserPreferences @Inject constructor(
     @ApplicationContext private val context: Context,
-) {
+) : IUserPreferences {
     private val Context.dataStore by preferencesDataStore("popcoon_prefs")
 
     companion object {

@@ -7,6 +7,7 @@ import com.example.popcoon.data.model.Platform
 import com.example.popcoon.data.model.PriceRecord
 import com.example.popcoon.data.model.Product
 import com.example.popcoon.data.repository.IProductRepository
+import com.example.popcoon.feature.settings.IUserPreferences
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
@@ -14,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
@@ -25,11 +27,12 @@ private fun makeViewModel(
     repo: IProductRepository = FakeRepository(),
     historyDao: SearchHistoryDao = FakeSearchHistoryDao(),
     barcodeQuery: String? = null,
+    prefs: IUserPreferences = FakeUserPreferences(),
 ): SearchViewModel {
     val state = SavedStateHandle(
         buildMap { barcodeQuery?.let { put("barcode_query", it) } }
     )
-    return SearchViewModel(repo, historyDao, state)
+    return SearchViewModel(repo, historyDao, state, prefs)
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -130,6 +133,18 @@ class SearchViewModelTest : StringSpec({
 })
 
 // ── Fakes ─────────────────────────────────────────────────────────────────────
+
+private class FakeUserPreferences(
+    spu: Int = 1,
+    yahoo: Boolean = false,
+    softbank: Boolean = false,
+    prime: Boolean = false,
+) : IUserPreferences {
+    override val rakutenSpu: Flow<Int> = flowOf(spu)
+    override val yahooPremium: Flow<Boolean> = flowOf(yahoo)
+    override val paypaySoftbank: Flow<Boolean> = flowOf(softbank)
+    override val amazonPrime: Flow<Boolean> = flowOf(prime)
+}
 
 /**
  * テスト用の ProductRepository。

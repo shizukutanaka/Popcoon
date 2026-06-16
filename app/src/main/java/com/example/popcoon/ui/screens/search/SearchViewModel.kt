@@ -11,7 +11,7 @@ import com.example.popcoon.feature.darkpattern.DarkPatternDetector
 import com.example.popcoon.feature.matching.ProductMatcher
 import com.example.popcoon.feature.points.PointSimulator
 import com.example.popcoon.feature.scorer.BuyTimingScorer
-import com.example.popcoon.feature.settings.UserPreferences
+import com.example.popcoon.feature.settings.IUserPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.FlowPreview
@@ -44,7 +44,7 @@ class SearchViewModel @Inject constructor(
     private val repository: IProductRepository,
     private val historyDao: SearchHistoryDao,
     private val savedStateHandle: SavedStateHandle,
-    private val prefs: UserPreferences,
+    private val prefs: IUserPreferences,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
