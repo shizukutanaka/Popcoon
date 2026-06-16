@@ -79,24 +79,27 @@ class SmartCartServiceTest : StringSpec({
     }
 
     // 識別テスト: 旧テストは noShipMalls で savings=0 の場合に 0>=0 を確認するだけ
-    // (savingVsNaive が常に 0 でも緑)。同一商品を 2 プラットフォームでウォッチすると
-    // optimizer が一方を選択して重複購入を排除し、naiveTotal より安くなる。
-    "同一商品クロスモール: optimizer が安い方を選び savingVsNaive > 0" {
+    // (savingVsNaive が常に 0 でも緑)。
+    // ここでは optimizer がモール集約で送料節約を実現するケースを具体値で固定する:
+    //   Naive: WH は amazon で購入 (30000+500ship=30500) + ATH は rakuten (5000+800ship=5800) = 36300
+    //   Optimal: WH も rakuten へ移動 (31000+5000=36000 ≥ freeThreshold=35000 → 送料0) = 36000
+    //   Savings = 36300 - 36000 = 300
+    "クロスモール集約で送料節約: savingVsNaive == 300 (識別テスト)" {
         val malls = mapOf(
             "amazon"  to CrossMallCartOptimizer.MallConfig(shipping = 500.0, freeThreshold = 50_000.0),
-            "rakuten" to CrossMallCartOptimizer.MallConfig(shipping = 800.0, freeThreshold = 50_000.0),
+            "rakuten" to CrossMallCartOptimizer.MallConfig(shipping = 800.0, freeThreshold = 35_000.0),
         )
-        // 同一商品 "ソニー WH-1000XM5" が amazon で 30000、rakuten で 32000
-        // (同タイトルなので ProductMatcher がグループ化 → optimizer は1点のみ購入)
         val items = listOf(
+            // WH-1000XM5: amazon 安値 (30000) だが rakuten にも在庫 (31000)
             item("a:WH", "ソニー WH-1000XM5 ワイヤレスヘッドホン", "amazon",  30_000),
-            item("r:WH", "ソニー WH-1000XM5 ワイヤレスヘッドホン", "rakuten", 32_000),
+            item("r:WH", "ソニー WH-1000XM5 ワイヤレスヘッドホン", "rakuten", 31_000),
+            // ATH-M50x: 楽天専売 (5000)
+            item("r:ATH", "Audio-Technica ATH-M50x ヘッドホン", "rakuten", 5_000),
         )
         val r = SmartCartService.optimize(items, malls).shouldNotBeNull()
-        // naive は両モールで別々に購入 (30000+500 + 32000+800 = 63300)
-        // 最適化は amazon の 1 点のみ購入 (30000+500 = 30500) → savings > 0
-        (r.savingVsNaive > 0.0) shouldBe true
-        r.savingVsNaive shouldBe (r.naiveTotal - r.optimized.total plusOrMinus 1e-9)
+        r.naiveTotal shouldBe (36_300.0 plusOrMinus 1e-9)        // 30000+500+5000+800
+        r.optimized.total shouldBe (36_000.0 plusOrMinus 1e-9)   // rakuten 36000 (free ship)
+        r.savingVsNaive shouldBe (300.0 plusOrMinus 1e-9)
     }
 
     "DEFAULT_MALL_CONFIGS はすべての主要3モールを含む" {
