@@ -142,7 +142,10 @@ class FallbackScraper {
             ?: extractJsonNumber(json, "lowPrice")
             ?: "0"
         val price = priceStr.replace(",", "").toDoubleOrNull()?.toLong() ?: 0L
+        // image は単一文字列・文字列配列のいずれもあり得る (Amazon/楽天は配列が多い)。
+        // 配列フォールバックが無いと配列形式の商品でサムネイルが表示されない。
         val image = extractJsonString(json, "image")
+            ?: extractJsonArrayFirst(json, "image")
         val brand = extractJsonString(json, "brand")
         // schema.org Offer.availability から在庫を復元 (在庫切れ系 → stockCount=0)。
         val availability = extractJsonString(json, "availability")
@@ -180,4 +183,8 @@ class FallbackScraper {
     /** 引用符なし数値 (`"price": 1980`) の抽出。詳細は extractJsonLdNumber を参照。 */
     internal fun extractJsonNumber(json: String, key: String): String? =
         extractJsonLdNumber(json, key)
+
+    /** 文字列配列の先頭要素 (`"image":["a","b"]` → `a`) の抽出。詳細は extractJsonLdArrayFirst を参照。 */
+    internal fun extractJsonArrayFirst(json: String, key: String): String? =
+        extractJsonLdArrayFirst(json, key)
 }

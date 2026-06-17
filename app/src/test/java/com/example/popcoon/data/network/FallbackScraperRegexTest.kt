@@ -70,4 +70,23 @@ class FallbackScraperRegexTest : StringSpec({
     "数値フォールバックは存在しないキーで null" {
         scraper.extractJsonNumber("""{"price":1980}""", "lowPrice").shouldBeNull()
     }
+
+    // ── image 配列の先頭要素抽出 (Amazon/楽天は image を配列で出す) ──
+    "image 文字列配列の先頭 URL を抽出" {
+        val json = """{"@type":"Product","image":["https://a.jpg","https://b.jpg"]}"""
+        // 文字列マッチは外れる (値が配列)
+        scraper.extractJsonString(json, "image").shouldBeNull()
+        // 配列フォールバックが先頭を拾う
+        scraper.extractJsonArrayFirst(json, "image") shouldBe "https://a.jpg"
+    }
+
+    "image 配列に空白がある場合も先頭を抽出" {
+        val json = """{"image": [ "https://x.jpg" , "https://y.jpg" ]}"""
+        scraper.extractJsonArrayFirst(json, "image") shouldBe "https://x.jpg"
+    }
+
+    "単一文字列 image は文字列抽出で取れる (配列フォールバック不要)" {
+        val json = """{"image":"https://single.jpg"}"""
+        scraper.extractJsonString(json, "image") shouldBe "https://single.jpg"
+    }
 })

@@ -44,6 +44,26 @@ internal fun extractJsonLdNumber(json: String, key: String): String? {
 }
 
 /**
+ * JSON-LD で値が**文字列配列**になっているキーの先頭要素を抽出する純関数
+ * (`"image":["https://a.jpg","https://b.jpg"]` → `https://a.jpg`)。
+ *
+ * schema.org の `image` は単一文字列・文字列配列・ImageObject のいずれでも提供され得る。
+ * Amazon/楽天の商品ページは配列形式が多く、`extractJsonLdString` (colon 直後に引用符を要求) は
+ * 配列 (`:[`) にマッチしないため、フォールバックスクレイプ商品の imageUrl が常に null になり
+ * サムネイルが表示されなかった。本関数は colon → `[` → 先頭の引用符付き要素を拾う。
+ *
+ * キーごとに Regex を 1 度だけコンパイルしてキャッシュする。
+ */
+private val jsonLdArrayPatternCache = java.util.concurrent.ConcurrentHashMap<String, Regex>()
+
+internal fun extractJsonLdArrayFirst(json: String, key: String): String? {
+    val pattern = jsonLdArrayPatternCache.getOrPut(key) {
+        Regex("""["']$key["']\s*:\s*\[\s*["']((?:[^"\\]|\\.)*)["']""")
+    }
+    return pattern.find(json)?.groupValues?.get(1)
+}
+
+/**
  * schema.org の Offer.availability (JSON-LD) を Product.stockCount に変換する純粋関数。
  *
  * ktor 非依存に独立させ、Android SDK 無しでコンパイル・実行検証できる

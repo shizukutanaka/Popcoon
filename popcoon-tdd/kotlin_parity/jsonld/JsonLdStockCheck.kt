@@ -114,9 +114,23 @@ fun main() {
         "unquoted number -> string-extract null"
     }
 
+    // ── extractJsonLdArrayFirst: image 文字列配列の先頭要素 (Amazon/楽天は配列形式) ──
+    check(extractJsonLdArrayFirst("""{"image":["https://a.jpg","https://b.jpg"]}""", "image")
+        == "https://a.jpg") { "image array -> first element" }
+    check(extractJsonLdArrayFirst("""{"image": [ "https://x.jpg" ]}""", "image")
+        == "https://x.jpg") { "image array with spaces -> first element" }
+    // 単一文字列は配列フォールバックにマッチしない (string 抽出の領分)
+    check(extractJsonLdArrayFirst("""{"image":"https://single.jpg"}""", "image") == null) {
+        "single string image -> array-fallback null"
+    }
+    check(extractJsonLdString("""{"image":["https://a.jpg"]}""", "image") == null) {
+        "image array -> string-extract null"
+    }
+
     println("JSON-LD STOCK: all assertions passed")
     println("ORIGIN COUNTRY: all assertions passed")
     println("GTIN/JAN: all assertions passed")
     println("AMAZON AVAILABILITY: all assertions passed")
     println("JSON-LD NUMBER: all assertions passed")
+    println("JSON-LD ARRAY: all assertions passed")
 }
