@@ -3,6 +3,36 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 52: JSON-LD price/image の形式網羅 — フォールバック商品の値喪失修正 — 2026-06-17)
+
+### 発見 (schema.org の正規な多形式を regex が取りこぼしていた)
+
+`FallbackScraper` は API 失敗時に商品ページの JSON-LD (schema.org) を読むが、
+抽出器 `extractJsonLdString` は **引用符付き文字列値しか拾えなかった**。schema.org /
+Google 公式仕様では:
+
+- **price は数値表記が正規**: Google の構造化データ例は `"price": 38.99` (引用符なし数値)。
+  引用符付き `"price":"1980"` しか拾えないため、数値表記の商品は price 抽出が null →
+  `lowPrice` も同様 → `realPrice=0` の壊れた Product が静かに生成されていた。
+- **image は配列が一般的**: Amazon/楽天は `"image":["https://a.jpg","https://b.jpg"]`。
+  colon 直後に `[` が来る配列に regex がマッチせず、imageUrl が常に null → サムネイル非表示。
+
+### 適用した改善 (commit 9bb655d / 95449e7)
+
+- `extractJsonLdNumber`: colon 直後に引用符が**来ない**数値 (`-?\d+(\.\d+)?`) のみマッチ。
+  引用符付き値とは役割分担 (相互に非衝突)。price/lowPrice の数値フォールバックに配線。
+- `extractJsonLdArrayFirst`: `key → [ → 先頭の引用符付き要素` を抽出。image の配列フォールバックに配線。
+- 既存 `extractJsonLdString` は不変 (パリティ維持)。3 関数が排他的に役割分担。
+- **検証**: `run_jsonld.sh` パリティハーネス (Android SDK 不要・実関数を直接実行) に
+  JSON-LD NUMBER / JSON-LD ARRAY ブロックを追加し緑を確認。`run_all.sh` 全緑、Python 394 passed。
+
+### 一般教訓 (プロデューサ/コンシューマのフォーマット契約)
+
+死んだ継ぎ目シリーズ (Tier 37-38, 55) の系: データソースが**正規に複数フォーマットで**提供する
+値 (price=文字列|数値、image=文字列|配列|オブジェクト) を、消費側が単一フォーマット前提で
+パースすると、特定フォーマットの商品だけ静かに値が欠落する。schema.org の型ユニオンを
+網羅したか常に確認する。
+
 ## 製品改善ループ (Tier 51: テスト演劇性の全面掃討 + 生産コードの !! 除去 — 2026-06-17)
 
 ### ソクラテス式問答 (Tier 45 の徹底適用: どのアサーションが「常に真」か)
