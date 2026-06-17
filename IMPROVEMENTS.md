@@ -3,6 +3,47 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 51: テスト演劇性の全面掃討 + 生産コードの !! 除去 — 2026-06-17)
+
+### ソクラテス式問答 (Tier 45 の徹底適用: どのアサーションが「常に真」か)
+
+Tier 45 で「検証の演劇性 (test theater)」を発見したが、当時は数件のみ修正していた。
+本 Tier では全 54 テストファイルを走査し、**識別力ゼロのアサーション**を体系的に置換した。
+演劇性パターンとその問題:
+
+- `(a > b) shouldBe true` — 失敗時に `false != true` としか出ず、a/b の実値が分からない。
+  Kotest の型付きマッチャ (`shouldBeGreaterThan` 等) は actual 値をエラーに含める。
+- `collection.any { pred } shouldBe true` — 失敗しても「何が入っていたか」が出ない。
+  `shouldExist { pred }` は要素一覧をダンプする。
+- `collection.all { pred } shouldBe true` — **空コレクションで vacuously true** になる罠。
+  `shouldContainOnly` / `shouldNotContain` は空でも正しく失敗する。
+- `str.contains(x) shouldBe false` — `shouldNotContain x` に置換 (actual 文字列が出る)。
+- `(x in 0..100) shouldBe true` — `shouldBeInRange 0..100` に置換。
+
+### 適用した改善 (本セッション 14 commit)
+
+- **テスト 18 ファイル**で演劇性アサーションを型付きマッチャに置換:
+  BuyTimingScorer / EcoEthicsScorer / PricePredictionEngine / TCOCalculator /
+  ConformalInterval / WatchlistPriceDelta / DatabaseIntegrity / PopcoonLogger /
+  IntegrationTests / DarkPatternDetector(Text) / BundlePackDetector / CustomsSimulator /
+  TrieSuggest / BillingManager / SaleCalendar / ProductMatcher / PointSimulator /
+  ReviewTrustScorer / UrlClassifier / JanCodeQuery / ApiResult。
+- **実バグ修正**: `EcoEthicsScorerTest` の `"非JP + 既知カテゴリ は代替案あり"` が DE
+  (CO2 係数 0.30 < JP 0.45) を使い、79 行目の回帰テスト (`DE → null`) と矛盾していた。
+  Python オラクルが `green=None` を返す国を「代替案あり」と誤検証していたため CN に修正。
+- **Python オラクル値の固定**: BuyTimingScorer total=67 (ALWAYS_ON_DISCOUNT −8 含む)、
+  EcoEthics co2=45/25・overall=77/46・エコマーク 45→55、co2Kg=70.0/400.0 等を具体値で固定。
+- **生産コードの `!!` 除去**: `CrossMallCartOptimizer` の 3 箇所を `checkNotNull(...) { msg }`
+  と `minBy` に置換 (require(isNotEmpty) で保証される不変条件を明示)。生産コードの `!!` ゼロを確認。
+- **マジックナンバーの命名**: `EcoEthicsScorer` の `60`/`70` を `SUPPLY_CHAIN_SCORE_DEFAULT` /
+  `CIRCULAR_ECONOMY_SCORE_DEFAULT` に抽出 (業界平均プレースホルダの意図をコメント化)。
+
+### 一般教訓
+
+`shouldBe true` は「ブール値を返す関数の直接検証」(`isValidJan13(x) shouldBe true`) にのみ使う。
+**式の評価結果**を `shouldBe true` するのは演劇性のサインであり、ほぼ常に型付きマッチャに
+置換できる。置換は失敗時の診断情報を増やし、空コレクションの vacuous-pass を塞ぐ。
+
 ## 製品改善ループ (Tier 50: BundleCard の unit price 表示バグ修正 + i18n 完全化 — 2026-06-16)
 
 ### 発見 (format 引数が無言で捨てられていた)
