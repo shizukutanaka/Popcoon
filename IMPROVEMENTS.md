@@ -16,15 +16,19 @@ Google 公式仕様では:
   `lowPrice` も同様 → `realPrice=0` の壊れた Product が静かに生成されていた。
 - **image は配列が一般的**: Amazon/楽天は `"image":["https://a.jpg","https://b.jpg"]`。
   colon 直後に `[` が来る配列に regex がマッチせず、imageUrl が常に null → サムネイル非表示。
+- **brand はオブジェクトが一般的**: `"brand":{"@type":"Brand","name":"Sony"}`。
+  `:{` のオブジェクトにマッチせず brand が null → ProductMatcher の brand 一致シグナルが死ぬ。
 
-### 適用した改善 (commit 9bb655d / 95449e7)
+### 適用した改善 (commit 9bb655d / 95449e7 / 1ca271b)
 
 - `extractJsonLdNumber`: colon 直後に引用符が**来ない**数値 (`-?\d+(\.\d+)?`) のみマッチ。
   引用符付き値とは役割分担 (相互に非衝突)。price/lowPrice の数値フォールバックに配線。
 - `extractJsonLdArrayFirst`: `key → [ → 先頭の引用符付き要素` を抽出。image の配列フォールバックに配線。
-- 既存 `extractJsonLdString` は不変 (パリティ維持)。3 関数が排他的に役割分担。
+- `extractJsonLdObjectField(outer, inner)`: `outer → { → inner` を同一オブジェクト内 (`[^{}]*?`) で抽出。
+  brand.name を拾う (先頭の商品 name と誤認しない)。brand のオブジェクトフォールバックに配線。
+- 既存 `extractJsonLdString` は不変 (パリティ維持)。4 関数が排他的に役割分担。
 - **検証**: `run_jsonld.sh` パリティハーネス (Android SDK 不要・実関数を直接実行) に
-  JSON-LD NUMBER / JSON-LD ARRAY ブロックを追加し緑を確認。`run_all.sh` 全緑、Python 394 passed。
+  JSON-LD NUMBER / ARRAY / OBJECT ブロックを追加し緑を確認。`run_all.sh` 全緑、Python 394 passed。
 
 ### 一般教訓 (プロデューサ/コンシューマのフォーマット契約)
 
