@@ -50,11 +50,11 @@ class DarkPatternTextDetectorTest : StringSpec({
     }
 
     "URGENCY: カウントダウン" {
-        DarkPatternTextDetector.Category.URGENCY in cats("セール残り2時間で終了") shouldBe true
+        cats("セール残り2時間で終了") shouldContain DarkPatternTextDetector.Category.URGENCY
     }
 
     "URGENCY: 本日限り" {
-        DarkPatternTextDetector.Category.URGENCY in cats("本日限りの特別価格") shouldBe true
+        cats("本日限りの特別価格") shouldContain DarkPatternTextDetector.Category.URGENCY
     }
 
     "SCARCITY: 少数点数は HIGH" {
@@ -102,11 +102,11 @@ class DarkPatternTextDetectorTest : StringSpec({
     }
 
     "SOCIAL_PROOF: 人数+閲覧" {
-        DarkPatternTextDetector.Category.SOCIAL_PROOF in cats("いま12人がこの商品を見ています") shouldBe true
+        cats("いま12人がこの商品を見ています") shouldContain DarkPatternTextDetector.Category.SOCIAL_PROOF
     }
 
     "MISDIRECTION: デフォルト選択" {
-        DarkPatternTextDetector.Category.MISDIRECTION in cats("延長保証はデフォルトで選択されています") shouldBe true
+        cats("延長保証はデフォルトで選択されています") shouldContain DarkPatternTextDetector.Category.MISDIRECTION
     }
 
     "FORCED_ACTION: confirmshaming は HIGH" {
