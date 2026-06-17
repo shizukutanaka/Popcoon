@@ -64,6 +64,26 @@ internal fun extractJsonLdArrayFirst(json: String, key: String): String? {
 }
 
 /**
+ * JSON-LD で値が**ネストしたオブジェクト**になっているキーの内側フィールドを抽出する純関数
+ * (`"brand":{"@type":"Brand","name":"Sony"}` を outerKey=brand/innerKey=name で → `Sony`)。
+ *
+ * schema.org の `brand` は文字列 (`"brand":"Sony"`) でも Brand オブジェクトでも提供され得る。
+ * `extractJsonLdString(json,"brand")` は `:{` のオブジェクトにマッチせず brand が null になり、
+ * ProductMatcher の横断名寄せ (brand を一致シグナルに使う) が弱まっていた。
+ *
+ * `[^{}]*?` で同一オブジェクト内 (ネスト波カッコ無し前提) に限定して innerKey を拾う。
+ * outerKey/innerKey の組をキーに Regex を 1 度だけコンパイルしてキャッシュする。
+ */
+private val jsonLdObjectPatternCache = java.util.concurrent.ConcurrentHashMap<String, Regex>()
+
+internal fun extractJsonLdObjectField(json: String, outerKey: String, innerKey: String): String? {
+    val pattern = jsonLdObjectPatternCache.getOrPut("$outerKey/$innerKey") {
+        Regex("""["']$outerKey["']\s*:\s*\{[^{}]*?["']$innerKey["']\s*:\s*["']((?:[^"\\]|\\.)*)["']""")
+    }
+    return pattern.find(json)?.groupValues?.get(1)
+}
+
+/**
  * schema.org の Offer.availability (JSON-LD) を Product.stockCount に変換する純粋関数。
  *
  * ktor 非依存に独立させ、Android SDK 無しでコンパイル・実行検証できる

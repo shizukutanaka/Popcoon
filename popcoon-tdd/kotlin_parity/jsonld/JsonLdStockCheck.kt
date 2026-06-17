@@ -127,10 +127,23 @@ fun main() {
         "image array -> string-extract null"
     }
 
+    // ── extractJsonLdObjectField: brand ネストオブジェクトの name ──
+    val brandLd = """{"name":"商品X","brand":{"@type":"Brand","name":"Sony"}}"""
+    check(extractJsonLdObjectField(brandLd, "brand", "name") == "Sony") {
+        "brand object -> inner name Sony (not product name)"
+    }
+    check(extractJsonLdString(brandLd, "brand") == null) { "brand object -> string-extract null" }
+    check(extractJsonLdObjectField("""{"name":"商品"}""", "brand", "name") == null) {
+        "missing brand object -> null"
+    }
+    // 単一文字列 brand は string 抽出の領分
+    check(extractJsonLdString("""{"brand":"Sony"}""", "brand") == "Sony") { "string brand -> Sony" }
+
     println("JSON-LD STOCK: all assertions passed")
     println("ORIGIN COUNTRY: all assertions passed")
     println("GTIN/JAN: all assertions passed")
     println("AMAZON AVAILABILITY: all assertions passed")
     println("JSON-LD NUMBER: all assertions passed")
     println("JSON-LD ARRAY: all assertions passed")
+    println("JSON-LD OBJECT: all assertions passed")
 }

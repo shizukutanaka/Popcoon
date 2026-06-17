@@ -89,4 +89,23 @@ class FallbackScraperRegexTest : StringSpec({
         val json = """{"image":"https://single.jpg"}"""
         scraper.extractJsonString(json, "image") shouldBe "https://single.jpg"
     }
+
+    // ── brand ネストオブジェクトの name 抽出 ──
+    "brand オブジェクトの name を抽出" {
+        val json = """{"@type":"Product","name":"商品X","brand":{"@type":"Brand","name":"ソニー"}}"""
+        // 文字列マッチは外れる (値がオブジェクト)
+        scraper.extractJsonString(json, "brand").shouldBeNull()
+        // オブジェクトフォールバックが内側 name を拾う (商品 name "商品X" ではなく)
+        scraper.extractJsonObjectField(json, "brand", "name") shouldBe "ソニー"
+    }
+
+    "単一文字列 brand は文字列抽出で取れる" {
+        val json = """{"brand":"Sony","name":"商品"}"""
+        scraper.extractJsonString(json, "brand") shouldBe "Sony"
+    }
+
+    "brand オブジェクト抽出は対象キーが無ければ null" {
+        val json = """{"name":"商品"}"""
+        scraper.extractJsonObjectField(json, "brand", "name").shouldBeNull()
+    }
 })

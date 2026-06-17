@@ -146,7 +146,10 @@ class FallbackScraper {
         // 配列フォールバックが無いと配列形式の商品でサムネイルが表示されない。
         val image = extractJsonString(json, "image")
             ?: extractJsonArrayFirst(json, "image")
+        // brand は文字列 ("Sony") でも Brand オブジェクト ({"name":"Sony"}) でもあり得る。
+        // ネストオブジェクトのフォールバックが無いと ProductMatcher の brand 一致シグナルが死ぬ。
         val brand = extractJsonString(json, "brand")
+            ?: extractJsonObjectField(json, "brand", "name")
         // schema.org Offer.availability から在庫を復元 (在庫切れ系 → stockCount=0)。
         val availability = extractJsonString(json, "availability")
         // schema.org countryOfOrigin から原産国を復元 → EcoEthicsScorer 用に ISO-2 へ正規化。
@@ -187,4 +190,8 @@ class FallbackScraper {
     /** 文字列配列の先頭要素 (`"image":["a","b"]` → `a`) の抽出。詳細は extractJsonLdArrayFirst を参照。 */
     internal fun extractJsonArrayFirst(json: String, key: String): String? =
         extractJsonLdArrayFirst(json, key)
+
+    /** ネストオブジェクトの内側フィールド (`"brand":{"name":"Sony"}` → `Sony`)。詳細は extractJsonLdObjectField を参照。 */
+    internal fun extractJsonObjectField(json: String, outerKey: String, innerKey: String): String? =
+        extractJsonLdObjectField(json, outerKey, innerKey)
 }
