@@ -3,6 +3,7 @@ package com.example.popcoon.feature.points
 import com.example.popcoon.data.model.Platform
 import com.example.popcoon.data.model.Product
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.collections.shouldExist
 import io.kotest.matchers.longs.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import java.time.LocalDate
@@ -106,8 +107,8 @@ class PointSimulatorTest : StringSpec({
         )
         val r = PointSimulator.simulate(product(Platform.RAKUTEN, 1000), ctx)
         r.breakdown.size shouldBe 3
-        r.breakdown.map { it.name }.any { it.contains("SPU") } shouldBe true
-        r.breakdown.map { it.name }.any { it.contains("5と0") } shouldBe true
-        r.breakdown.map { it.name }.any { it.contains("ダイヤモンド") } shouldBe true
+        r.breakdown.shouldExist { it.name.contains("SPU") }
+        r.breakdown.shouldExist { it.name.contains("5と0") }
+        r.breakdown.shouldExist { it.name.contains("ダイヤモンド") }
     }
 })

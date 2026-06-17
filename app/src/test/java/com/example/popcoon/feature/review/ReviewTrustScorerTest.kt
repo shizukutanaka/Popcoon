@@ -1,6 +1,7 @@
 package com.example.popcoon.feature.review
 
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.ints.shouldBeInRange
 import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.float
@@ -67,7 +68,7 @@ class ReviewTrustScorerTest : StringSpec({
         checkAll(Arb.float(0f..5f), Arb.int(1..100000)) { rating, count ->
             val r = ReviewTrustScorer.evaluate(rating, count)
             if (r.trust != ReviewTrustScorer.Trust.UNKNOWN) {
-                (r.score in 0..100) shouldBe true
+                r.score shouldBeInRange 0..100
             }
         }
     }

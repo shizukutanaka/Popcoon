@@ -5,6 +5,7 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldNotContain
 
 class UrlClassifierTest : StringSpec({
 
@@ -44,7 +45,7 @@ class UrlClassifierTest : StringSpec({
             "https://item.rakuten.co.jp/shop/item?scid=xxx&keyword=yyy"
         )
         r.shouldNotBeNull()
-        r.canonicalUrl.contains("?") shouldBe false
+        r.canonicalUrl shouldNotContain "?"
     }
 
     "Yahoo!ショッピング store URL" {

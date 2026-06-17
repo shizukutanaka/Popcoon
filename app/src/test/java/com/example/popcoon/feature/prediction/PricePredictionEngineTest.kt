@@ -10,6 +10,8 @@ import io.kotest.matchers.longs.shouldBeGreaterThan
 import io.kotest.matchers.longs.shouldBeGreaterThanOrEqualTo
 import io.kotest.matchers.longs.shouldBeLessThan
 import io.kotest.matchers.longs.shouldBeLessThanOrEqualTo
+import io.kotest.matchers.floats.shouldBeGreaterThanOrEqual
+import io.kotest.matchers.floats.shouldBeLessThanOrEqual
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.list
@@ -75,8 +77,8 @@ class PricePredictionEngineTest : StringSpec({
             val p = PricePredictionEngine.predict(history)
             if (p != null) {
                 val prob = p.buyNowProbability
-                (prob >= 0f) shouldBe true
-                (prob <= 1f) shouldBe true
+                prob shouldBeGreaterThanOrEqual 0f
+                prob shouldBeLessThanOrEqual 1f
             }
         }
     }

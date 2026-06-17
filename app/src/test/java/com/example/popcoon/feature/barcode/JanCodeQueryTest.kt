@@ -3,6 +3,7 @@ package com.example.popcoon.feature.barcode
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldStartWith
 
 class JanCodeQueryTest : StringSpec({
 
@@ -68,7 +69,7 @@ class JanCodeQueryTest : StringSpec({
         // (実際のJANに依存しない)
         if (result != null) {
             result.length shouldBe 13
-            result.startsWith("0") shouldBe true
+            result shouldStartWith "0"
         }
     }
 
