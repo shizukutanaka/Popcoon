@@ -96,8 +96,27 @@ fun main() {
     check(stockFromAmazonAvailability(null, "通常2〜3日以内に発送します") == null) { "Message ships-in-N-days -> null" }
     check(stockFromAmazonAvailability(null, "残り3点 ご注文はお早めに") == null) { "Message low-stock -> null (still in stock)" }
 
+    // ── extractJsonLdNumber: 引用符なし数値 price (schema.org/Google は "price": 1980 を使う) ──
+    // 文字列抽出は引用符付きしか拾えず、数値表記の商品は realPrice=0 になっていた (静かな値喪失)。
+    check(extractJsonLdNumber("""{"offers":{"price":1980}}""", "price") == "1980") {
+        "unquoted integer price -> 1980"
+    }
+    check(extractJsonLdNumber("""{"price":38.99,"priceCurrency":"USD"}""", "price") == "38.99") {
+        "unquoted decimal price -> 38.99"
+    }
+    // 引用符付きは数値フォールバックにマッチしない (文字列抽出との役割分担)
+    check(extractJsonLdNumber("""{"price":"1980"}""", "price") == null) {
+        "quoted price -> number-fallback null"
+    }
+    check(extractJsonLdNumber("""{"price":1980}""", "lowPrice") == null) { "missing key -> null" }
+    // 文字列抽出は引用符なし数値を拾わない (逆方向の役割分担)
+    check(extractJsonLdString("""{"price":1980}""", "price") == null) {
+        "unquoted number -> string-extract null"
+    }
+
     println("JSON-LD STOCK: all assertions passed")
     println("ORIGIN COUNTRY: all assertions passed")
     println("GTIN/JAN: all assertions passed")
     println("AMAZON AVAILABILITY: all assertions passed")
+    println("JSON-LD NUMBER: all assertions passed")
 }

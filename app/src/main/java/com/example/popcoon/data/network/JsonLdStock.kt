@@ -23,6 +23,27 @@ internal fun extractJsonLdString(json: String, key: String): String? {
 }
 
 /**
+ * JSON-LD の**引用符なし数値**値 (`"price": 1980` / `"price": 38.99`) を抽出する純関数。
+ *
+ * schema.org の `price`/`lowPrice`/`highPrice` は文字列 (`"1980"`) でも数値 (`1980`) でも
+ * 提供され得る (Google の公式例は `"price": 38.99` という数値表記)。`extractJsonLdString` は
+ * 引用符付き文字列しか拾えないため、数値表記の商品は price 抽出が null になり、
+ * FallbackScraper が realPrice=0 の壊れた Product を生成していた (静かな値喪失バグ)。
+ *
+ * 本関数は colon の直後に引用符が**来ない**数値のみにマッチする (`-?\d+(\.\d+)?`)。
+ * 引用符付き値 (`"price":"1980"`) は `\s*` の後に `"` が来てマッチしないため、
+ * 文字列抽出との役割分担が崩れない。キーごとに Regex を 1 度だけコンパイルしてキャッシュする。
+ */
+private val jsonLdNumberPatternCache = java.util.concurrent.ConcurrentHashMap<String, Regex>()
+
+internal fun extractJsonLdNumber(json: String, key: String): String? {
+    val pattern = jsonLdNumberPatternCache.getOrPut(key) {
+        Regex("""["']$key["']\s*:\s*(-?\d+(?:\.\d+)?)""")
+    }
+    return pattern.find(json)?.groupValues?.get(1)
+}
+
+/**
  * schema.org の Offer.availability (JSON-LD) を Product.stockCount に変換する純粋関数。
  *
  * ktor 非依存に独立させ、Android SDK 無しでコンパイル・実行検証できる

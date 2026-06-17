@@ -134,8 +134,13 @@ class FallbackScraper {
     ): Product? {
         // キーだけを取り出す粗いパーサ
         val name = extractJsonString(json, "name") ?: return null
+        // price は文字列 ("1980") と数値 (1980 / 38.99) の両形式があり得る (schema.org / Google 公式例)。
+        // 文字列マッチが外れたら数値フォールバックを試す。これが無いと数値表記の商品が realPrice=0 になる。
         val priceStr = extractJsonString(json, "price")
-            ?: extractJsonString(json, "lowPrice") ?: "0"
+            ?: extractJsonNumber(json, "price")
+            ?: extractJsonString(json, "lowPrice")
+            ?: extractJsonNumber(json, "lowPrice")
+            ?: "0"
         val price = priceStr.replace(",", "").toDoubleOrNull()?.toLong() ?: 0L
         val image = extractJsonString(json, "image")
         val brand = extractJsonString(json, "brand")
@@ -171,4 +176,8 @@ class FallbackScraper {
     // パリティハーネスがその実関数を直接検証できるよう委譲する (正規表現の複製を排除)。
     internal fun extractJsonString(json: String, key: String): String? =
         extractJsonLdString(json, key)
+
+    /** 引用符なし数値 (`"price": 1980`) の抽出。詳細は extractJsonLdNumber を参照。 */
+    internal fun extractJsonNumber(json: String, key: String): String? =
+        extractJsonLdNumber(json, key)
 }

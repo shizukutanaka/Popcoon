@@ -45,4 +45,29 @@ class FallbackScraperRegexTest : StringSpec({
         val json = """{"@type":"Product","name":"商品","price":"4,980"}"""
         scraper.extractJsonString(json, "price") shouldBe "4,980"
     }
+
+    // ── 数値 (引用符なし) price の抽出 (regression: schema.org/Google は "price": 1980 を使う) ──
+    "引用符なし整数 price を数値フォールバックで抽出" {
+        val json = """{"@type":"Product","name":"商品","offers":{"price":1980}}"""
+        // 文字列マッチは外れる (引用符が無い)
+        scraper.extractJsonString(json, "price").shouldBeNull()
+        // 数値フォールバックが拾う
+        scraper.extractJsonNumber(json, "price") shouldBe "1980"
+    }
+
+    "引用符なし小数 price を数値フォールバックで抽出 (Google 公式例 38.99)" {
+        val json = """{"@type":"Offer","price":38.99,"priceCurrency":"USD"}"""
+        scraper.extractJsonNumber(json, "price") shouldBe "38.99"
+    }
+
+    "引用符付き price は数値フォールバックにマッチしない (役割分担)" {
+        val json = """{"price":"1980"}"""
+        // 数値フォールバックは引用符付きを拾わない → 文字列抽出の領分
+        scraper.extractJsonNumber(json, "price").shouldBeNull()
+        scraper.extractJsonString(json, "price") shouldBe "1980"
+    }
+
+    "数値フォールバックは存在しないキーで null" {
+        scraper.extractJsonNumber("""{"price":1980}""", "lowPrice").shouldBeNull()
+    }
 })
