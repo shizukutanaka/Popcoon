@@ -3,6 +3,7 @@ package com.example.popcoon.feature.cart
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.booleans.shouldBeTrue
+import io.kotest.matchers.collections.shouldContainOnly
 import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.shouldBe
 
@@ -145,6 +146,6 @@ class CrossMallCartOptimizerTest : StringSpec({
         }
         val r = CrossMallCartOptimizer.optimize(items, malls, bruteCap = 1000)
         r.greedy.shouldBeTrue()
-        r.assignment.values.all { it == "b" } shouldBe true
+        r.assignment.values shouldContainOnly listOf("b")
     }
 })

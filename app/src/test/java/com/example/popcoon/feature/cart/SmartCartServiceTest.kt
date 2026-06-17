@@ -2,6 +2,7 @@ package com.example.popcoon.feature.cart
 
 import com.example.popcoon.data.db.WatchlistItem
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.collections.shouldContainOnly
 import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -41,7 +42,7 @@ class SmartCartServiceTest : StringSpec({
     "単一 item はそのプラットフォームに割り当て" {
         val items = listOf(item("a:001", "商品A", "amazon", 1000))
         val r = SmartCartService.optimize(items, noShipMalls).shouldNotBeNull()
-        r.optimized.assignment.values.all { it == "amazon" } shouldBe true
+        r.optimized.assignment.values shouldContainOnly listOf("amazon")
     }
 
     "異なる商品は独立した CartItem として扱われる" {
