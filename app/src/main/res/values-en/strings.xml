@@ -300,6 +300,7 @@
     <string name="notif_price_drop">Price dropped (%1$d%% off)</string>
     <string name="notif_price_detail">%1$s\n%2$s (was: %3$s)</string>
     <string name="notif_weekly_digest_title">Weekly price summary</string>
+    <string name="notif_weekly_digest_body">%2$d of your %1$d watchlist items dropped in price. Open the app for details.</string>
 
     <!-- Search empty states (SearchHelpers) -->
     <string name="search_idle_body">Compare prices across Amazon, Rakuten, and Yahoo! at once</string>

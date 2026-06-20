@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import com.example.popcoon.feature.share.UrlClassifier
 import com.example.popcoon.ui.PopcoonApp
 import com.example.popcoon.worker.PriceSyncWorker
+import com.example.popcoon.worker.WeeklyDigestWorker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +26,8 @@ class MainActivity : ComponentActivity() {
 
         // バックグラウンド価格同期を日次スケジュール
         PriceSyncWorker.schedule(applicationContext)
+        // ウォッチリスト週次ダイジェスト通知をスケジュール
+        WeeklyDigestWorker.schedule(applicationContext)
 
         setContent {
             PopcoonApp(initialEvent = intentEvent)

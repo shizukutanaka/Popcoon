@@ -295,6 +295,7 @@
     <string name="notif_price_drop">降价了 (%1$d%% OFF)</string>
     <string name="notif_price_detail">%1$s\n%2$s (上次: %3$s)</string>
     <string name="notif_weekly_digest_title">每周价格汇总</string>
+    <string name="notif_weekly_digest_body">关注清单%1$d件中有%2$d件价格下降。请打开应用查看最新价格。</string>
 
     <!-- 搜索空状态 (SearchHelpers) -->
     <string name="search_idle_body">同时比较亚马逊、乐天、雅虎的价格</string>

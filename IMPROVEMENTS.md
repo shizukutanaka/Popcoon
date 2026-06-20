@@ -3,6 +3,65 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 57: ソクラテス式 — 週次ダイジェスト通知チャンネルが存在するのに送信 Worker が存在しない — 2026-06-20)
+
+### ソクラテス式問答 (「設備は整っているのに誰も動かしていない?」)
+
+`LocalNotificationManager.sendWeeklyDigest()` / `PopcoonApp.CHANNEL_WEEKLY_DIGEST` / 4ロケールの
+`channel_weekly_digest_*` & `notif_weekly_digest_title` が全て揃っている。
+では「誰がこれを呼ぶのか?」→ **誰もいない**。
+
+`grep -r "sendWeeklyDigest" app/src/main` で唯一の出力は定義元のみ。
+`*Worker*.kt` を列挙すると `PriceSyncWorker` 1件しかなく、週次ダイジェストの
+スケジューラーが存在しない。
+
+つまり:
+- 通知チャンネル「週刊まとめ / Weekly digest / 주간 요약 / 每周摘要」はユーザーの通知設定に表示されるが、
+  **一度も通知が届くことはない** (チャンネルが存在するだけ)。
+- `notif_weekly_digest_title` も 4ロケール全てで定義されているが参照されるのは
+  `LocalNotificationManager.sendWeeklyDigest()` からのみで、そこ自身が呼ばれない。
+
+### 選択肢と判断
+
+- **A. チャンネルと文字列を削除** — 実装が存在しないのでクリーンにはなる。
+  が、「通知設定に見えている機能を削除」はユーザーが混乱する可能性がある (既にインストール済みのデバイスで)。
+  また機能そのものは有用 (週次で「何件値下がりした」を知らせる = engagementアップ)。
+- **B. `WeeklyDigestWorker` を実装して配線** — 約束を履行する。
+  Worker のロジックは端末内データのみ (`WatchlistItem.realPrice` vs `addedPrice`) で
+  完結するためネットワーク不要・シンプル。← **採用**
+
+### 適用した変更
+
+1. **`WeeklyDigestWorker.kt`** 新設:
+   - 7日ごとに実行 (ネットワーク不要、バッテリー低下時はスキップ)
+   - `addedPrice > 0 && realPrice < addedPrice` を満たす商品を「値下がり中」として集計
+   - `dropCountFrom(List<Pair<Long,Long>>): Int` を pure companion function として切り出し
+     (テスト可能・Context 非依存)
+   - `notificationManager.sendWeeklyDigest(context, summary)` を呼び出して通知を発行
+   - `WORK_NAME = "weekly_digest"` を識別子として `enqueueUniquePeriodicWork`
+
+2. **`MainActivity.kt`** に `WeeklyDigestWorker.schedule(applicationContext)` を追加
+   (`PriceSyncWorker.schedule()` と並べてアプリ起動時に一度スケジュール)
+
+3. **文字列 `notif_weekly_digest_body`** を 4ロケール全てに追加:
+   - JA: 「ウォッチリスト%1$d件中%2$d件が値下がり中。アプリで最新価格を確認しましょう。」
+   - EN: 「%2$d of your %1$d watchlist items dropped in price. Open the app for details.」
+   - KO: 「관심 상품 %1$d개 중 %2$d개 가격이 내렸습니다. 앱에서 최신 가격을 확인하세요.」
+   - ZH: 「关注清单%1$d件中有%2$d件价格下降。请打开应用查看最新价格。」
+
+4. **`WeeklyDigestWorkerTest.kt`** 新設: `dropCountFrom` のケースを 7 spec で網羅
+   (値下がり/値上がり/同値/基準なし/混在/空/WORK_NAME 固定)
+
+### 一般教訓
+
+「チャンネル登録 + 文字列定義 = 機能完成」ではない。
+**配線 (caller) が存在しない delivery pipeline は、どれだけ内部実装が整っていても
+ユーザーには届かない。** 通知機能は特に「チャンネルが通知設定に見えるのに通知が来ない」
+という UX 違和感を生む。コードレビューで「この method/channel を呼ぶ経路はあるか?」
+を問うことが有効。
+
+---
+
 ## 製品改善ループ (Tier 56: ソクラテス式 — GDPR 全削除が UI の約束 [サーバー側削除] を果たしていなかった — 2026-06-20)
 
 ### ソクラテス式問答 (「注入された依存は実際に使われているか?」)

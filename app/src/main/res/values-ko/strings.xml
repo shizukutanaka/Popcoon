@@ -295,6 +295,7 @@
     <string name="notif_price_drop">가격 인하 (%1$d%% 할인)</string>
     <string name="notif_price_detail">%1$s\n%2$s (이전: %3$s)</string>
     <string name="notif_weekly_digest_title">주간 가격 요약</string>
+    <string name="notif_weekly_digest_body">관심 상품 %1$d개 중 %2$d개 가격이 내렸습니다. 앱에서 최신 가격을 확인하세요.</string>
 
     <!-- 검색 빈 상태 (SearchHelpers) -->
     <string name="search_idle_body">Amazon・楽天・Yahoo! 가격을 한번에 비교할 수 있습니다</string>

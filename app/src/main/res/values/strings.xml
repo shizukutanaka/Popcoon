@@ -323,6 +323,7 @@
     <string name="notif_price_drop">値下がりしました (%1$d%% OFF)</string>
     <string name="notif_price_detail">%1$s\n%2$s (前回: %3$s)</string>
     <string name="notif_weekly_digest_title">週間価格まとめ</string>
+    <string name="notif_weekly_digest_body">ウォッチリスト%1$d件中%2$d件が値下がり中。アプリで最新価格を確認しましょう。</string>
 
     <!-- 検索空状態 (SearchHelpers) -->
     <string name="search_idle_body">Amazon・楽天・Yahoo! の価格を\n一度に比較できます</string>
