@@ -78,10 +78,10 @@ data class Product(
 
 @Serializable
 data class PriceRecord(
-    val productKey: String,
+    @SerialName("product_key") val productKey: String,
     val platform: String,
-    val listPrice: Long,
-    val realPrice: Long,
+    @SerialName("list_price") val listPrice: Long,
+    @SerialName("real_price") val realPrice: Long,
     @SerialName("recorded_at")
     @Serializable(with = InstantIso8601Serializer::class)
     val recordedAt: Instant,
