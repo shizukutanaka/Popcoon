@@ -115,4 +115,24 @@ class RobotsTxtTest : StringSpec({
         // UA は popcoon / popcoon-fallback 両方を含むが、より具体的な後者が勝つ
         RobotsTxt.isAllowed(robots, "/dp/B000", ua) shouldBe true
     }
+
+    // 回帰: クエリ標的の Disallow。FallbackScraper が path のみ (query 除去) を渡すと
+    // この種のルールを取りこぼし、禁止 URL を取得してしまう。マッチ対象は path+query であるべき。
+    "クエリ標的 Disallow: /*? は query 付き URL を拒否し、query 無しは許可" {
+        val robots = """
+            User-agent: *
+            Disallow: /*?
+        """.trimIndent()
+        RobotsTxt.isAllowed(robots, "/item/123?ref=spam", ua) shouldBe false
+        RobotsTxt.isAllowed(robots, "/item/123", ua) shouldBe true
+    }
+
+    "特定クエリキー標的 Disallow: /*?replytocom" {
+        val robots = """
+            User-agent: *
+            Disallow: /*?replytocom
+        """.trimIndent()
+        RobotsTxt.isAllowed(robots, "/post?replytocom=42", ua) shouldBe false
+        RobotsTxt.isAllowed(robots, "/post?id=42", ua) shouldBe true
+    }
 })

@@ -62,7 +62,10 @@ class FallbackScraper {
     suspend fun fetchProduct(url: String, platform: Platform): Product? {
         val uri = runCatching { java.net.URI(url) }.getOrNull() ?: return null
         val host = uri.host ?: return null
-        val path = uri.rawPath?.ifEmpty { "/" } ?: "/"
+        // robots.txt のマッチ対象は REP 仕様上 path + query。実際に GET する URL (query 付き) と
+        // 一致させないと、Disallow: /*? のようなクエリ標的ルールを取りこぼし、禁止 URL を取得しうる。
+        val rawPath = uri.rawPath?.ifEmpty { "/" } ?: "/"
+        val path = uri.rawQuery?.let { "$rawPath?$it" } ?: rawPath
 
         // レート制限を先に適用 (robots.txt 取得もこのゲートの内側に収める)。
         // read-check-write を compute で atomic に行い、同一ホストへの同時アクセスが
