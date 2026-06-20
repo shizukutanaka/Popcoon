@@ -3,6 +3,53 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 54: PriceSyncWorker 競合状態 + エッジトリガ後継テスト失敗 — 2026-06-20)
+
+### ソクラテス式問答 (「修正後の Worker が修正を正しく使っているか?」)
+
+Tier 53 でエッジトリガ化した `PriceAlertEvaluator` が正しく機能するには、
+`PriceSyncWorker` が `previousPrice` と `targetPrice` を正確に渡すことが前提。
+本 Tier はその配線を問う。
+
+**問: `previousPrice = item.realPrice` が「前回同期価格」として正しいか?**
+→ **正しい。** `item` は同期開始時の DB スナップショット。`updatePrice()` は後で呼ぶため、
+  `previousPrice` は今回同期前の価格を確実に捕捉している。
+
+**問: では `targetPrice = item.targetPrice` が正しく伝わるか?**
+→ **設計上は正しいが、競合状態がある。** Worker は `observeAll().first()` でスナップショットを
+  取得した後、`watchlistDao.upsert(item.copy(realPrice = ...))` で全フィールドを書き戻していた。
+  もしユーザーが `setTargetPrice(key, 4000)` を Worker の取得〜書き戻しの間に呼ぶと、
+  Room の `OnConflictStrategy.REPLACE` は旧スナップショット (`targetPrice = null`) で
+  行を差し替え、**ユーザーの設定した目標価格を黙って消去する。**
+
+### 適用した改善 (commit 4dee62f)
+
+1. **競合状態修正**: `watchlistDao.upsert(item.copy(realPrice = latest.realPrice))` →
+   `watchlistDao.updatePrice(item.productKey, latest.realPrice)` に変更。
+   `updatePrice` は `UPDATE watchlist SET realPrice = :price WHERE productKey = :key` の
+   単一カラム更新であり、`targetPrice` / `addedPrice` を一切触らない。
+   DAO にはこの目的のために既に `updatePrice` が用意されており、docstring も
+   「upsert の全フィールド書き換えを避け addedPrice を保全する」と明記していた。
+
+2. **潜在テスト失敗の修正**: `PriceSyncWorkerLogicTest` に
+   `"targetPrice 到達は dropPercent 未満でも TARGET_REACHED (優先)"` というテストが
+   `previousPrice = 5000L, targetPrice = 5000L` (両者が等しい) で書かれていた。
+   エッジトリガでは `wasAlreadyAtOrBelowTarget = (5000 in 1..5000) = true` となるため
+   TARGET_REACHED に到達せず NONE を返す。テストは期待 TARGET_REACHED → 実際 NONE で
+   **潜在失敗**状態だった (PriceSyncWorkerLogicTest も `useJUnitPlatform` 環境なので未実行)。
+   修正: `previousPrice = 5001L` (目標を 1 円超える = 真の「跨ぎ」) に変更し、
+   「`previousPrice == targetPrice` は跨ぎでない」という境界テストを追加。
+   Python オラクルで全 6 ケース緑を確認。
+
+### 一般教訓
+
+「修正を適用したら、その修正を使う配線も正しいか」を問う。エッジトリガ化 (Tier 53) は
+評価器が正しくなっても、Worker が評価器に正しい値を渡さなければ意味がない。修正は
+依存チェーン全体に波及するため「修正の修正」が存在する。今回はたまたま既存配線が
+評価器への入力としては正しかった (previousPrice の捕捉) が、DAO 書き戻しで別の問題
+(競合状態) を抱えていた。また、Tier 53 の「実行されない潜在失敗」が今 Tier でも再現:
+Worker 固有のテストも未実行で、Tier 53 の変更が同テストに与えた影響をチェックしていなかった。
+
 ## 製品改善ループ (Tier 53: ソクラテス式 — 「テストは本当に実行されたのか?」+ robots クエリ遵守 — 2026-06-17)
 
 ### ソクラテス式問答 (検証の演劇性・第二幕: 実行されない緑)
