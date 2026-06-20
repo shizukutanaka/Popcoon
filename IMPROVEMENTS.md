@@ -47,14 +47,20 @@ Kotlin-only 純関数のテストは**一度も走っていない可能性**が�
 SDK/CI 依存でローカル実行できないテストは ③ に陥りやすい。純関数は依存を切り離して
 コンパイラだけで実行検証でき、③ を ① に変えられる。閾値・境界・符号を含むロジックは特に要検証。
 
-### 未適用 (要・製品判断): 目標到達通知のレベルトリガ・スパム
+### 適用: 目標到達通知をエッジトリガ化 (日次スパム解消) (commit ee05f7a)
 
-`PriceAlertEvaluator` は `latestPrice <= targetPrice` で**毎同期** TARGET_REACHED を返す
-(レベルトリガ)。`PriceSyncWorker` は日次同期 + `setOnlyAlertOnce` 未設定のため、価格が目標以下に
-留まる限り**毎日同じ通知が振動付きで再発火**する。CamelCamelCamel 等はエッジトリガ (目標を跨いだ
-瞬間に 1 回)。ただしレベルトリガは明示テスト (L38-42) + docstring + property test で**意図的に
-記述**されており、エッジトリガ化はこの設計判断の上書きになる。修正方針 (評価器のエッジ化 /
-Worker 側 dedup / `setOnlyAlertOnce`) は製品判断が要るため本 Tier では保留。
+`PriceAlertEvaluator` は `latestPrice <= targetPrice` で**毎同期** TARGET_REACHED を返していた
+(レベルトリガ)。`PriceSyncWorker` は日次同期 + `setOnlyAlertOnce` 未設定 + 振動パターンのため、
+価格が目標以下に留まる限り**毎日同じ通知が振動付きで再発火**する — CamelCamelCamel パリティを
+謳う機能の目的と正反対。レベルトリガは明示テスト + docstring + property test で意図的に記述されて
+いたため、製品判断を仰いだ上で**エッジトリガ化**を適用 (ユーザー選択: 推奨案)。
+
+- TARGET_REACHED は目標を「上→下」に跨いだ同期のみ発火 (`previousPrice` が目標超、または
+  `previousPrice <= 0` の初回観測)。目標以下に留まる間は再通知しない。
+- 既に目標以下のまま更に有意下落した場合は PRICE_DROP として拾う (情報は失わない)。
+- テストをレベル→エッジ意味論に更新 (跨ぎ / 既に以下 / 更に下落 / 初回観測 + 双方向 property)。
+  評価器をコンパイルし全明示ケース + 3000 件のランダム property を実行して検証
+  ("ALL EDGE-TRIGGER CASES + PROPERTY MATCH")。
 
 ## 製品改善ループ (Tier 52: JSON-LD price/image の形式網羅 — フォールバック商品の値喪失修正 — 2026-06-17)
 
