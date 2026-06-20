@@ -12,6 +12,12 @@ package com.example.popcoon.feature.notification
  * 目標到達通知は値下がり通知より優先度が高く、過剰通知抑制の上限にも
  * 原則として影響されない（ユーザーが明示的に求めた情報のため）。
  *
+ * 目標到達は **エッジトリガ**（CamelCamelCamel / Keepa と同じ）: 価格が目標を
+ * 「上→下」に跨いだ同期でのみ 1 回通知する。レベルトリガ（latest <= target で
+ * 毎回通知）だと、価格が目標以下に留まる限り日次同期のたびに同じ通知が
+ * 振動付きで再発火してしまう（PriceSyncWorker は日次・setOnlyAlertOnce 無し）。
+ * 既に目標以下のまま更に有意に下落した場合は PRICE_DROP として拾う。
+ *
  * Android 非依存の純関数 → 単体テストで網羅検証できる。
  */
 object PriceAlertEvaluator {
@@ -58,9 +64,16 @@ object PriceAlertEvaluator {
                 0
             }
 
-        // 1. 目標価格到達は最優先（率の大小・前回比に関係なく通知）。
+        // 1. 目標価格到達は最優先。ただし**エッジトリガ**: 目標を「初めて下回った」
+        //    同期のみ通知し、前回も目標以下だった場合は再通知しない（毎日スパム防止）。
+        //    previousPrice <= 0（基準なし＝初回観測）で既に目標以下なら 1 回だけ通知する。
+        //    既に目標以下のまま更に下落した場合は下の PRICE_DROP 判定で拾う。
         if (targetPrice != null && targetPrice > 0 && latestPrice <= targetPrice) {
-            return Alert(Kind.TARGET_REACHED, dropPercent)
+            val wasAlreadyAtOrBelowTarget = previousPrice in 1..targetPrice
+            if (!wasAlreadyAtOrBelowTarget) {
+                return Alert(Kind.TARGET_REACHED, dropPercent)
+            }
+            // フォールスルー: 既に目標以下 → TARGET は出さず値下がり判定へ。
         }
 
         // 2. 目標未到達でも、有意な値下がりがあれば通知。

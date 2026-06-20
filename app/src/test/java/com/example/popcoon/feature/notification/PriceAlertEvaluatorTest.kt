@@ -2,6 +2,7 @@ package com.example.popcoon.feature.notification
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.long
 import io.kotest.property.checkAll
@@ -35,9 +36,29 @@ class PriceAlertEvaluatorTest : StringSpec({
         a.dropPercent shouldBe 0 // 1% は整数切り捨てで 0
     }
 
-    "目標到達は値上がりしていても通知される (前回より高くても目標以下なら)" {
-        // 前回 3000 → 今回 3800 と値上がりしたが、目標 4000 以下なので通知
+    // エッジトリガ: 既に目標以下だった商品は再通知しない (毎日スパム防止)。
+    "既に目標以下のまま小動き → 再通知しない (エッジトリガ)" {
+        // 前回 3000 (既に目標 4000 以下) → 今回 3800 (まだ目標以下、しかも値上がり)。
+        // レベルトリガなら毎回 TARGET_REACHED だが、跨いでいないので NONE。
         eval(prev = 3000, latest = 3800, target = 4000).kind shouldBe
+            PriceAlertEvaluator.Kind.NONE
+    }
+
+    "既に目標以下で価格不変 → 再通知しない (日次スパムの本丸)" {
+        eval(prev = 3800, latest = 3800, target = 4000).kind shouldBe
+            PriceAlertEvaluator.Kind.NONE
+    }
+
+    "既に目標以下で更に有意下落 → PRICE_DROP で拾う (TARGET 再発火はしない)" {
+        // 前回 3800 (目標以下) → 今回 3000 で 21% 下落。目標再到達ではなく値下がり通知。
+        val a = eval(prev = 3800, latest = 3000, target = 4000)
+        a.kind shouldBe PriceAlertEvaluator.Kind.PRICE_DROP
+        a.dropPercent shouldBe 21  // (3800-3000)/3800 = 21.05 → floor 21
+    }
+
+    "目標を上→下に跨いだ同期は TARGET_REACHED (エッジ)" {
+        // 前回 5000 (目標超) → 今回 3800 (目標以下): 跨ぎ → 通知
+        eval(prev = 5000, latest = 3800, target = 4000).kind shouldBe
             PriceAlertEvaluator.Kind.TARGET_REACHED
     }
 
@@ -129,11 +150,22 @@ class PriceAlertEvaluatorTest : StringSpec({
         eval(prev = 5000, latest = 4900, target = null).shouldNotify shouldBe false
     }
 
-    // ── プロパティ: 目標以下なら常に TARGET_REACHED ────────────────────────────
-    "プロパティ: latest <= target (>0) なら必ず TARGET_REACHED" {
+    // ── プロパティ: 目標を「跨いだ」ときだけ TARGET_REACHED (エッジトリガ) ──────────
+    "プロパティ: 前回が目標超 + 今回が目標以下 (>0) なら必ず TARGET_REACHED" {
         checkAll(Arb.long(1L..1_000_000L), Arb.long(1L..1_000_000L)) { latest, target ->
             if (latest <= target) {
-                eval(prev = 999_999, latest = latest, target = target).kind shouldBe
+                // 前回は必ず目標超 (target+1) = 跨ぎ → エッジ発火
+                eval(prev = target + 1, latest = latest, target = target).kind shouldBe
+                    PriceAlertEvaluator.Kind.TARGET_REACHED
+            }
+        }
+    }
+
+    "プロパティ: 前回も今回も目標以下なら TARGET_REACHED にはならない (再通知抑制)" {
+        checkAll(Arb.long(1L..1_000_000L), Arb.long(1L..1_000_000L)) { latest, target ->
+            if (latest <= target) {
+                // 前回も目標以下 (= latest 自身を前回値に) → 跨いでいない → TARGET にならない
+                eval(prev = latest, latest = latest, target = target).kind shouldNotBe
                     PriceAlertEvaluator.Kind.TARGET_REACHED
             }
         }
