@@ -222,9 +222,9 @@
     <string name="settings_clear_history">검색 기록 삭제</string>
     <string name="settings_clear_watchlist">즐겨찾기 삭제</string>
     <string name="settings_delete_all">모든 데이터 삭제 (GDPR 제17조)</string>
-    <string name="settings_delete_desc">기기 및 서버 데이터를 즉시 완전 삭제</string>
+    <string name="settings_delete_desc">기기 내 모든 데이터를 완전 삭제 (개인 식별 데이터는 서버로 전송하지 않음)</string>
     <string name="settings_delete_confirm_title">모든 데이터 삭제</string>
-    <string name="settings_delete_confirm_body">이 작업은 취소할 수 없습니다.\n기기 데이터와 관련 서버 데이터가 영구적으로 삭제됩니다.</string>
+    <string name="settings_delete_confirm_body">이 작업은 취소할 수 없습니다.\n기기 내 모든 데이터가 영구적으로 삭제됩니다. 개인을 식별하는 데이터는 서버로 전송하지 않으므로 삭제 대상은 기기 내부뿐입니다.</string>
     <string name="settings_delete_action">삭제</string>
     <string name="settings_cancel">취소</string>
     <string name="settings_upgrade">업그레이드</string>

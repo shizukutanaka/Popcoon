@@ -199,9 +199,9 @@
     <string name="settings_clear_history">Clear search history</string>
     <string name="settings_clear_watchlist">Clear watchlist</string>
     <string name="settings_delete_all">Delete all data (GDPR Article 17)</string>
-    <string name="settings_delete_desc">Immediately delete both on-device and server data</string>
+    <string name="settings_delete_desc">Permanently delete all on-device data (no personal data is sent to the server)</string>
     <string name="settings_delete_confirm_title">Delete all data</string>
-    <string name="settings_delete_confirm_body">This action cannot be undone.\nAll device data and related server data will be permanently deleted.</string>
+    <string name="settings_delete_confirm_body">This action cannot be undone.\nAll on-device data will be permanently deleted. No personally identifiable data is sent to the server, so there is nothing to delete there.</string>
     <string name="settings_delete_action">Delete</string>
     <string name="settings_cancel">Cancel</string>
     <string name="settings_upgrade">Upgrade</string>

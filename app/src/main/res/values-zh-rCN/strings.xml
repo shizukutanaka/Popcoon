@@ -222,9 +222,9 @@
     <string name="settings_clear_history">清除搜索历史</string>
     <string name="settings_clear_watchlist">清除收藏</string>
     <string name="settings_delete_all">删除所有数据 (GDPR 第17条)</string>
-    <string name="settings_delete_desc">立即删除设备和服务器上的所有数据</string>
+    <string name="settings_delete_desc">彻底删除设备上的所有数据（不会向服务器发送任何个人身份数据）</string>
     <string name="settings_delete_confirm_title">删除所有数据</string>
-    <string name="settings_delete_confirm_body">此操作无法撤销。\n设备数据和相关服务器数据将被永久删除。</string>
+    <string name="settings_delete_confirm_body">此操作无法撤销。\n设备上的所有数据将被永久删除。本应用不会向服务器发送任何个人身份数据，因此无需在服务器端删除。</string>
     <string name="settings_delete_action">删除</string>
     <string name="settings_cancel">取消</string>
     <string name="settings_upgrade">升级</string>

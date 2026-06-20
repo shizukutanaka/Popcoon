@@ -9,7 +9,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.popcoon.BuildConfig
 import com.example.popcoon.core.PopcoonLogger
 import com.example.popcoon.data.db.PopcoonDatabase
-import com.example.popcoon.data.repository.BackendClient
 import com.example.popcoon.feature.billing.BillingManager
 import com.example.popcoon.feature.settings.UserPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -43,7 +42,6 @@ data class SettingsUiState(
 class SettingsViewModel @Inject constructor(
     private val prefs: UserPreferences,
     private val database: PopcoonDatabase,
-    private val backend: BackendClient,
     private val csvExporter: com.example.popcoon.feature.export.PriceHistoryCsvExporter,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
@@ -121,6 +119,16 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * GDPR Article 17 — 全データ削除。
+     *
+     * 端末内データ (Room 全テーブル + DataStore 設定) を完全削除する。
+     * **サーバー側に削除すべき個人データは存在しない**: アプリはデバイス識別子を一切持たず、
+     * backend に送るのは商品キー単位の匿名・共有価格履歴 (特定個人に紐づかない) と、
+     * PII 除去済み・デバイス非紐付けのクラッシュレポート (90日 TTL で自動失効) のみ。
+     * したがって「サーバー側の関連データ削除」は対象ゼロであり、ここでは端末内削除に専念する。
+     * (privacy-first 設計を守るため、削除のためだけのデバイストークン導入はしない。)
+     */
     fun deleteAllData() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isDeleting = true)
