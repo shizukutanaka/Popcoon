@@ -36,7 +36,10 @@ class ReviewPrompter @Inject constructor(
         /** Context 非依存の純関数 — テストで直接呼ぶ。 */
         fun shouldRequestNow(successCount: Int, lastReviewMs: Long, nowMs: Long): Boolean {
             if (successCount < MIN_SUCCESS_COUNT) return false
-            if (nowMs - lastReviewMs < COOLDOWN_MS) return false
+            // cooldown は包括的: ちょうど COOLDOWN_MS 経過時点ではまだ blocked (要 strictly > 90日)。
+            // Google の「90日に1回」quota を厳守する保守側。ReviewPrompterLogicTest L38 の
+            // 文書化済み境界仕様 (< ではなく <=) に一致させる (旧 < 実装はこの境界で誤って true を返していた)。
+            if (nowMs - lastReviewMs <= COOLDOWN_MS) return false
             return true
         }
     }
