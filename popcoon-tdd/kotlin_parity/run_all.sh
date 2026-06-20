@@ -27,6 +27,7 @@ harnesses=(
   "run_trie.sh"     # Trie: autocomplete suggest() order vs popcoon_core.Trie
   "run_deeplinks.sh" # DeepLinks: producer/consumer round-trip (notif/widget vs MainActivity)
   "run_currency.sh" # CurrencyFormatter: locale-independent yen formatting (de_DE/ar guard)
+  "run_alerts.sh"   # PriceAlertEvaluator: target-price edge-trigger (Tier 53/54 regression guard)
 )
 
 fail=0
