@@ -41,9 +41,21 @@ class PriceAlertEvaluatorTest : StringSpec({
             PriceAlertEvaluator.Kind.TARGET_REACHED
     }
 
-    "目標価格より高い → TARGET_REACHED にならない" {
-        eval(prev = 5000, latest = 4001, target = 4000).kind shouldBe
+    "目標価格より僅かに高い + 下落も僅少 → NONE (目標境界の単独検証)" {
+        // 目標 4000 を 1 円超過。前回比もほぼ変化なし (4010→4001 = 0%) なので
+        // TARGET_REACHED でも PRICE_DROP でもなく NONE。境界判定だけを切り出して検証する。
+        // (旧テストは prev=5000 で 20% 下落しており、実際は PRICE_DROP になるため NONE 期待は
+        //  一度も成立していなかった = useJUnitPlatform 前で未実行だった潜在失敗。コンパイル検証で発見。)
+        eval(prev = 4010, latest = 4001, target = 4000).kind shouldBe
             PriceAlertEvaluator.Kind.NONE
+    }
+
+    "目標は未達だが大きく下落 → PRICE_DROP にフォールスルー" {
+        // 目標 4000 に届かない (latest=4001) が 5000→4001 で 20% 下落 → 値下がり通知。
+        // 「目標未達 = 無通知」ではない: 有意な下落は依然 PRICE_DROP として拾う。
+        val a = eval(prev = 5000, latest = 4001, target = 4000)
+        a.kind shouldBe PriceAlertEvaluator.Kind.PRICE_DROP
+        a.dropPercent shouldBe 19  // (5000-4001)/5000 = 19.98 → floor 19
     }
 
     // ── 値下がり (目標未設定) ──────────────────────────────────────────────
