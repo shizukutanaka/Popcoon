@@ -50,6 +50,20 @@ Tier 53 でエッジトリガ化した `PriceAlertEvaluator` が正しく機能�
 (競合状態) を抱えていた。また、Tier 53 の「実行されない潜在失敗」が今 Tier でも再現:
 Worker 固有のテストも未実行で、Tier 53 の変更が同テストに与えた影響をチェックしていなかった。
 
+### 恒久対策: エッジトリガの no-SDK 回帰ガードを追加 (commit 4f7d371)
+
+Tier 53/54 の潜在失敗は「Kotest が Android SDK 必須 → CI で未実行 → 緑に見える」が共通の根因。
+Tier 53 は一度きりの standalone コンパイルで検証したが**恒久的なガードを残さなかった**。
+そこで `run_alerts.sh` + `alerts/PriceAlertEvaluatorCheck.kt` を追加 (既存の no-SDK ハーネス
+`run_deeplinks.sh` 等と同じ方式)。本物の `PriceAlertEvaluator.kt` を単体コンパイルし、エッジ
+トリガ契約 (跨ぎで TARGET 1 回 / 既に以下は再通知せず / prev==target は跨ぎでない / 更なる下落は
+PRICE_DROP / 初回観測は 1 回 / 2000 件の双方向 property) を実行検証する。`run_all.sh` に組み込み、
+**SDK 無しで実際に走る CI parity ジョブ**で恒久的に守られるようにした。
+
+識別性を実証: 評価器をレベルトリガに差し戻すとハーネスは 4 件の明示 mismatch + property 失敗を
+出して exit 非 0 になる (演劇でなく真の回帰ガード)。これで Tier 53/54 のクラスの潜在失敗は、
+Kotest 未実行環境でも `bash popcoon-tdd/kotlin_parity/run_all.sh` で捕捉できる。
+
 ## 製品改善ループ (Tier 53: ソクラテス式 — 「テストは本当に実行されたのか?」+ robots クエリ遵守 — 2026-06-17)
 
 ### ソクラテス式問答 (検証の演劇性・第二幕: 実行されない緑)
