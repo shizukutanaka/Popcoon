@@ -3,6 +3,59 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 53: ソクラテス式 — 「テストは本当に実行されたのか?」+ robots クエリ遵守 — 2026-06-17)
+
+### ソクラテス式問答 (検証の演劇性・第二幕: 実行されない緑)
+
+Tier 45 は「アサーションが識別力を持つか」を問うた。本 Tier はさらに根源的な問いに進む:
+**「このテストは一度でも実行されたことがあるのか?」** Kotest スイートは Android SDK 必須で、
+`useJUnitPlatform` 追加も CI 専用 (本リポジトリの CI は SDK 不在で未稼働)。よって
+Kotlin-only 純関数のテストは**一度も走っていない可能性**がある。緑でも赤でもなく「未実行」。
+
+検証手法: Gradle 同梱の Kotlin コンパイラ (`kotlin-compiler-embeddable`、Android SDK 不要) で
+本番純関数を単体コンパイルし、各テストの期待値を実コードに突き合わせて実行する
+(JSON-LD パリティハーネスと同じ方式を任意の純関数へ一般化)。
+
+### 発見 (コンパイル検証で露見した 2 件の「未実行の潜在失敗」)
+
+1. **`PriceAlertEvaluatorTest` 境界テストが一度も成立していなかった** (commit f9dfb2c):
+   `eval(prev=5000, latest=4001, target=4000)` を `NONE` と期待していたが、5000→4001 は約 20%
+   下落なので実コードは `PRICE_DROP` を返す。「目標未達 = 無通知」と取り違えた誤期待。
+   境界単独検証 (prev=4010 で下落 0%) と、フォールスルー検証 (prev=5000 → PRICE_DROP) に分割。
+2. **`ReviewPrompter` の cooldown 境界 off-by-one** (commit 6e2d8f2):
+   `ReviewPrompterLogicTest` は「ちょうど 90 日後は false (境界: < ではなく <=)」と**文書化された
+   意図**を持つが、実コードは `elapsed < COOLDOWN` で、ちょうど 90 日では `true` を返していた
+   (実装が文書化意図と逆)。`<= COOLDOWN` に修正 (保守側 = Google quota 厳守)。両者ともコンパイル
+   実行で got/exp を確定させてから修正。
+
+検証して**異常なし**だった純関数 (パリティ harness 非対象だが latent 失敗なし):
+`WidgetVerdict` / `StockAlertEvaluator` / `WatchlistPriceDelta` / `ReviewTrustScorer`
+(全テストケースをコンパイル実行し一致を確認)。
+
+### robots.txt クエリ標的ルールの遵守 (commit ab5a6f5)
+
+別のソクラテス問答: **「robots を、実際に GET する URL と同じものに対して照合しているか?」**
+`FallbackScraper.fetchProduct` は query 付き URL を GET するのに、robots 照合には `uri.rawPath`
+(query 除去) を渡していた。`Disallow: /*?` や `/*?replytocom` のようなクエリ標的ルールを取りこぼし、
+サイトが明示的に禁止した URL を取得しうる倫理/仕様逸脱。`RobotsTxt.matches` は元々 query を扱えた
+(渡されていなかっただけ)。照合パスを `rawPath + "?" + rawQuery` に修正。standalone コンパイルで
+4 アサーション緑を確認。
+
+### 一般教訓
+
+「テストが緑」には 3 状態がある: ①実行されて通った ②実行されて落ちた ③**一度も実行されていない**。
+SDK/CI 依存でローカル実行できないテストは ③ に陥りやすい。純関数は依存を切り離して
+コンパイラだけで実行検証でき、③ を ① に変えられる。閾値・境界・符号を含むロジックは特に要検証。
+
+### 未適用 (要・製品判断): 目標到達通知のレベルトリガ・スパム
+
+`PriceAlertEvaluator` は `latestPrice <= targetPrice` で**毎同期** TARGET_REACHED を返す
+(レベルトリガ)。`PriceSyncWorker` は日次同期 + `setOnlyAlertOnce` 未設定のため、価格が目標以下に
+留まる限り**毎日同じ通知が振動付きで再発火**する。CamelCamelCamel 等はエッジトリガ (目標を跨いだ
+瞬間に 1 回)。ただしレベルトリガは明示テスト (L38-42) + docstring + property test で**意図的に
+記述**されており、エッジトリガ化はこの設計判断の上書きになる。修正方針 (評価器のエッジ化 /
+Worker 側 dedup / `setOnlyAlertOnce`) は製品判断が要るため本 Tier では保留。
+
 ## 製品改善ループ (Tier 52: JSON-LD price/image の形式網羅 — フォールバック商品の値喪失修正 — 2026-06-17)
 
 ### 発見 (schema.org の正規な多形式を regex が取りこぼしていた)
