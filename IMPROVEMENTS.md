@@ -3,6 +3,55 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 55: ソクラテス式 — PriceRecord の wire format 不一致 [価格履歴パイプラインが無音で死んでいた] — 2026-06-20)
+
+### ソクラテス式問答 (「往復テストは wire format を検証しているか?」)
+
+Tier 54 で `PriceSyncWorker` が `getPriceHistory` から `history.first()` を latest として
+使うことを確認した。そこで次を問うた: **「`getPriceHistory` は実際に履歴を返せるのか?」**
+
+- 問: `PriceRecord` は backend (Cloudflare Workers) と JSON でやり取りする。backend の契約は?
+  → `interface PriceRecord { product_key; list_price; real_price; recorded_at }` = **snake_case**。
+- 問: Kotlin の `PriceRecord` はどのキー名で直列化するか?
+  → `@SerialName` は `recorded_at` にしか付いておらず、`productKey` / `listPrice` / `realPrice` は
+    **camelCase のまま**直列化される。
+- 問: ならば POST /v1/history は通るか?
+  → **通らない。** backend は `body.product_key` が無いと `bad("invalid payload")` で 400。
+    `postPricesAsync` の全 POST が拒否され、価格履歴が一度も蓄積されていなかった。
+- 問: GET /v1/history のレスポンス (snake_case JSON) を Kotlin はデシリアライズできるか?
+  → **できない。** `productKey` フィールドが JSON に無いため `MissingFieldException`。
+    `BackendClient.getPriceHistory` の `runCatching` がこれを握り潰して `emptyList()` を返す。
+- 結論: 価格履歴パイプライン全体が **wire 上で一度も機能していなかった**。
+  `PriceSyncWorker` は常に空履歴を見る → 値下がり・目標到達アラートが**永遠に発火しない**。
+  `BuyTimingScorer` / `PricePredictionEngine` も履歴ゼロで動いていた。backend の存在理由
+  (「全ユーザー共有 → 予測精度向上」) が達成されていなかった。
+
+### 発見の核 (往復テストの盲点)
+
+`PriceRecordSerializationTest` は存在したが **Kotlin→JSON→Kotlin の往復**しか見ていなかった。
+往復は encode と decode が同じ (誤った) キー名を使う限り**フォーマットが間違っていても成立する**。
+これは Tier 45「検証の演劇性」の系: テストはあったが、このクラスが満たすべき契約
+(backend との snake_case 一致) を**一度も検証していなかった**。
+
+### 適用した改善 (commit 279d8f9)
+
+- `PriceRecord` の `productKey` / `listPrice` / `realPrice` に `@SerialName("product_key")` 等を付与。
+- `PriceRecordSerializationTest` に**識別力のある wire format テスト**を追加:
+  - エンコード結果が `"product_key"` / `"list_price"` / `"real_price"` を含む (snake_case 契約)。
+  - エンコード結果に `"productKey"` 等の camelCase が**出ない** (旧フォーマットでない)。
+  - backend が返す snake_case JSON をデシリアライズして元の値に一致する (GET 経路)。
+  - これらは `@SerialName` を差し戻すと**落ちる** (往復テストと違い識別的)。
+- **検証**: Python で backend バリデーション (camelCase→400 / snake_case→OK) と snake_case GET
+  レスポンスのパースを再現。Python オラクル 394 passed、parity harness 全緑。
+
+### 一般教訓 (プロデューサ/コンシューマ契約テストの本質)
+
+外部システムと JSON をやり取りする型は、**往復テストでなく wire format テスト**で守る。
+往復 (encode→decode) は型の内部一貫性しか見ず、相手システムが期待するキー名・形式との
+**界面の契約**を検証しない。「相手が送る生の JSON をデシリアライズできるか」「自分が送る生の
+JSON が相手の要求キーを含むか」を、文字列リテラルで固定する。Tier 52 (JSON-LD の複数形式)
+と同根: 界面の両側が同じ契約を共有しているかを、実際のフォーマットで照合する。
+
 ## 製品改善ループ (Tier 54: PriceSyncWorker 競合状態 + エッジトリガ後継テスト失敗 — 2026-06-20)
 
 ### ソクラテス式問答 (「修正後の Worker が修正を正しく使っているか?」)
