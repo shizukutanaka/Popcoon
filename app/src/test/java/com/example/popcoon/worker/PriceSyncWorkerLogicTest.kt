@@ -58,15 +58,29 @@ class PriceSyncWorkerLogicTest : StringSpec({
         alert.shouldNotify shouldBe false
     }
 
-    "targetPrice 到達は dropPercent 未満でも TARGET_REACHED (優先)" {
+    // エッジトリガ: 目標を「上→下」に跨いだ同期のみ TARGET_REACHED。
+    // previousPrice > targetPrice でなければ「跨ぎ」と見なされず TARGET にならない。
+    "目標を上→下に跨いだ場合、dropPercent が minDropPercent 未満でも TARGET_REACHED" {
         val alert = PriceAlertEvaluator.evaluate(
-            previousPrice = 5000L,
-            latestPrice = 4900L,
-            targetPrice = 5000L,  // 目標を下回った
-            minDropPercent = 10,  // 2% 値下がりだが 10% 未満
+            previousPrice = 5001L,  // 目標より 1 円高い (目標超)
+            latestPrice = 4900L,    // 目標以下 (2% 下落だが 10% min 未満)
+            targetPrice = 5000L,
+            minDropPercent = 10,
         )
         alert.kind shouldBe PriceAlertEvaluator.Kind.TARGET_REACHED
         alert.shouldNotify shouldBe true
+    }
+
+    "previousPrice が targetPrice に等しい場合は跨ぎでない → エッジ発火しない" {
+        // prev=5000, target=5000 → wasAlreadyAtOrBelowTarget=true (5000 in 1..5000) → NONE
+        val alert = PriceAlertEvaluator.evaluate(
+            previousPrice = 5000L,
+            latestPrice = 4900L,
+            targetPrice = 5000L,
+            minDropPercent = 10,
+        )
+        alert.kind shouldBe PriceAlertEvaluator.Kind.NONE
+        alert.shouldNotify shouldBe false
     }
 
     // 識別: WorkManager は WORK_NAME で enqueue/cancel を紐付ける。値が変わると

@@ -100,7 +100,7 @@ class PriceSyncWorker @AssistedInject constructor(
                             val latest = history.first()
                             val previousPrice = item.realPrice
 
-                            watchlistDao.upsert(item.copy(realPrice = latest.realPrice))
+                            watchlistDao.updatePrice(item.productKey, latest.realPrice)
 
                             // 目標価格到達 / 有意な値下がりを純関数で判定。
                             // 目標到達は率に関係なく最優先で通知（ユーザーが明示的に求めた情報）。
