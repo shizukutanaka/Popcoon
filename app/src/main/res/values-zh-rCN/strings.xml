@@ -129,6 +129,8 @@
     <string name="watchlist_remove">删除</string>
     <string name="watchlist_undo_removed">已删除\"%1$s\"</string>
     <string name="watchlist_undo_action">撤销</string>
+    <string name="stock_alert_on">补货提醒 ON</string>
+    <string name="stock_alert_off">补货提醒</string>
     <string name="target_price_button">目标价格</string>
     <string name="target_price_set">目标 %1$s</string>
     <string name="target_price_reached">已达目标</string>
@@ -294,6 +296,8 @@
     <string name="notif_target_reached">已达到目标价格 (≤ %1$s)</string>
     <string name="notif_price_drop">降价了 (%1$d%% OFF)</string>
     <string name="notif_price_detail">%1$s\n%2$s (上次: %3$s)</string>
+    <string name="notif_back_in_stock">商品已补货</string>
+    <string name="notif_back_in_stock_body">%1$s 已重新上架，现在可以购买了！</string>
     <string name="notif_weekly_digest_title">每周价格汇总</string>
     <string name="notif_weekly_digest_body">关注清单%1$d件中有%2$d件价格下降。请打开应用查看最新价格。</string>
 

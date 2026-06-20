@@ -19,6 +19,7 @@ import com.example.popcoon.data.repository.BackendClient
 import com.example.popcoon.data.repository.IProductRepository
 import com.example.popcoon.feature.notification.LocalNotificationManager
 import com.example.popcoon.feature.notification.PriceAlertEvaluator
+import com.example.popcoon.feature.notification.StockAlertEvaluator
 import com.example.popcoon.feature.retention.ReviewPrompter
 import com.example.popcoon.widget.WidgetUpdater
 import dagger.assisted.Assisted
@@ -159,6 +160,55 @@ class PriceSyncWorker @AssistedInject constructor(
                     ),
                 )
             }
+
+        // ── 在庫アラートフェーズ ──────────────────────────────────────────────
+        // stockAlertEnabled な商品のみ repository.refresh() でライブ在庫を取得する。
+        // 価格フェーズとは別の parallel block で処理し、価格同期の失敗と独立させる。
+        val stockAlertItems = watchlist.filter { it.stockAlertEnabled }
+        if (stockAlertItems.isNotEmpty()) {
+            coroutineScope {
+                stockAlertItems.map { item ->
+                    async {
+                        semaphore.withPermit {
+                            ensureActive()
+                            runCatching {
+                                // productKey = "platform:sku" から最小 Product を構築してリフレッシュ
+                                val parts = item.productKey.split(":", limit = 2)
+                                val platform = com.example.popcoon.data.model.Platform
+                                    .fromId(parts.getOrNull(0))
+                                val sku = parts.getOrNull(1) ?: item.productKey
+                                val minProduct = com.example.popcoon.data.model.Product(
+                                    sku = sku,
+                                    title = item.title,
+                                    platform = platform,
+                                    realPrice = item.realPrice,
+                                    listPrice = item.listPrice,
+                                    url = item.url,
+                                )
+                                val fresh = repository.refresh(minProduct) ?: return@runCatching
+                                val currentlyInStock = fresh.isInStock
+                                val kind = StockAlertEvaluator.evaluate(
+                                    previouslyInStock = item.previousInStock,
+                                    currentlyInStock = currentlyInStock,
+                                    stockAlertEnabled = true,
+                                )
+                                if (kind == StockAlertEvaluator.Kind.BACK_IN_STOCK) {
+                                    notificationManager.sendStockAlert(
+                                        context = applicationContext,
+                                        productKey = item.productKey,
+                                        productTitle = item.title,
+                                    )
+                                }
+                                watchlistDao.updateStockState(item.productKey, currentlyInStock)
+                            }.onFailure { e ->
+                                if (e is CancellationException) throw e
+                                PopcoonLogger.w(this@PriceSyncWorker, "在庫チェック失敗 ${item.productKey}: ${e.message}")
+                            }
+                        }
+                    }
+                }.awaitAll()
+            }
+        }
 
         // ウィジェット更新
         try {

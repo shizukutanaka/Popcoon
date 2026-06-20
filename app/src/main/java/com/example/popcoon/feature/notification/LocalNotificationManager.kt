@@ -77,6 +77,40 @@ class LocalNotificationManager @Inject constructor() {
         }
     }
 
+    fun sendStockAlert(
+        context: Context,
+        productKey: String,
+        productTitle: String,
+    ) {
+        val notifId = notificationId(productKey) xor 0x5A00  // price と衝突しないオフセット
+        val deepLinkIntent = Intent(context, MainActivity::class.java).apply {
+            action = Intent.ACTION_VIEW
+            data = android.net.Uri.parse(deepLinkUri(productKey))
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context, notifId, deepLinkIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val body = context.getString(R.string.notif_back_in_stock_body, productTitle.take(20))
+        val notification = NotificationCompat.Builder(context, PopcoonApp.CHANNEL_PRICE_ALERT)
+            .setSmallIcon(R.drawable.ic_shortcut_star)
+            .setContentTitle(context.getString(R.string.notif_back_in_stock))
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVibrate(longArrayOf(0, 200, 100, 200))
+            .build()
+
+        runCatching {
+            NotificationManagerCompat.from(context).notify(notifId, notification)
+        }.onFailure { e ->
+            PopcoonLogger.w(this, "在庫アラート通知の発行に失敗: ${e.message}", e)
+        }
+    }
+
     fun sendWeeklyDigest(
         context: Context,
         summary: String,

@@ -98,6 +98,17 @@ class WatchlistViewModel @Inject constructor(
         }
     }
 
+    /**
+     * 在庫アラートの on/off を切り替える。
+     * ON にすると PriceSyncWorker が毎日ライブ在庫を確認し、
+     * 品切れ→在庫あり に変化したタイミングで通知する。
+     */
+    fun setStockAlertEnabled(productKey: String, enabled: Boolean) {
+        viewModelScope.launch {
+            dao.setStockAlertEnabled(productKey, enabled)
+        }
+    }
+
     private suspend fun updateWidget() {
         val current = rawItems.first()
         WidgetUpdater.update(context, current)

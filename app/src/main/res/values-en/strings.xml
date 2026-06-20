@@ -129,6 +129,8 @@
     <string name="watchlist_remove">Remove</string>
     <string name="watchlist_undo_removed">Removed \"%1$s\"</string>
     <string name="watchlist_undo_action">Undo</string>
+    <string name="stock_alert_on">Stock alert ON</string>
+    <string name="stock_alert_off">Stock alert</string>
     <string name="target_price_button">Target price</string>
     <string name="target_price_set">Target %1$s</string>
     <string name="target_price_reached">Target met</string>
@@ -299,6 +301,8 @@
     <string name="notif_target_reached">Target price reached (≤ %1$s)</string>
     <string name="notif_price_drop">Price dropped (%1$d%% off)</string>
     <string name="notif_price_detail">%1$s\n%2$s (was: %3$s)</string>
+    <string name="notif_back_in_stock">Back in stock</string>
+    <string name="notif_back_in_stock_body">%1$s is back in stock. Buy it now!</string>
     <string name="notif_weekly_digest_title">Weekly price summary</string>
     <string name="notif_weekly_digest_body">%2$d of your %1$d watchlist items dropped in price. Open the app for details.</string>
 

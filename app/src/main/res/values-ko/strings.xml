@@ -129,6 +129,8 @@
     <string name="watchlist_remove">삭제</string>
     <string name="watchlist_undo_removed">\"%1$s\"을(를) 삭제했습니다</string>
     <string name="watchlist_undo_action">실행 취소</string>
+    <string name="stock_alert_on">재입고 알림 ON</string>
+    <string name="stock_alert_off">재입고 알림</string>
     <string name="target_price_button">목표 가격</string>
     <string name="target_price_set">목표 %1$s</string>
     <string name="target_price_reached">목표 달성</string>
@@ -294,6 +296,8 @@
     <string name="notif_target_reached">목표 가격 도달 (%1$s 이하)</string>
     <string name="notif_price_drop">가격 인하 (%1$d%% 할인)</string>
     <string name="notif_price_detail">%1$s\n%2$s (이전: %3$s)</string>
+    <string name="notif_back_in_stock">재입고 알림</string>
+    <string name="notif_back_in_stock_body">%1$s 상품이 다시 입고되었습니다. 지금 구매하세요!</string>
     <string name="notif_weekly_digest_title">주간 가격 요약</string>
     <string name="notif_weekly_digest_body">관심 상품 %1$d개 중 %2$d개 가격이 내렸습니다. 앱에서 최신 가격을 확인하세요.</string>
 

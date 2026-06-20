@@ -53,6 +53,18 @@ data class WatchlistItem(
      * (v3 で追加 — MIGRATION_2_3)
      */
     val addedPrice: Long = 0,
+    /**
+     * 在庫アラートを有効にするか（商品ごとの設定）。
+     * true のとき PriceSyncWorker がライブ在庫を取得し BACK_IN_STOCK を通知する。
+     * (v5 で追加 — MIGRATION_4_5)
+     */
+    val stockAlertEnabled: Boolean = false,
+    /**
+     * 前回同期時の在庫状態。null = 初回同期で基準なし（通知しない）。
+     * StockAlertEvaluator のエッジトリガ判定に使用。
+     * (v5 で追加 — MIGRATION_4_5)
+     */
+    val previousInStock: Boolean? = null,
 )
 
 // ── Entity: SearchHistory ───────────────────────────────────────────────────
@@ -108,6 +120,14 @@ interface WatchlistDao {
     @Query("UPDATE watchlist SET realPrice = :price WHERE productKey = :key")
     suspend fun updatePrice(key: String, price: Long)
 
+    /** 在庫アラートの on/off を設定する。 */
+    @Query("UPDATE watchlist SET stockAlertEnabled = :enabled WHERE productKey = :key")
+    suspend fun setStockAlertEnabled(key: String, enabled: Boolean)
+
+    /** 同期後の在庫状態を保存（次回の StockAlertEvaluator エッジトリガ判定に使う）。 */
+    @Query("UPDATE watchlist SET previousInStock = :wasInStock WHERE productKey = :key")
+    suspend fun updateStockState(key: String, wasInStock: Boolean)
+
     @Query("SELECT COUNT(*) FROM watchlist")
     suspend fun count(): Int
 
@@ -160,7 +180,7 @@ interface PriceCacheDao {
 // ── Database ────────────────────────────────────────────────────────────────
 @Database(
     entities = [WatchlistItem::class, SearchHistoryEntry::class, PriceCacheEntry::class],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(InstantConverter::class)
@@ -204,6 +224,18 @@ abstract class PopcoonDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_watchlist_addedAt` ON `watchlist` (`addedAt`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_search_history_query` ON `search_history` (`query`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_search_history_timestamp` ON `search_history` (`timestamp`)")
+            }
+        }
+
+        /**
+         * v4 → v5: watchlist に在庫アラート用 2 列を追加。
+         * stockAlertEnabled: NOT NULL DEFAULT 0 (既存行は全て OFF)。
+         * previousInStock: nullable (既存行は初回同期扱い = 基準なし)。
+         */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE watchlist ADD COLUMN stockAlertEnabled INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE watchlist ADD COLUMN previousInStock INTEGER")
             }
         }
     }

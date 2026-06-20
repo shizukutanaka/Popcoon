@@ -137,6 +137,12 @@ fun WatchlistScreen(
                                 onItemClick(item.productKey)
                             },
                             onSetTarget = { targetDialogItem = item },
+                            onToggleStockAlert = {
+                                viewModel.setStockAlertEnabled(
+                                    item.productKey,
+                                    !item.stockAlertEnabled,
+                                )
+                            },
                         )
                     }
                 }
@@ -214,6 +220,7 @@ private fun WatchlistRow(
     item: WatchlistItem,
     onClick: () -> Unit,
     onSetTarget: () -> Unit,
+    onToggleStockAlert: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
@@ -248,9 +255,12 @@ private fun WatchlistRow(
                 }
                 // 追加時からの変動（横ばい時は非表示）
                 SinceAddedDelta(item = item)
-                // 目標価格バッジ / 設定ボタン
+                // 目標価格バッジ / 在庫アラートチップ
                 Spacer(Modifier.height(6.dp))
-                TargetPriceChip(item = item, onClick = onSetTarget)
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    TargetPriceChip(item = item, onClick = onSetTarget)
+                    StockAlertChip(item = item, onClick = onToggleStockAlert)
+                }
             }
             // ← にスワイプで削除ヒント
             Text(
@@ -283,6 +293,26 @@ private fun SinceAddedDelta(item: WatchlistItem) {
         ),
         style = MaterialTheme.typography.labelSmall,
         color = if (down) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+    )
+}
+
+/**
+ * 在庫アラートの on/off チップ。
+ * タップで切り替え。ON 時はプライマリカラーで強調表示。
+ */
+@Composable
+private fun StockAlertChip(item: WatchlistItem, onClick: () -> Unit) {
+    FilterChip(
+        selected = item.stockAlertEnabled,
+        onClick = onClick,
+        label = {
+            Text(
+                stringResource(
+                    if (item.stockAlertEnabled) R.string.stock_alert_on else R.string.stock_alert_off,
+                ),
+                style = MaterialTheme.typography.labelSmall,
+            )
+        },
     )
 }
 
