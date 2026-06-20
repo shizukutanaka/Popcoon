@@ -3,6 +3,64 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 58: ソクラテス式 — ReviewPrompter.requestIfEligible() の呼び出し元が存在しない — 2026-06-20)
+
+### ソクラテス式問答 (「成功イベントは記録しているのに、レビューダイアログは誰が開く?」)
+
+`ReviewPrompter` には 2 つの責務がある:
+1. `recordSuccess()` — 成功イベントを DataStore に積算
+2. `requestIfEligible(activity)` — 積算数が閾値 (5回) を超え 90日クールダウン外なら
+   Google Play In-App Review フローを起動
+
+`PriceSyncWorker` は値下がりがあるたびに `recordSuccess()` を呼んでいる ✓  
+しかし `requestIfEligible()` を呼ぶ箇所が**コードベース全体に 1 行も存在しない** ✗
+
+結果: ユーザーが何百件の価格通知を受け取っても、Play レビューダイアログは
+一度も表示されない。`MIN_SUCCESS_COUNT = 5` / `COOLDOWN_MS = 90日` という
+精密なロジックと 8 spec のテストが完全に死蔵されている。
+
+さらに docstring は 4 つの成功イベントを列挙しているが、
+`toggleWatchlist` (ウォッチリスト追加) では `recordSuccess()` 自体も呼ばれていない:
+> 商品詳細を開いて10秒以上滞在 / **watchlist に追加** / dark pattern「待ち」/ AI advice「役立った」
+
+### 選択肢と判断
+
+- **A. `requestIfEligible()` を削除** — 機能を諦める。Google Play ランキング上の
+  高評価レビューは有機的な ASO 向上手段として有効。諦めるのは機会損失。
+- **B. `ProductDetailScreen` のウォッチリスト追加に配線** ← **採用**  
+  「商品を保存する」はユーザーが Popcoon に価値を見出した最強の成功シグナル。
+  Activity 参照が必要なため Screen から ViewModel メソッド経由で呼ぶパターンは
+  `SettingsViewModel.launchPurchase(activity)` と同一。
+
+### 適用した変更
+
+1. **`ProductDetailViewModel`**:
+   - `ReviewPrompter` を constructor injection に追加 (Hilt Singleton 既定)
+   - `requestReviewIfEligible(activity: Activity)` を新設:
+     `recordSuccess()` → `requestIfEligible(activity)` を順に呼ぶ
+
+2. **`ProductDetailScreen`**:
+   - `import android.app.Activity` を追加
+   - ウォッチリストボタン `onClick` で `!cur.isInWatchlist` (= 追加操作) のとき
+     `viewModel.requestReviewIfEligible(context as? Activity)` を呼ぶ
+   - `null` チェックで Activity 以外のコンテキスト (Preview 等) では noop
+
+### 補足: `requestIfEligible` の冪等性
+
+`shouldRequestNow` のエッジトリガロジック (閾値 + クールダウン) により、
+頻繁にウォッチリスト追加しても Play 側の quota (ユーザーあたり年数回の制限) を
+超えない。`ReviewPrompterLogicTest` 8 spec が境界条件 (≤ 90日で false) を
+識別テストとして保護済み。
+
+### 一般教訓
+
+「ロジックが complete で テストが green なら機能は動く」ではない。
+**呼び出し元 (caller) が存在しない iff 機能は存在しない** (Halting Problem の逆)。
+`requestXxx()` / `launchXxx()` / `sendXxx()` 命名のメソッドは
+「誰が呼ぶか」のコードレビューが必須。
+
+---
+
 ## 製品改善ループ (Tier 57: ソクラテス式 — 週次ダイジェスト通知チャンネルが存在するのに送信 Worker が存在しない — 2026-06-20)
 
 ### ソクラテス式問答 (「設備は整っているのに誰も動かしていない?」)

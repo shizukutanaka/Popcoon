@@ -16,6 +16,7 @@ import com.example.popcoon.feature.review.ReviewTrustScorer
 import com.example.popcoon.feature.scorer.BuyTimingScorer
 import com.example.popcoon.feature.points.PointSimulator
 import com.example.popcoon.R
+import com.example.popcoon.feature.retention.ReviewPrompter
 import com.example.popcoon.feature.settings.UserPreferences
 import com.example.popcoon.ui.UiText
 import com.example.popcoon.feature.tco.TCOCalculator
@@ -75,6 +76,7 @@ class ProductDetailViewModel @Inject constructor(
     private val adviceCache: com.example.popcoon.feature.ai.AdviceCache,
     private val watchlistDao: com.example.popcoon.data.db.WatchlistDao,
     private val prefs: UserPreferences,
+    private val reviewPrompter: ReviewPrompter,
     @dagger.hilt.android.qualifiers.ApplicationContext
     private val context: android.content.Context,
 ) : ViewModel() {
@@ -268,6 +270,18 @@ class ProductDetailViewModel @Inject constructor(
             } catch (e: Exception) {
                 PopcoonLogger.w(this@ProductDetailViewModel, "Widget update failed: ${e.message}")
             }
+        }
+    }
+
+    /**
+     * ウォッチリスト追加をトリガーに Play In-App Review を起動する。
+     * shouldRequest が偽 (5回未満 or 90日クールダウン中) のときは noop。
+     * Activity 参照が必要なため Screen 側から呼ぶ。
+     */
+    fun requestReviewIfEligible(activity: android.app.Activity) {
+        viewModelScope.launch {
+            reviewPrompter.recordSuccess()
+            reviewPrompter.requestIfEligible(activity)
         }
     }
 

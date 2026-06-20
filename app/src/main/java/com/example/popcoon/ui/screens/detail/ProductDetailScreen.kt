@@ -1,5 +1,6 @@
 package com.example.popcoon.ui.screens.detail
 
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*
@@ -51,9 +52,14 @@ fun ProductDetailScreen(
                     // ウォッチリストに保存ボタン
                     val cur = state
                     if (cur is DetailUiState.Loaded) {
+                        val activity = context as? Activity
                         IconButton(onClick = {
                             HapticFeedback.success(context)
+                            val isAdding = !cur.isInWatchlist
                             viewModel.toggleWatchlist(cur.product)
+                            if (isAdding && activity != null) {
+                                viewModel.requestReviewIfEligible(activity)
+                            }
                         }) {
                             Icon(
                                 if (cur.isInWatchlist) AppIcons.Save else AppIcons.Unsave,
