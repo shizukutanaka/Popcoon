@@ -3,6 +3,52 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 63: Qiita/Zenn 外部知見の適用 — 越境関税フォームが画面回転で消失 — 2026-06-21)
+
+### きっかけ (Qiita/Zenn の状態保持・ライフサイクル記事)
+
+- 「`rememberSaveable` は UI 一時状態の救世主。回転・プロセスキルでも TextField の値が
+  消えないのは Saver が支えている。`remember` は Activity 再生成で状態を失う」
+  (qiita: 実務で必須になる rememberSaveable を完全理解する)
+- 「`collectAsStateWithLifecycle` は `repeatOnLifecycle(STARTED)` で背景購読を止める。
+  `collectAsState` は背景でも collect し続ける」
+  (qiita: collectAsStateWithLifecycle が追加されたぞ)
+
+### Popcoon への監査結果
+
+- **Flow 購読**: `grep 'collectAsState()'` → **0 件**。全画面が
+  `collectAsStateWithLifecycle` を使用済み ✓ (既にベストプラクティス)
+- **検索クエリ**: `SearchScreen` の `query` はローカル `remember` だが、
+  `viewModel.currentQuery` (StateFlow) にバックされ、ViewModel が構成変更を生き残るため
+  `LaunchedEffect(vmQuery)` で回転後に復元される → **既に回転安全** ✓
+- **越境関税フォーム**: ここで回転消失バグを発見。
+
+### 発見した問題
+
+`CustomsSimulatorScreen` は設計上 ViewModel を持たない (「入力を `remember` で純計算する
+だけ」)。しかし `foreign`/`shipping`/`japan` (外国価格・送料・国内最安値) と
+`categoryIndex` (カテゴリ選択) が全て `remember` のため、**ユーザーが 4 項目を入力した
+途中で画面回転すると全消失**する。越境購入の試算は入力項目が多く、回転事故の損失が大きい。
+
+### 適用した変更
+
+`CustomsSimulatorScreen` の入力 4 項目を `rememberSaveable` に変更:
+- `foreign`/`shipping`/`japan` (String) と `categoryIndex` (Int) は Bundle に
+  直接保存可能なため**カスタム Saver 不要**でそのまま置換。
+- `categoryExpanded` (ドロップダウン開閉) は一過性 UI 状態なので `remember` のまま据え置き
+  (回転時に閉じてよい)。
+
+### 一般教訓
+
+`remember` と `rememberSaveable` の使い分けは「**Activity 再生成 (回転/プロセスキル) を
+越えて保持すべきユーザー入力か、一過性の UI 状態か**」で決まる。
+ViewModel を持たない純計算画面 (SaleCalendar/Customs のような軽量画面) は
+特に見落としやすい — ViewModel があれば状態がそこに退避されるが、無い画面では
+`rememberSaveable` が唯一の防衛線になる。逆にダイアログ開閉・ドロップダウン展開は
+`remember` でよい (回転でリセットされて困らない)。
+
+---
+
 ## 製品改善ループ (Tier 62: ソクラテス式 + 外部知見 — Coil 最適化 ImageLoader が配線されず死蔵 — 2026-06-21)
 
 ### きっかけ (Qiita/Zenn の Coil/Ktor リソース記事)

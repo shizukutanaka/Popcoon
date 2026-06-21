@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,10 +61,14 @@ import com.example.popcoon.ui.theme.Spacing
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomsSimulatorScreen(onBack: () -> Unit) {
-    var foreign by remember { mutableStateOf("") }
-    var shipping by remember { mutableStateOf("") }
-    var japan by remember { mutableStateOf("") }
-    var categoryIndex by remember { mutableIntStateOf(DEFAULT_CATEGORY_INDEX) }
+    // ユーザー入力は rememberSaveable で画面回転・プロセスキルを越えて保持する。
+    // String/Int は Bundle に直接保存可能 (カスタム Saver 不要)。
+    // 入力途中のフォームが回転で消えるのは UX 上の事故 (本画面は ViewModel を持たない)。
+    var foreign by rememberSaveable { mutableStateOf("") }
+    var shipping by rememberSaveable { mutableStateOf("") }
+    var japan by rememberSaveable { mutableStateOf("") }
+    var categoryIndex by rememberSaveable { mutableIntStateOf(DEFAULT_CATEGORY_INDEX) }
+    // ドロップダウンの開閉は一過性の UI 状態なので remember のままでよい。
     var categoryExpanded by remember { mutableStateOf(false) }
 
     val categoryKey = CUSTOMS_CATEGORIES[categoryIndex].first
