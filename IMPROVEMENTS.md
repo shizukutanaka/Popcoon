@@ -3,6 +3,65 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 61: Qiita/Zenn 外部知見の適用 — クリック可能カードの TalkBack merge — 2026-06-21)
+
+### きっかけ (外部リサーチ第 3 ラウンド)
+
+Qiita/Zenn のアクセシビリティ・ナビゲーション・null 安全記事を調査:
+- 「クリック可能なコンテナは `mergeDescendants` で 1 フォーカスにまとめる」
+  (qiita: Jetpack Compose における TalkBack 対応)
+- 「Navigation Compose は 2.8.0 で型安全に。`@Serializable` route が推奨」
+  (zenn: Jetpack Compose Navigation で実現する型安全なルーティング)
+- 「`!!` ではなく `requireNotNull`/`checkNotNull`」
+  (zenn: Kotlin での !! と requireNotNull の使い分け)
+
+### Popcoon への監査結果
+
+- **null 安全**: `grep '!!' app/src/main` → **ヒット 0 件** (Tier 51 で掃討済み) ✓
+- **型安全ナビゲーション**: `PopcoonNavGraph` は文字列 route (`"detail/{productKey}"` 等)。
+  2.8.0 の `@Serializable` route 化は **8 画面 + 全 Screen 引数の横断リファクタ**で、
+  ローカルでコンパイル検証できない本環境ではリスクが高い → **バックログ**化 (後述)。
+- **TalkBack merge**: `grep 'mergeDescendants'` → `PricePredictionCard` の 1 箇所のみ。
+  一方、**LazyColumn の主要クリック対象である `ProductRow`・`WatchlistRow` が未 merge**。
+
+### 発見した問題
+
+`ProductRow` (検索結果) と `WatchlistRow` (ウォッチリスト) はいずれも
+`combinedClickable`/`clickable` な `Surface` 1 つで「カード = 1 タップ対象」だが、
+`mergeDescendants` が無いため TalkBack はカード内の各子要素
+(商品画像・プラットフォームチップ・Verdict バッジ・価格・実質価格・タイトル・
+名寄せバッジ・警告チップ) で**個別にフォーカス停止**する。
+晴眼者には 1 タップのカードが、TalkBack ユーザーには 6〜8 回スワイプが必要になり、
+アクセシビリティガイドライン (意味的にまとまった操作対象は 1 ノード) に反する。
+
+### 適用した変更
+
+1. **`ProductRow.kt`**: clickable `Surface` に `.semantics(mergeDescendants = true) {}` を追加。
+   子の `contentDescription` (価格 a11y ラベル・警告 a11y) が順に連結され、
+   「Amazon、買い時 85点、¥29,800、[タイトル]、…」と 1 回で読み上げられる。
+
+2. **`WatchlistScreen.kt`**: `WatchlistRow` の clickable `Surface` に同様に追加。
+   入れ子の `TargetPriceChip`/`StockAlertChip` は自前のクリックアクションを持つため
+   Compose の merge 規則で**境界**となり、別フォーカスのまま残る (カード本体だけ merge)。
+   → カード本体 1 スワイプ + 各チップ 1 操作、の理想的な TalkBack 構造になる。
+
+### バックログ化した項目 (型安全ナビゲーション)
+
+Navigation Compose 2.8.0+ の `@Serializable` route 移行は、ランタイムの route 文字列
+パースミスを排除し IDE リファクタを効かせる正当な改善だが:
+- `PopcoonNavGraph` の 8 route + `navigateToDetail` 拡張 + 各 Screen の引数を横断変更
+- 本環境は Android SDK 不在でコンパイル検証不可、CI が唯一の検証経路
+→ コンパイル不能な大規模変更は回帰リスクが高いため、CI 有効化後の専用 Tier に委ねる。
+
+### 一般教訓
+
+アクセシビリティは「`contentDescription` を付ける」で終わりではない。
+**「TalkBack でカードを操作したとき、フォーカスが何回止まるか」**という
+操作回数の観点が抜けやすい。クリック可能なコンテナは原則 merge、
+ただし入れ子の操作要素 (チップ/ボタン) は境界として残す、が定石。
+
+---
+
 ## 製品改善ループ (Tier 60: Qiita/Zenn 外部知見の適用 — 死蔵 API + 未使用 import の整理 — 2026-06-21)
 
 ### きっかけ (外部リサーチ第 2 ラウンド)

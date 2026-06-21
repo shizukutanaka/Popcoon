@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.popcoon.R
@@ -223,7 +224,12 @@ private fun WatchlistRow(
     onToggleStockAlert: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        // カード本体を 1 フォーカスに merge。入れ子のチップ (目標価格 / 在庫アラート) は
+        // 自前のクリックアクションを持つため merge 境界となり、別フォーカスのまま残る。
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .semantics(mergeDescendants = true) {},
         shape = RoundedCornerShape(CornerRadius.card),
         tonalElevation = 1.dp,
     ) {

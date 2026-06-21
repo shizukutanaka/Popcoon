@@ -51,7 +51,11 @@ internal fun ProductRow(
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = { showMenu = true },
-            ),
+            )
+            // TalkBack はカード全体を 1 つのフォーカス対象として読み上げる。
+            // merge しないと画像・チップ・バッジ・価格・タイトル・警告で個別に止まり、
+            // 1 タップ対象なのに何度もスワイプが必要になる (アクセシビリティ HIG 違反)。
+            .semantics(mergeDescendants = true) {},
         shape = RoundedCornerShape(CornerRadius.card),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,
