@@ -4,6 +4,7 @@ import com.example.popcoon.data.model.Platform
 import com.example.popcoon.data.model.Product
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.util.Locale
 import kotlin.math.max
 
 /**
@@ -169,7 +170,9 @@ object PointSimulator {
             out += PointSource(
                 "Amazon ポイント",
                 p.pointsBack,
-                "%.1f%%".format(rate),
+                // Locale.US 固定: 既定ロケールに任せると独語等で「1,5%」になり、
+                // CurrencyFormatter (Locale.US) と小数点表記が不一致になる。
+                String.format(Locale.US, "%.1f%%", rate),
             )
         }
 

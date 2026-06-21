@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.popcoon.R
 import androidx.compose.ui.tooling.preview.Preview
@@ -95,7 +96,12 @@ internal fun ProductRow(
                 }
             }
             Spacer(Modifier.height(Spacing.sm))
-            Text(row.product.title, style = MaterialTheme.typography.bodySmall, maxLines = 2)
+            Text(
+                row.product.title,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
 
             // 名寄せ: 他モールに同一商品がある場合、最安値であることを示す
             if (row.alternatives.isNotEmpty()) {

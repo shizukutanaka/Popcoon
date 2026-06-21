@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.popcoon.R
 import com.example.popcoon.data.db.WatchlistItem
@@ -242,6 +243,7 @@ private fun WatchlistRow(
                     item.title,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {

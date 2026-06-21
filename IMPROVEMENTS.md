@@ -3,6 +3,63 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 68: Qiita/Zenn 外部知見の適用 — ロケール依存の数値書式 + Text 省略記号 — 2026-06-21)
+
+### きっかけ (Qiita/Zenn の数値書式・Text overflow 記事)
+
+- 「`String.format("%f", x)` を**ロケール無指定**で呼ぶと、独/仏/露などで小数点が
+  『,』になる。機械可読出力や表記統一が要る箇所は `Locale.US` を明示せよ。
+  数字自体もアラビア語等で別字形に置換されうる」
+  (qiita: ロケールによって小数点がピリオドかコンマか変わる / String.format で死んだ話)
+- 「長文 `Text` は `maxLines` + `overflow = TextOverflow.Ellipsis` を併用。
+  `overflow` 省略時は `Clip` でハードに切れ『…』が出ない」
+  (zenn/qiita: Compose Text の overflow)
+
+### Popcoon への監査結果
+
+ロケール安全性は概ね良好だったが 1 件の取りこぼし + UI 省略の漏れを発見:
+- **`CurrencyFormatter`**: 全箇所 `String.format(Locale.US, "%,d", …)` ✓
+- **`AwsSigV4Signer`**: AWS 署名日付は `SimpleDateFormat(…, Locale.US)` + UTC、
+  hex は `%02x` (locale 非依存) ✓ — タイ仏暦/アラビア数字でも署名は壊れない
+- **CSV エクスポート**: 価格は `Long.toString()` (locale 非依存の ASCII 数字) ✓
+- **`PointSimulator`**: ❌ `"%.1f%%".format(rate)` が**ロケール無指定**。
+- **Text overflow**: `ProductRow`/`WatchlistRow` のタイトルが `maxLines` のみで省略記号なし。
+
+### 発見した問題
+
+1. **`PointSimulator` のポイント率表示**: `"%.1f%%".format(rate)` は既定ロケール依存。
+   端末の既定ロケールが独語等のユーザー (アプリ UI は EN でも) には「**1,5%**」と表示され、
+   同画面の `CurrencyFormatter` (Locale.US, ピリオド) と**小数点表記が不一致**になる。
+2. **商品タイトルのハードクリップ**: `ProductRow`(検索結果) と `WatchlistRow` の
+   `Text(title, maxLines = 2)` は `overflow` 未指定 = `Clip`。長いタイトルが
+   2 行目末尾で**文字の途中でブツ切れ**になり「…」が出ない (SearchSuggestions は既に
+   `Ellipsis` 済みだった)。
+
+### 適用した変更
+
+1. **`PointSimulator`**: `String.format(Locale.US, "%.1f%%", rate)` に変更
+   (`import java.util.Locale` 追加)。CurrencyFormatter と同じ Locale.US ポリシーに統一。
+2. **`ProductRow` / `WatchlistRow`**: タイトル `Text` に
+   `overflow = TextOverflow.Ellipsis` を追加 (`import …text.style.TextOverflow`)。
+   長いタイトルが「…」で綺麗に省略される。
+
+### 検証
+
+- `%.Nf`/`%f` のロケール無指定書式を全 main から再 grep → 残り 0 件。
+- `PointSimulatorTest` は `rateString` の小数点表記をアサートしていない (項目名のみ検証)
+  ため、Locale.US 化で挙動は不変 (CI は元々ピリオドロケール)。
+
+### 一般教訓
+
+数値→文字列変換は **「人間向け表示」か「機械可読/表記統一」か**で扱いを変える:
+- 機械可読 (CSV/JSON/署名/URL) や、アプリ内で表記を統一したい表示は `Locale.US` 明示。
+- `Long.toString()` は locale 非依存なので安全 (ただし `%,d`/`%f` は要注意)。
+本プロジェクトは CurrencyFormatter/署名で既に Locale.US を徹底できていたが、
+**後から追加された 1 箇所 (PointSimulator) が方針から漏れていた** — 規約は
+追加コードに自動適用されないので、定期 grep で逸脱を拾うのが有効。
+
+---
+
 ## 製品改善ループ (Tier 67: Qiita/Zenn 外部知見の適用 — 複数形リソースで英語の「in 1 days」を修正 — 2026-06-21)
 
 ### きっかけ (Qiita/Zenn の plurals・状態保存記事)
