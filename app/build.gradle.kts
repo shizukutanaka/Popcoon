@@ -15,6 +15,14 @@ detekt {
     parallel = true
 }
 
+// Compose コンパイラの安定性設定。
+// ドメインモデル (List/Map を持つため unstable と推論される data class) を
+// 安定と宣言し、不要な再コンポーズを抑制する。詳細は compose_stability.conf 参照。
+composeCompiler {
+    stabilityConfigurationFile =
+        rootProject.layout.projectDirectory.file("compose_stability.conf")
+}
+
 android {
     namespace = "com.example.popcoon"
     compileSdk = 35

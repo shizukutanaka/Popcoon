@@ -3,6 +3,69 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 59: Qiita/Zenn 外部知見の適用 — Compose 安定性設定で不要な再コンポーズを抑制 — 2026-06-21)
+
+### きっかけ (外部リサーチ)
+
+Qiita/Zenn の Jetpack Compose パフォーマンス記事を調査。繰り返し挙がる最重要論点:
+- **「data class が `List`/`Map` を 1 つでも持つと unstable と推論され、その引数を取る
+  Composable は skippable にならない」** (zenn.dev/yasi: LazyColumn パフォーマンス 3 箇条、
+  zenn.dev/aokiti: derivedStateOf、Android 公式アーキテクチャガイド)。
+- unstable 引数の Composable は、親が再コンポーズするたびに無条件再実行される。
+  特に `LazyColumn` のアイテムでは、スクロールのたびに全行が再構築されうる。
+
+### 監査結果 (Popcoon への当てはめ)
+
+`grep -rn "@Immutable\|@Stable"` → **コードベース全体でヒット 0 件**。
+一方、Composable に渡るドメインモデルの多くが `List`/`Map` を保持:
+- `SearchRow` (`warnings: List<String>`, `alternatives: List<Product>`) — **LazyColumn のホットパス**
+- `BuyTimingScorer.Score` (`signals: List<Signal>`)
+- `SmartCartService.SmartCartResult` (`cartItems: List<CartItem>`)
+- `CrossMallCartOptimizer.CartItem/Result` (`Map<String,Double>` 等)
+- `PointSimulator.Result` (`breakdown: List<PointSource>`)
+→ いずれも unstable 推論となり、対応する Composable が毎回再実行されていた。
+
+### 選択肢と判断
+
+- **A. 各 data class に `@Immutable` を付与** — 確実だが、`feature/`・`data/model` の
+  「Android 非依存の純関数モデル」に `androidx.compose.runtime` を import させ、
+  Compose への結合を生む (設計原則に反する)。
+- **B. Compose コンパイラの安定性設定ファイル** ← **採用**
+  `composeCompiler { stabilityConfigurationFile = ... }` (Kotlin 2.0.21 + compose plugin)。
+  ソースを一切変更せず・ドメインモデルの純粋性を保ったまま安定性を宣言できる。
+  Android 公式が推奨する「外部/自社の不変クラスを安定化する」正攻法。
+
+### 適用した変更
+
+1. **`compose_stability.conf`** 新設 — 全プロパティ `val`・深く不変であることを
+   コードレビューで確認した 17 クラス + `java.time.LocalDate`/`Instant` を列挙。
+   可変クラス (`AdviceCache`/`Trie`/`BillingManager` 等) は意図的に除外。
+
+2. **`app/build.gradle.kts`** に `composeCompiler {}` ブロックを追加し設定ファイルを配線。
+
+### 安全性
+
+安定宣言は「このクラスのインスタンスは内容が変わらない」という対コンパイラの約束。
+列挙クラスは全て pure function の出力で、構築後に変更されない (List/Map も再代入されない)
+ため約束は成立する。**可変クラスを誤って宣言すると「変わったのに再コンポーズされない」
+= 古い UI バグになる**ため、各クラスの定義を個別に確認し、確実に不変なものだけを列挙した。
+
+### 検証
+
+- ローカルは Android SDK 不在でコンパイル不可 → CI が唯一の検証経路。
+- パフォーマンス効果は Compose コンパイラの metrics/reports
+  (`-P plugin:androidx.compose.compiler...:metricsDestination`) で
+  skippable 化を定量確認可能 (本変更には未同梱、必要時に有効化)。
+
+### 一般教訓
+
+外部コミュニティ知見 (Qiita/Zenn) の「List/Map で unstable」は、機能の死蔵とは別軸の
+**「動いてはいるが非効率」**な改善余地。`grep "@Immutable"` が 0 件のプロジェクトは
+ほぼ確実にこの最適化余地を持つ。設定ファイル方式はドメイン層の純粋性を犠牲にせず
+適用できるため、レイヤ分離を重視するコードベースで特に有効。
+
+---
+
 ## 製品改善ループ (Tier 58: ソクラテス式 — ReviewPrompter.requestIfEligible() の呼び出し元が存在しない — 2026-06-20)
 
 ### ソクラテス式問答 (「成功イベントは記録しているのに、レビューダイアログは誰が開く?」)
