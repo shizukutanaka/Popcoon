@@ -3,6 +3,58 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 71: Qiita/Zenn 外部知見の適用 — セキュリティ監査 (clean) + 設定画面の見出しセマンティクス — 2026-06-21)
+
+### きっかけ (Qiita/Zenn のセキュリティ・アクセシビリティ記事)
+
+- 「`allowBackup` 既定 true は危険。`usesCleartextTraffic`/`networkSecurityConfig` で
+  平文通信を禁止。プライバシーデータはバックアップ除外」
+  (qiita: allowBackup の設定は適切ですか / iOS-Android セキュリティガイドライン)
+- 「TalkBack は `heading()` セマンティクスで見出し単位ジャンプができる」
+  (qiita: モバイルアプリアクセシビリティ入門 Compose 版)
+
+### Popcoon への監査結果
+
+#### セキュリティ (Manifest / ネットワーク) — **clean、変更なし**
+
+実際に AndroidManifest と設定 XML を精査した結果、**模範的に堅牢**で手を入れる
+余地が無かった (でっち上げの変更はしない):
+- `android:allowBackup="false"` ✓
+- `android:usesCleartextTraffic="false"` ✓
+- `network_security_config.xml`: 全ドメイン cleartext 禁止 + system CA のみ +
+  `debug-overrides` で開発時のみ user CA ✓ (証明書ピンニングは EC API の証明書
+  ローテーション追従不能リスクのため意図的に不採用、と文書化済み)
+- `data_extraction_rules.xml` / `backup_rules.xml`: クラウドバックアップ対象なし ✓
+- `FileProvider` / `InitializationProvider` は `exported="false"` ✓
+- コード中の `"http://"` は BarcodeScanner の prefix 判定のみ (通信ではない) ✓
+
+#### アクセシビリティ — 見出しセマンティクスの適用漏れを発見
+
+`Modifier.a11yHeading()` (= `semantics { heading() }`) は定義済みで BundleCard /
+SaleCalendarScreen では使われていたが、**設定画面の 7 セクション見出しが未適用**。
+設定は縦長スクロール画面なので、TalkBack ユーザーは見出しジャンプが使えず
+1 項目ずつスワイプする必要があった (WCAG のナビゲーション効率の観点で не良)。
+
+### 適用した変更
+
+`SettingsScreen` の `SectionCard(title)` のタイトル `Text` に `.a11yHeading()` を追加。
+`SectionCard` は 7 セクション全てで共有されるため、**1 箇所の変更で全セクション見出し**が
+heading 化され、TalkBack の「見出し単位ジャンプ」で素早く目的セクションへ移動できる。
+
+### 残課題 (フォローアップ候補)
+
+`ProductDetailScreen` も縦長だが、各カード (ScoreCard/TCOCard 等) が内部にタイトルを
+持つため一括 heading 化が難しい。カード側の見出し統一は別 Tier で検討。
+
+### 一般教訓
+
+セキュリティ監査は「**問題が無いことの確認**」も正当な成果 — 無理に変更を作らない。
+一方アクセシビリティの `heading()` は「`contentDescription` を付けた」で満足しがちな
+盲点。**縦長画面ほど見出しナビの価値が高い**ので、共有コンポーネント (SectionCard 等)
+の見出しに一括適用するのが費用対効果が高い。
+
+---
+
 ## 製品改善ループ (Tier 70: Qiita/Zenn 外部知見の適用 — DataStore 破損/IO 例外でクラッシュする読み込みを防御 — 2026-06-21)
 
 ### きっかけ (Qiita/Zenn の DataStore・Context リーク記事)

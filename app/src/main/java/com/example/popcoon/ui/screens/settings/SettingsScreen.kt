@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
+import com.example.popcoon.ui.a11y.a11yHeading
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -239,7 +240,9 @@ private fun SectionCard(title: String, content: @Composable ColumnScope.() -> Un
         Text(
             title,
             style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(start = 10.dp, bottom = 10.dp),
+            // TalkBack の見出しナビ: 設定は 7 セクションある縦長画面なので、
+            // 各セクション見出しを heading 化すると「見出し単位ジャンプ」で素早く移動できる。
+            modifier = Modifier.padding(start = 10.dp, bottom = 10.dp).a11yHeading(),
             color = MaterialTheme.colorScheme.primary,
         )
         Card(
