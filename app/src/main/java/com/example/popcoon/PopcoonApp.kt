@@ -6,6 +6,9 @@ import android.app.NotificationManager
 import android.os.Build
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
 import com.example.popcoon.core.PopcoonLogger
 import com.example.popcoon.feature.crash.PrivacyCrashReporter
 import com.example.popcoon.feature.settings.UserPreferences
@@ -18,11 +21,17 @@ import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 @HiltAndroidApp
-class PopcoonApp : Application(), Configuration.Provider {
+class PopcoonApp : Application(), Configuration.Provider, SingletonImageLoader.Factory {
 
     @Inject lateinit var crashReporter: PrivacyCrashReporter
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var prefs: UserPreferences
+
+    // Coil3 のグローバル singleton ImageLoader を Hilt が構築した最適化版に差し替える。
+    // これが無いと AsyncImage/SubcomposeAsyncImage は Coil 既定の ImageLoader
+    // (メモリ RAM 25% / ディスクキャッシュ未設定) を使い、CoilImageLoaderModule の
+    // チューニング (50MB メモリ + 200MB ディスク + OkHttp timeout) が一切効かなかった。
+    @Inject lateinit var imageLoader: ImageLoader
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -30,6 +39,9 @@ class PopcoonApp : Application(), Configuration.Provider {
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
             .build()
+
+    /** Coil3: 全 AsyncImage 呼び出しが使う singleton ImageLoader を供給する。 */
+    override fun newImageLoader(context: PlatformContext): ImageLoader = imageLoader
 
     override fun onCreate() {
         super.onCreate()

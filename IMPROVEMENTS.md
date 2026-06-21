@@ -3,6 +3,70 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 62: ソクラテス式 + 外部知見 — Coil 最適化 ImageLoader が配線されず死蔵 — 2026-06-21)
+
+### きっかけ (Qiita/Zenn の Coil/Ktor リソース記事)
+
+Qiita/Zenn の画像読み込み・HTTP クライアント記事を調査:
+- 「Coil の ImageLoader はメモリ/ディスクキャッシュを明示設定すべき。
+  カスタム ImageLoader は Application で singleton 化するのが定石」
+  (zenn: Coil を3系に上げたときのメモ、qiita: ImageLoaderとCompose)
+- 「Ktor HttpClient を毎リクエスト生成するとリーク。singleton 化して使い回す」
+  (qiita: ktor で httpclient を作ったら 2回目以降エラー)
+
+### Popcoon への監査結果
+
+- **Ktor HttpClient**: 7 クラス (BackendClient/BuyingAdvisor/PrivacyCrashReporter/
+  FallbackScraper/AmazonPaApiClient/RakutenClient/YahooClient) が各 1 個を
+  `private val client = HttpClient { }` として保持。**毎リクエスト生成ではなく
+  クラス単位 singleton** なのでリークなし ✓ (プロセス寿命と一致、close 不要)。
+- **Coil ImageLoader**: ここで **死蔵設定**を発見。
+
+### 発見した問題 (ソクラテス式: 「この設定は本当に効いているか?」)
+
+`CoilImageLoaderModule` は `@Singleton ImageLoader` を Hilt で提供し、docstring で
+「デフォルト Coil の問題 (メモリ RAM 25% で OOM リスク / ディスクキャッシュ未設定で
+毎回ネット取得 / クロスフェードなし)」を**修正する**と宣言している。
+チューニング内容: メモリ 50MB + ディスク 200MB + crossfade 200ms + OkHttp timeout。
+
+しかし「この ImageLoader を誰が使うのか?」を問うと:
+- `grep 'ImageLoader' app/src/main` (module 除く) → **注入箇所 0 件**
+- `PopcoonApp` は `coil3.SingletonImageLoader.Factory` を**未実装**
+- `ProductImage` の `SubcomposeAsyncImage(model = ...)` は `imageLoader` 引数**なし**
+
+→ Coil3 は `imageLoader` 未指定時、`SingletonImageLoader.get(context)` で**既定の
+ImageLoader を生成**して使う。Hilt が作った最適化版は誰も要求しないため
+**インスタンス化すらされない** (Hilt provider は遅延)。
+結果、docstring が「修正する」と謳う問題が**そっくりそのまま残存**していた
+(RAM 25% メモリキャッシュ・ディスクキャッシュなし・チカチカ)。
+
+### 適用した変更
+
+**`PopcoonApp`** に `coil3.SingletonImageLoader.Factory` を実装:
+```kotlin
+class PopcoonApp : Application(), Configuration.Provider, SingletonImageLoader.Factory {
+    @Inject lateinit var imageLoader: ImageLoader
+    override fun newImageLoader(context: PlatformContext): ImageLoader = imageLoader
+}
+```
+- `@Inject` で Hilt の最適化 ImageLoader を受け取り (これで初めて instantiate される)
+- Coil3 のグローバル singleton として供給 → **全** `AsyncImage`/`SubcomposeAsyncImage`
+  呼び出し (現在の `ProductImage` + 将来の追加分) が自動的に最適化版を使う。
+- 各 call site に `imageLoader =` を渡す必要がない (1 箇所の配線で全画面に効く)。
+
+### 一般教訓
+
+Tier 57/58 の「呼び出し元がない死蔵メソッド」と同型だが、本件はより巧妙:
+**設定オブジェクトは存在し・DI に登録され・詳細な docstring まである**のに、
+フレームワーク (Coil) が要求する**配線フック (Factory) が欠けている**ため無効。
+「`@Provides` した = 使われる」ではない。**「誰がこの provider を inject するのか?」**
+を問わないと、DI コンテナ内で誰にも要求されないまま眠る。
+ライブラリ固有の singleton 差し替え機構 (Coil の `SingletonImageLoader.Factory`、
+WorkManager の `Configuration.Provider` 等) は「実装し忘れても無言で既定動作する」
+ため、特に発見が遅れやすい。
+
+---
+
 ## 製品改善ループ (Tier 61: Qiita/Zenn 外部知見の適用 — クリック可能カードの TalkBack merge — 2026-06-21)
 
 ### きっかけ (外部リサーチ第 3 ラウンド)
