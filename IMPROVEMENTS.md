@@ -3,6 +3,51 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 66: Qiita/Zenn 外部知見の適用 — LazyColumn 重複キーによる潜在クラッシュを防御 — 2026-06-21)
+
+### きっかけ (Qiita/Zenn の Room・LazyColumn 記事)
+
+- 「`LazyColumn` の `key` は一意でなければならない。重複すると差分計算が壊れる
+  (実際には `IllegalArgumentException` でクラッシュする)」
+  (zenn/qiita: LazyColumn の key 指定とアニメーション)
+- 「Room を `allowMainThreadQueries()` でメインスレッド実行するのは ANR の元。
+  DAO は suspend/Flow で IO に逃がす」 (qiita: Room の基本と tips)
+
+### Popcoon への監査結果
+
+- **Room メインスレッド**: `grep 'allowMainThreadQueries'` → **0 件**。
+  全 DAO が `suspend`/`Flow` で、`PriceSyncWorker`/ViewModel から coroutine 経由
+  → メインスレッドブロックなし ✓
+- **LazyColumn の key 一意性**: ここで**潜在クラッシュ**を発見。
+
+### 発見した問題
+
+`SearchScreen` の `LazyColumn` は `key = { it.product.key }` (`product.key = "platform:sku"`)。
+結果リスト `rows` は `ProductMatcher.groupByIdentity(products)` の各グループから 1 行を作る。
+`groupByIdentity` は **NFKC 正規化したタイトル類似性**で束ねるため、
+**同一 `platform:sku` でもタイトルが異なると別グループに分かれ**、同じ `product.key` の
+行が 2 つ生成されうる (EC API の重複レスポンス・ページ重複・同一 SKU の表記揺れ等)。
+→ `LazyColumn` が重複 key を検出して **`IllegalArgumentException` でクラッシュ**する。
+検索は最高頻度の操作なので、稀でも発生すればユーザー影響が大きい。
+
+### 適用した変更
+
+1. **`SearchViewModel`**: UI に出す直前で `rows.distinctBy { it.product.key }` を適用。
+   key を構造的に一意化し、上流 (API / groupByIdentity) の挙動に依存せずクラッシュを防ぐ。
+   グループは実質最安値順なので「先頭 (=最安値) を残す」`distinctBy` の挙動が妥当。
+2. **`SearchViewModelTest`**: 同一 `platform:sku`・異タイトルの 2 件を流し、
+   `Results.items` の key に重複がないことを検証する回帰テストを追加。
+
+### 一般教訓
+
+`LazyColumn` の `key` には「**安定**かつ**一意**」の二条件が必要 (Tier 59 で安定性、
+本 Tier で一意性)。`key` を「ドメイン上一意なはずの値」(SKU 等) から導出するとき、
+**「本当に表示リスト内で重複しないか?」を上流の結合・グループ化処理まで遡って**
+確認する必要がある。防御的 `distinctBy` は 1 行で潜在クラッシュを構造的に消せるため、
+外部データ由来のリストでは費用対効果が高い。
+
+---
+
 ## 製品改善ループ (Tier 65: Qiita/Zenn 外部知見の適用 — edge-to-edge でメイン画面がステータスバー下に潜る — 2026-06-21)
 
 ### きっかけ (Qiita/Zenn の edge-to-edge・テーマ記事)

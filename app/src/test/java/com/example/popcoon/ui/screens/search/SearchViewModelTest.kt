@@ -132,6 +132,23 @@ class SearchViewModelTest : StringSpec({
             vm.suggestions.value shouldContain "ハーゲンダッツ バニラ"
         }
     }
+    "検索結果は product.key で一意化される (LazyColumn 重複キークラッシュ防止)" {
+        runTest(testDispatcher) {
+            // 同一 platform:sku だがタイトルが異なる 2 件。groupByIdentity が別グループに
+            // 分ければ同じ product.key の行が 2 つ生じ、LazyColumn が IllegalArgumentException
+            // でクラッシュしうる。distinctBy { product.key } で防げていることを保証する。
+            val dup = listOf(
+                Product("SAME", "コーヒー豆 ブラジル産 500g", Platform.AMAZON, 1000, 1200),
+                Product("SAME", "緑茶 静岡 100袋入り", Platform.AMAZON, 1100, 1300),
+            )
+            val vm = makeViewModel(repo = FakeRepository(products = dup))
+            vm.onQueryChange("テスト")
+            advanceTimeBy(500)
+            val results = vm.state.value.shouldBeInstanceOf<SearchUiState.Results>()
+            val keys = results.items.map { it.product.key }
+            keys shouldBe keys.distinct()  // 重複キーが残っていないこと
+        }
+    }
 })
 
 // ── Fakes ─────────────────────────────────────────────────────────────────────

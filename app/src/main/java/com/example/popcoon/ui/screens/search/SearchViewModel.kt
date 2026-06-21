@@ -185,7 +185,11 @@ class SearchViewModel @Inject constructor(
             // 商品タイトルを Trie に追加
             products.forEach { p -> trie.insert(p.title) }
 
-            _state.value = SearchUiState.Results(rows)
+            // LazyColumn の key = product.key が重複すると IllegalArgumentException で
+            // クラッシュする。groupByIdentity はタイトル類似性で束ねるため、同一 platform:sku が
+            // 別グループに分かれると同じ key の行が 2 つ生じうる (API の重複・ページ重複等)。
+            // 表示直前に key で一意化し、クラッシュを構造的に防ぐ (最安値=先頭を保持)。
+            _state.value = SearchUiState.Results(rows.distinctBy { it.product.key })
         }.onFailure { e ->
             if (e is CancellationException) throw e
             _state.value = SearchUiState.Error(
