@@ -3,6 +3,71 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 60: Qiita/Zenn 外部知見の適用 — 死蔵 API + 未使用 import の整理 — 2026-06-21)
+
+### きっかけ (外部リサーチ第 2 ラウンド)
+
+Qiita/Zenn のコルーチン・Room・セキュリティ・WorkManager 関連記事を調査:
+- 「`try { async {} }` は罠 — `async` 内部に try を入れるべき」
+  (qiita: Kotlin Coroutinesパターン＆アンチパターン)
+- 「ProGuard/R8 の過剰 keep ルールは shrink を無効化する」
+  (qiita: R8 設定、見直してますか？)
+- 「`EncryptedSharedPreferences` より DataStore + Tink」
+  (zenn: DataStore + tink で暗号化)
+- 「`HiltWorker` + `@AssistedInject` の正しい連携」
+  (qiita: WorkManager で Hilt を使う)
+
+### Popcoon への監査結果
+
+各項目を grep で検証:
+- **コルーチン**: `ProductRepository.search()` は `coroutineScope { async { try {} catch {} } }`
+  — try が async **内部**にあり、罠を回避済み ✓
+- **R8 ルール**: `-keep class io.ktor.** { *; }` 等の過剰 keep が複数あるが、
+  実際に削っても安全か CI でビルド検証する必要があり今回はスコープ外
+  (将来の Tier で R8 metrics を取った上で個別に検討)
+- **DataStore 暗号化**: `UserPreferences` が保存するのは boolean/int フラグのみで
+  PII やシークレットを保存しない → 暗号化不要 ✓
+- **HiltWorker**: `PriceSyncWorker` / `WeeklyDigestWorker` 共に `@HiltWorker` +
+  `@AssistedInject` の正規パターン ✓
+
+→ コルーチン・WorkManager 層は健全。しかし監査の副産物として **2 件の死蔵コード**
+を発見した。
+
+### 発見した死蔵コード
+
+#### 1. `BackendClient.deleteAllData(deviceToken: String): Boolean`
+
+Tier 56 で `SettingsViewModel.deleteAllData()` から「サーバー側削除」を撤回した際、
+`BackendClient` 側のエンドポイントを呼び出すメソッドが**取り残されたまま**だった。
+`grep -r 'backend\.deleteAllData\|BackendClient\(\)\.deleteAllData'` でヒット 0 件。
+プライバシーファースト設計でデバイス識別子を持たない以上、`deviceToken` を渡せる
+呼び出し側は永久に存在しない (= 不到達コード)。
+
+#### 2. `ProductRow.kt` の 3 つの未使用 import
+
+`androidx.compose.material.icons.Icons` / `Icons.filled.Share` / `Icons.filled.Star`
+— grep で本文に 1 回も参照されないことを確認。
+過去のリファクタリングで使われなくなったが import 文だけ残った典型例。
+
+### 適用した変更
+
+1. **`BackendClient.kt`**:
+   - `deleteAllData(deviceToken)` メソッドを削除
+   - 未使用になった `delete`/`header` import も削除
+   - 設計意図を残すコメントブロックに置換 (Tier 56 への参照付き)
+
+2. **`ProductRow.kt`**:
+   - 3 つの未使用 icon import を削除
+
+### 一般教訓
+
+外部知見を**自プロジェクトに当てはめる監査**は、しばしば調査対象とは別の発見をもたらす。
+今回はコルーチン/R8 パターンの検証中に、過去の Tier の修正で取り残された API を発見。
+Socratic 監査 (Tier 56-58) と外部知見監査 (Tier 60) は**直交する**改善ベクトルで、
+両方を交互に行うのが効率的。
+
+---
+
 ## 製品改善ループ (Tier 59: Qiita/Zenn 外部知見の適用 — Compose 安定性設定で不要な再コンポーズを抑制 — 2026-06-21)
 
 ### きっかけ (外部リサーチ)

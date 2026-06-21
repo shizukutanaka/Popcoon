@@ -6,9 +6,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.request.delete
 import io.ktor.client.request.get
-import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -83,19 +81,10 @@ class BackendClient @Inject constructor() {
     }
 
     /**
-     * GDPR Article 17: ユーザーが「全削除」を押したら呼ぶ。
-     * 端末内データの削除は呼び出し側で別途実施。
+     * GDPR Article 17: 端末内データ削除のみで完結する設計のため、
+     * このクラスに「サーバー側削除」エンドポイントは存在しない。
+     * (Tier 56 参照: アプリはデバイス識別子を一切持たないため削除対象ゼロ)
      */
-    suspend fun deleteAllData(deviceToken: String): Boolean {
-        return runCatching {
-            client.delete("$baseUrl/v1/device") {
-                header("x-device-token", deviceToken)
-            }.status.isSuccess()
-        }.getOrElse { e ->
-            if (e is CancellationException) throw e
-            false
-        }
-    }
 
     @Serializable
     private data class HistoryResponse(
