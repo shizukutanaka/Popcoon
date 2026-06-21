@@ -7,6 +7,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items as lazyItems
@@ -18,8 +20,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import com.example.popcoon.R
 import com.example.popcoon.ui.theme.CornerRadius
 import com.example.popcoon.ui.theme.Spacing
@@ -55,6 +59,7 @@ fun SearchScreen(
     val recentSearches by viewModel.recentSearches.collectAsStateWithLifecycle()
     var query by remember { mutableStateOf("") }
     var showSuggestions by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(vmQuery) {
         if (vmQuery != query) query = vmQuery
@@ -83,6 +88,13 @@ fun SearchScreen(
                 },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
+                // IME に「検索」ボタンを出し、押下でサジェストを閉じてフォーカスを外す
+                // (= キーボードが下がり、結果が隠れない)。検索自体は debounce で実行済み。
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = {
+                    showSuggestions = false
+                    focusManager.clearFocus()
+                }),
             )
             Spacer(Modifier.width(Spacing.ml))
             IconButton(onClick = onSaleCalendar) {

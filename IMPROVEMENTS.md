@@ -3,6 +3,56 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 69: Qiita/Zenn 外部知見の適用 — ナビ二重 push 防止 + 検索 IME アクション — 2026-06-21)
+
+### きっかけ (Qiita/Zenn の連打防止・IME 記事)
+
+- 「ボタン/行を連打すると画面が二重に立ち上がる。Navigation は `launchSingleTop` か
+  クリック抑制で防ぐ」 (qiita: ボタン連打で多重表示させない / zenn: 二度押しを避けるボタン)
+- 「検索 `TextField` は `KeyboardOptions(imeAction = ImeAction.Search)` +
+  `KeyboardActions(onSearch = { focusManager.clearFocus() })` でキーボードを閉じる」
+  (zenn: TextField と Keyboard の問題と解決 / qiita: キーボードを閉じる方法)
+
+### Popcoon への監査結果
+
+- **タブ切替** (`navigateToTab`): `launchSingleTop = true` 済み ✓
+- **詳細/二次画面への遷移**: `navigateToDetail`・`onSettings`・`onWatchlist`・`onBarcode`・
+  `onSaleCalendar`・`onCustoms`・ウォッチリスト項目クリックが**いずれも
+  `launchSingleTop` なし** → 連打で二重 push の余地 ❌
+- **検索 TextField**: `keyboardOptions`/`keyboardActions` 未設定 → 結果表示後も
+  キーボードが被さる ❌
+
+### 発見した問題
+
+1. **ナビゲーションの二重 push**: 商品行をすばやく 2 回タップすると、同じ商品の
+   詳細画面がバックスタックに 2 つ積まれ、戻るを 2 回押す羽目になる。
+   設定/ウォッチリスト/バーコード/カレンダー/関税ボタンも同様。
+2. **検索後にキーボードが残る**: 検索は `onValueChange` の debounce で実行されるため
+   IME に検索ボタンが無く、結果が出てもキーボードが画面下半分を覆ったまま。
+
+### 適用した変更
+
+1. **`launchSingleTop = true` を全二次遷移に付与**:
+   - `navigateToDetail` (検索→詳細、バーコード→詳細の共通経路)
+   - `PopcoonNavGraph` の `onSettings`/`onWatchlist`/`onBarcode`/`onSaleCalendar`/
+     `onCustoms`/ウォッチリスト項目クリック (`detail/$key`)
+   同一 route が既に先頭にあれば再 push せず先頭を再利用 → 連打で増殖しない。
+   (通常の単発遷移には影響しない no-op、低リスク)
+2. **検索 IME アクション**: `OutlinedTextField` に
+   `KeyboardOptions(imeAction = ImeAction.Search)` +
+   `KeyboardActions(onSearch = { showSuggestions = false; focusManager.clearFocus() })`
+   を追加。検索ボタン押下でサジェストを閉じ、フォーカスを外してキーボードを下げる。
+
+### 一般教訓
+
+`launchSingleTop` は「同一 route が連続 push されるのを防ぐ」ための既定装備。
+**遷移を起こす全ての navigate() に付けてよい** (単発時は no-op)。タブ以外の
+画面遷移で付け忘れると、連打や遷移アニメ中の追加タップで簡単に二重化する。
+また検索 UX では「入力 → 結果」の間でキーボードを能動的に下げる設計
+(`ImeAction.Search` + `clearFocus`) が、限られた画面領域を結果表示に明け渡す定石。
+
+---
+
 ## 製品改善ループ (Tier 68: Qiita/Zenn 外部知見の適用 — ロケール依存の数値書式 + Text 省略記号 — 2026-06-21)
 
 ### きっかけ (Qiita/Zenn の数値書式・Text overflow 記事)

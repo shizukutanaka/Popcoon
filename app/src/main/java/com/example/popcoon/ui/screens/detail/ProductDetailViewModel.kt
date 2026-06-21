@@ -337,5 +337,7 @@ private val ETHICS_TSHIRT = Regex("tシャツ|ティーシャツ|tshirt|t-shirt|
  */
 fun androidx.navigation.NavController.navigateToDetail(product: Product) {
     ProductNavCache.put(product)
-    navigate("detail/${product.platform.id}:${product.sku}")
+    // launchSingleTop: 同一商品の行を素早く 2 度タップしても詳細画面が二重に
+    // push されない (同一 route なら先頭を再利用する)。
+    navigate("detail/${product.platform.id}:${product.sku}") { launchSingleTop = true }
 }

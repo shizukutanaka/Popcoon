@@ -40,10 +40,10 @@ fun PopcoonNavGraph(
         composable(Tab.SEARCH.route) {
             SearchScreen(
                 onProductClick = { product -> navController.navigateToDetail(product) },
-                onSettings = { navController.navigate(Tab.SETTINGS.route) },
-                onWatchlist = { navController.navigate(Tab.WATCHLIST.route) },
-                onBarcode = { navController.navigate("barcode") },
-                onSaleCalendar = { navController.navigate("sale_calendar") },
+                onSettings = { navController.navigate(Tab.SETTINGS.route) { launchSingleTop = true } },
+                onWatchlist = { navController.navigate(Tab.WATCHLIST.route) { launchSingleTop = true } },
+                onBarcode = { navController.navigate("barcode") { launchSingleTop = true } },
+                onSaleCalendar = { navController.navigate("sale_calendar") { launchSingleTop = true } },
             )
         }
 
@@ -53,7 +53,7 @@ fun PopcoonNavGraph(
 
         composable(Tab.WATCHLIST.route) {
             WatchlistScreen(
-                onItemClick = { key -> navController.navigate("detail/$key") },
+                onItemClick = { key -> navController.navigate("detail/$key") { launchSingleTop = true } },
                 onBack = { navController.popBackStack() },
                 onGoSearch = {
                     navController.navigate(Tab.SEARCH.route) { launchSingleTop = true }
@@ -64,7 +64,7 @@ fun PopcoonNavGraph(
         composable(Tab.SETTINGS.route) {
             SettingsScreen(
                 onBack = { navController.popBackStack() },
-                onCustoms = { navController.navigate("customs") },
+                onCustoms = { navController.navigate("customs") { launchSingleTop = true } },
             )
         }
 
