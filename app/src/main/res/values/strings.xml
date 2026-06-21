@@ -306,7 +306,9 @@
     <string name="sale_calendar_title">セールカレンダー</string>
     <string name="sale_calendar_active">開催中</string>
     <string name="sale_calendar_upcoming">今後の大型セール</string>
-    <string name="sale_calendar_days_until">あと%1$d日</string>
+    <plurals name="sale_calendar_days_until">
+        <item quantity="other">あと%1$d日</item>
+    </plurals>
     <string name="sale_calendar_period">%1$s〜%2$s</string>
     <string name="sale_calendar_empty">現在予定されているセールはありません</string>
     <string name="sale_calendar_open">カレンダーを開く</string>

@@ -3,6 +3,60 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 67: Qiita/Zenn 外部知見の適用 — 複数形リソースで英語の「in 1 days」を修正 — 2026-06-21)
+
+### きっかけ (Qiita/Zenn の plurals・状態保存記事)
+
+- 「数を含む文言は `<plurals>` (quantity strings) を使う。`%d` を素の文字列に
+  埋めると英語などで『1 days』のような非文法表現になる。`other` は必須、
+  日本語/韓国語/中国語は CLDR 上 `other` のみ」
+  (qiita: 複数形リソースを使う場合の注意(otherについて))
+- 「構成変更は ViewModel、プロセス death は SavedStateHandle で状態復元」
+  (qiita: ViewModel のデータを保存/復元するには SavedStateHandle を使う)
+
+### Popcoon への監査結果
+
+- **SavedStateHandle**: `SearchViewModel` が既に `SavedStateHandle` で barcode_query を
+  受け取り済み。検索結果はメモリ保持で、プロセス death 後は再検索すればよい設計 ✓
+  (1MB 制限のある Bundle に重い商品リストを載せない、という推奨にも合致)
+- **複数形リソース**: `<plurals>` が **1 つも未使用**。`%d` を含む文言を全 EN 文字列で
+  確認したところ、**1 件が英語で非文法**になることを発見。
+
+### 発見した問題
+
+`sale_calendar_days_until` = EN「in %1$d days」。`upcomingSales` は
+`startDate > today` を満たすセールのみ返すため**最短で 1 日後 (翌日開催) が実際に到達する**。
+その場合、英語ユーザーには **「in 1 days」** と表示され非文法だった。
+(他の `%d` 文字列も点検: `product_cross_mall_*` は常に 2 件以上、`Pack of 1`/`(1 yr)` は
+文法的に許容、のため対象外と判断。)
+
+### 適用した変更
+
+1. **4 ロケールの `sale_calendar_days_until` を `<string>` → `<plurals>` に移行**:
+   - EN: `one`=「in %1$d day」/ `other`=「in %1$d days」
+   - JA/KO/ZH: CLDR 上 `other` のみ (単複を区別しない言語) → 既存文言を `other` に格納
+2. **`SaleCalendarScreen`**: `stringResource(R.string...)` を
+   `pluralStringResource(R.plurals.sale_calendar_days_until, n, n)` に変更
+   (第 2 引数 = 数量選択、第 3 引数 = `%d` への埋め込み)。
+
+### 検証
+
+- i18n パリティテスト **3 passed** を維持。
+  parity test は `<string>` 要素のみ走査する実装なので、4 ロケール一斉に
+  `<plurals>` 化してもキー集合の整合は崩れない (string から消え plurals は非対象)。
+- 残存 `<string name="sale_calendar_days_until">` が無いこと、4 ロケール全てに
+  `<plurals>` が在ることを grep で確認。
+
+### 一般教訓
+
+数を含む UI 文言は **`%d` 直接埋め込みではなく `<plurals>`** が原則。
+日本語主体で開発すると「1 件」「2 件」が同形のため見落とすが、英語ロケールで
+「1 days」「1 items」のような非文法表現が露出する。`plurals` の利点は
+**翻訳者が言語ごとの単複ルール (CLDR) に従って quantity を増やせる**こと。
+日本語のみ `other` で済むからといって他言語まで単数形を諦める必要はない。
+
+---
+
 ## 製品改善ループ (Tier 66: Qiita/Zenn 外部知見の適用 — LazyColumn 重複キーによる潜在クラッシュを防御 — 2026-06-21)
 
 ### きっかけ (Qiita/Zenn の Room・LazyColumn 記事)

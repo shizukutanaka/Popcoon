@@ -283,7 +283,10 @@
     <string name="sale_calendar_title">Sale Calendar</string>
     <string name="sale_calendar_active">Active now</string>
     <string name="sale_calendar_upcoming">Upcoming major sales</string>
-    <string name="sale_calendar_days_until">in %1$d days</string>
+    <plurals name="sale_calendar_days_until">
+        <item quantity="one">in %1$d day</item>
+        <item quantity="other">in %1$d days</item>
+    </plurals>
     <string name="sale_calendar_period">%1$s – %2$s</string>
     <string name="sale_calendar_empty">No sales scheduled right now</string>
     <string name="sale_calendar_open">Open calendar</string>

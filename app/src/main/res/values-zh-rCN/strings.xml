@@ -278,7 +278,9 @@
     <string name="sale_calendar_title">促销日历</string>
     <string name="sale_calendar_active">进行中</string>
     <string name="sale_calendar_upcoming">即将到来的大型促销</string>
-    <string name="sale_calendar_days_until">还有%1$d天</string>
+    <plurals name="sale_calendar_days_until">
+        <item quantity="other">还有%1$d天</item>
+    </plurals>
     <string name="sale_calendar_period">%1$s～%2$s</string>
     <string name="sale_calendar_empty">当前没有安排的促销</string>
     <string name="sale_calendar_open">打开日历</string>

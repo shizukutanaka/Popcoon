@@ -278,7 +278,9 @@
     <string name="sale_calendar_title">세일 캘린더</string>
     <string name="sale_calendar_active">진행 중</string>
     <string name="sale_calendar_upcoming">다가오는 대형 세일</string>
-    <string name="sale_calendar_days_until">%1$d일 후</string>
+    <plurals name="sale_calendar_days_until">
+        <item quantity="other">%1$d일 후</item>
+    </plurals>
     <string name="sale_calendar_period">%1$s ~ %2$s</string>
     <string name="sale_calendar_empty">현재 예정된 세일이 없습니다</string>
     <string name="sale_calendar_open">캘린더 열기</string>

@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -142,7 +143,13 @@ private fun SaleEventCard(event: SaleCalendar.Event, today: LocalDate) {
                     modifier = Modifier.padding(top = Spacing.xs),
                 ) {
                     Text(
-                        text = stringResource(R.string.sale_calendar_days_until, daysUntil.toInt()),
+                        // plurals: 英語など単複を区別する言語で「in 1 day」/「in 2 days」を
+                        // 正しく出し分ける (明日開始のセール = 1 日後は実際に到達する)。
+                        text = pluralStringResource(
+                            R.plurals.sale_calendar_days_until,
+                            daysUntil.toInt(),
+                            daysUntil.toInt(),
+                        ),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier = Modifier.padding(horizontal = Spacing.ml, vertical = Spacing.sm),
