@@ -198,6 +198,7 @@
     <string name="settings_data">Data</string>
     <string name="settings_export_csv">Export price history as CSV</string>
     <string name="settings_export_desc">Export all watchlist product history</string>
+    <string name="csv_share_chooser_title">Share CSV</string>
     <string name="settings_clear_history">Clear search history</string>
     <string name="settings_clear_watchlist">Clear watchlist</string>
     <string name="settings_delete_all">Delete all data (GDPR Article 17)</string>

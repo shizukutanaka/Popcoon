@@ -221,6 +221,7 @@
     <string name="settings_data">数据</string>
     <string name="settings_export_csv">导出价格历史为CSV</string>
     <string name="settings_export_desc">导出所有收藏商品历史</string>
+    <string name="csv_share_chooser_title">分享CSV</string>
     <string name="settings_clear_history">清除搜索历史</string>
     <string name="settings_clear_watchlist">清除收藏</string>
     <string name="settings_delete_all">删除所有数据 (GDPR 第17条)</string>

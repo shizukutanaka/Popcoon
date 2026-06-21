@@ -3,6 +3,61 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 64: Qiita/Zenn 外部知見の適用 — i18n 漏れと Modifier タップ領域の監査 — 2026-06-21)
+
+### きっかけ (Qiita/Zenn の i18n・Modifier 順序記事)
+
+- 「ハードコード文字列は多言語対応の最大の敵。**ユーザーに見える全ての文字列**を
+  `strings.xml` に出すのが基本。ViewModel/サービス層からも `context.getString()` で
+  参照する」 (qiita: Android アプリを多言語化する、zenn: 文字列をどこに定義するべきか)
+- 「`Modifier.clickable().padding()` の順序はタップ領域を狭める。
+  `Modifier.padding().clickable()` の順が広いタップ領域を確保する」
+  (zenn: JetpackCompose の Modifier の順序について、qiita: 意外と知らない Modifier.clickable)
+
+### Popcoon への監査結果
+
+#### 1. ハードコード日本語文字列 (i18n 漏れ) — `grep '"[ぁ-んァ-ヶ一-龯]"'`
+
+UI 全体を走査した結果、ハードコードはほぼゼロだが **1 件発見**:
+- `SettingsViewModel.exportCsv()` の `Intent.createChooser(intent, "CSV を共有")` —
+  ユーザー (EN/KO/ZH ロケール) には**「CSV を共有」が日本語のまま**表示されていた。
+- `Text("⚠️")`/`Text("⭐")`/`Text("✓")` の絵文字は言語非依存なので問題なし ✓
+- `Text("• $w")` のバレットも言語非依存 ✓
+- 設定画面の `Text("• " + stringResource(...))` も同じ理由で OK ✓
+
+#### 2. Modifier 順序 — `grep '\.clickable.*\.padding'`
+
+→ **ヒット 0 件**。全クリック可能要素が `padding().clickable()` の正しい順序
+(または `Surface` がタップ領域を内包) になっており、タップ領域問題なし ✓
+
+#### 3. 最小タップサイズ (Material3 48dp)
+
+`IconButton` は Material3 が自動で 48dp を確保。`Modifier.size()` 利用箇所も
+`IconSize.md/sm` だが SearchSuggestions/OfflineBanner 内のアイコン**装飾**で
+タップ対象ではない → 問題なし ✓
+
+### 適用した変更
+
+`SettingsViewModel` の `createChooser` タイトルを 4 ロケール文字列リソース化:
+- `R.string.csv_share_chooser_title` を `values`/`values-en`/`values-ko`/`values-zh-rCN`
+  に追加 (CSV を共有 / Share CSV / CSV 공유 / 分享CSV)
+- `context.getString(R.string.csv_share_chooser_title)` で参照
+- i18n パリティテスト 3 passed (4 ロケールのキー/プレースホルダー整合性を維持)
+
+### 一般教訓
+
+i18n 漏れは **ViewModel/サービス層**で発生しやすい:
+- Composable では `stringResource()` が単一の経路なので漏れは少ない
+- 一方 ViewModel は `context.getString()` を呼ばないとリテラル直書きしがち。
+  特に `Intent.createChooser`/`Toast`/`Snackbar` のように Compose 外の API は要注意。
+
+Modifier 順序問題は**「先にレイアウト、後にインタラクション」が原則**
+(`size → padding → clickable → background` のような流れ)。
+Popcoon はこの原則を全体で守れていた — Material3 の `Surface`/`Button`/`IconButton`
+にデフォルト依存することで自然と回避されているのが大きい。
+
+---
+
 ## 製品改善ループ (Tier 63: Qiita/Zenn 外部知見の適用 — 越境関税フォームが画面回転で消失 — 2026-06-21)
 
 ### きっかけ (Qiita/Zenn の状態保持・ライフサイクル記事)

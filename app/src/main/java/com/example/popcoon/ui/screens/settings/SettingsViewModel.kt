@@ -7,6 +7,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.popcoon.BuildConfig
+import com.example.popcoon.R
 import com.example.popcoon.core.PopcoonLogger
 import com.example.popcoon.data.db.PopcoonDatabase
 import com.example.popcoon.feature.billing.BillingManager
@@ -176,8 +177,10 @@ class SettingsViewModel @Inject constructor(
                 val intent = csvExporter.shareIntent(context)
                 if (intent != null) {
                     context.startActivity(
-                        android.content.Intent.createChooser(intent, "CSV を共有")
-                            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        android.content.Intent.createChooser(
+                            intent,
+                            context.getString(R.string.csv_share_chooser_title),
+                        ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                     )
                 }
             } catch (e: CancellationException) {
