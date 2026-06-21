@@ -3,6 +3,64 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 65: Qiita/Zenn 外部知見の適用 — edge-to-edge でメイン画面がステータスバー下に潜る — 2026-06-21)
+
+### きっかけ (Qiita/Zenn の edge-to-edge・テーマ記事)
+
+- 「targetSdk 35 では Android 15 で edge-to-edge が**強制適用**。
+  `Modifier.safeDrawingPadding()` (= `windowInsetsPadding(WindowInsets.safeDrawing)`)
+  でステータスバー/ナビゲーションバーとの重なりを防ぐ」
+  (qiita: 対象 API レベル 35 で初めて edge-to-edge に対処する[Compose編])
+- 「`isSystemInDarkTheme()` + `dynamic*ColorScheme()` でダーク/Material You 対応」
+  (qiita: ダークモード完全対応ガイド)
+
+### Popcoon への監査結果
+
+- **ダークモード/動的カラー**: `PopcoonTheme` は `isSystemInDarkTheme()` で
+  Light/Dark を自動切替、`dynamicLightColorScheme`/`dynamicDarkColorScheme` も実装済み
+  (既定 OFF = ブランド一貫性優先)。Android 12+ で Material You 対応可能 ✓
+- **edge-to-edge**: `MainActivity` が `enableEdgeToEdge()` を呼び、`build.gradle` は
+  `targetSdk = 35`。→ **強制 edge-to-edge**。ここで insets 未処理の画面を発見。
+
+### 発見した問題
+
+`MainWithTabs` の `Scaffold` は `topBar = Column { OfflineBanner() }` (= **status bar
+inset を処理しない素の Column**)。Material3 Scaffold は topBar が存在すると
+「上端 inset は topBar が消費する」前提で innerPadding.top = topBar 高さとするため、
+オンライン時 (OfflineBanner 高さ 0) は **innerPadding.top ≈ 0** となる。
+
+その結果:
+- **`SearchScreen`** (起動時メイン・最高頻度画面): 自前 TopAppBar を持たず
+  `Column(fillMaxSize().padding)` で始まるため、**検索バーがステータスバー (時計/電池)
+  の下に潜り込む**。
+- **`OnboardingScreen`** (初回起動の第一印象): full-screen root で、
+  **「スキップ」ボタンがステータスバーと重なる**。
+- 一方 `Detail`/`Watchlist`/`Settings`/`Customs`/`SaleCalendar` は**各自 Scaffold +
+  TopAppBar** を持ち、Material3 TopAppBar が `WindowInsets.statusBars` を自動処理する
+  ため**正常** ✓ (これらに inset を足すと二重 padding になるので触らない)。
+
+### 適用した変更
+
+自前 TopAppBar を持たない 2 画面にだけ inset 処理を追加 (外側 Scaffold や
+正常な画面には手を入れない、最小差分):
+1. **`SearchScreen`**: root `Column` に `.statusBarsPadding()` を追加
+   (下端のナビバーは外側 Scaffold の `NavigationBar`=bottomBar が処理済みなので上端のみ)。
+2. **`OnboardingScreen`**: root `Column` に `.safeDrawingPadding()` を追加
+   (full-screen root なので上下両方のシステムバーを回避)。背景 `Surface` は
+   `fillMaxSize` のまま = 背景は端まで敷き、コンテンツだけ inset する正しい edge-to-edge。
+
+### 一般教訓
+
+**入れ子 Scaffold + edge-to-edge は inset の二重適用/未適用が起きやすい**。
+判定基準: 「その画面は **自前の TopAppBar** を持つか?」
+- 持つ → Material3 が status bar inset を自動処理。追加不要。
+- 持たない (full-screen root / 素の Column) → `statusBarsPadding()` か
+  `safeDrawingPadding()` を明示。
+`enableEdgeToEdge()` + targetSdk 35 の組み合わせは「設定した瞬間に全画面へ影響する」
+ため、TopAppBar を持たない画面を狙って点検するのが効率的。
+
+---
+
 ## 製品改善ループ (Tier 64: Qiita/Zenn 外部知見の適用 — i18n 漏れと Modifier タップ領域の監査 — 2026-06-21)
 
 ### きっかけ (Qiita/Zenn の i18n・Modifier 順序記事)

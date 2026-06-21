@@ -60,7 +60,7 @@ fun SearchScreen(
         if (vmQuery != query) query = vmQuery
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(Spacing.ml)) {
+    Column(modifier = Modifier.fillMaxSize().statusBarsPadding().padding(Spacing.ml)) {
         // ── ツールバー行 ───────────────────────────────────────────────────
         Row(
             verticalAlignment = Alignment.CenterVertically,

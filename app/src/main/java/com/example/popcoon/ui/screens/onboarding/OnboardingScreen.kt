@@ -64,7 +64,9 @@ fun OnboardingScreen(onComplete: () -> Unit) {
     val coroutineScope = rememberCoroutineScope()
 
     Surface(modifier = Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize()) {
+        // edge-to-edge (targetSdk 35): 背景は全画面に敷き、コンテンツは safeDrawing で
+        // ステータスバー / ナビゲーションバーを避ける。スキップボタンが時計と重ならない。
+        Column(Modifier.fillMaxSize().safeDrawingPadding()) {
             // スキップボタン (右上)
             Box(Modifier.fillMaxWidth().padding(Spacing.ml), contentAlignment = Alignment.TopEnd) {
                 TextButton(onClick = onComplete) {
