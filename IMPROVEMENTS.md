@@ -3,6 +3,57 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 70: Qiita/Zenn 外部知見の適用 — DataStore 破損/IO 例外でクラッシュする読み込みを防御 — 2026-06-21)
+
+### きっかけ (Qiita/Zenn の DataStore・Context リーク記事)
+
+- 「DataStore の `.data` はファイル読み取り失敗で `IOException`、破損で
+  `CorruptionException` を投げる。`.catch { if (it is IOException) emit(emptyPreferences()) }`
+  で既定値にフォールバックするのが定石」
+  (qiita: DataStore の Read/Write 覚え書き / InvalidProtocolBufferException への対処)
+- 「ViewModel が Activity Context を保持するとリーク。`@ApplicationContext` を使う」
+  (qiita: Singleton を使う場合の注意 / zenn: Context の使い分け)
+
+### Popcoon への監査結果
+
+- **Context リーク**: 全 ViewModel が `@ApplicationContext` を注入し、Activity は
+  メソッド引数 (`launchPurchase(activity)` / `requestReviewIfEligible(activity)`) で
+  受け取りフィールド保持しない → **リークなし** ✓
+- **DataStore 例外処理**: `UserPreferences` の全 read フローが
+  `context.dataStore.data.map { … }` で、**`.catch` が無い**ことを発見 ❌
+
+### 発見した問題
+
+DataStore ファイルが破損 (書き込み途中でプロセス kill、ディスク障害等) または
+読み取り不能になると、`.data` は collector に例外を伝播する。
+`UserPreferences` の 12 個の read フロー全てが無防備で、特に **`onboarded` は起動直後の
+`AppRootViewModel` で読まれる**ため、一度 DataStore が壊れると**アプリが起動時に
+クラッシュし続け、ユーザーは再インストールするまで復帰できない**最悪シナリオがあった。
+
+### 適用した変更
+
+`UserPreferences` に **単一の `safeData` フロー**を導入し、全 read をそこ経由に統一:
+```kotlin
+private val safeData: Flow<Preferences> = context.dataStore.data
+    .catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
+```
+- 12 個の read フロー (`onboarded`/`crashReportOptin`/`rakutenSpu`/… 全て) を
+  `context.dataStore.data` → `safeData` に変更。1 箇所で破損耐性を担保 (DRY)。
+- 破損時は**空 Preferences = 全項目デフォルト値**で起動継続 (privacy-first の既定 OFF に
+  自然にフォールバックするため、安全側に倒れる)。
+- `IOException` 以外 (プログラミングエラー等) は握り潰さず再 throw。
+
+### 一般教訓
+
+DataStore/Room/ファイル等**外部永続化からの read は「失敗しうる Flow」**として扱う。
+ハッピーパスの `.data.map` だけ書くと、破損という稀だが致命的な状態で
+**起動ループクラッシュ**に至る。`onboarded` のような**起動経路で読む値**は特に、
+`.catch` フォールバックの有無がアプリの復帰可能性を分ける。
+リカバリ方針 (空=デフォルト) が privacy-first の既定値と一致していると、
+フォールバックがそのまま安全な初期状態になり一石二鳥。
+
+---
+
 ## 製品改善ループ (Tier 69: Qiita/Zenn 外部知見の適用 — ナビ二重 push 防止 + 検索 IME アクション — 2026-06-21)
 
 ### きっかけ (Qiita/Zenn の連打防止・IME 記事)
