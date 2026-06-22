@@ -101,6 +101,18 @@ class SearchViewModel @Inject constructor(
         currentQuery.value = q
     }
 
+    /**
+     * 直近のクエリで検索を再実行する (Error 状態のリトライボタン用)。
+     * 同一クエリは debounce/distinctUntilChanged では再発火しないため、
+     * performSearch を直接呼ぶ。空クエリのときは何もしない。
+     */
+    fun retry() {
+        val q = currentQuery.value
+        if (q.isBlank()) return
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch { performSearch(q) }
+    }
+
     private fun updateSuggestions(query: String) {
         _suggestions.value = if (query.isBlank()) emptyList()
         else trie.suggest(query, limit = 6)

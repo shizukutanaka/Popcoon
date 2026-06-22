@@ -132,6 +132,33 @@ class SearchViewModelTest : StringSpec({
             vm.suggestions.value shouldContain "ハーゲンダッツ バニラ"
         }
     }
+    "retry() は直近クエリで再検索する (Error からの復帰)" {
+        runTest(testDispatcher) {
+            // 1回目: 結果あり → Results。retry 後も結果が返ることを確認。
+            val repo = FakeRepository(products = listOf(
+                Product("R1", "リトライ商品", Platform.AMAZON, 1000, 1200),
+            ))
+            val vm = makeViewModel(repo = repo)
+            vm.onQueryChange("リトライ")
+            advanceTimeBy(500)
+            vm.state.value.shouldBeInstanceOf<SearchUiState.Results>()
+
+            vm.retry()
+            advanceTimeBy(500)
+            vm.state.value.shouldBeInstanceOf<SearchUiState.Results>()
+        }
+    }
+
+    "retry() は空クエリでは何もしない" {
+        runTest(testDispatcher) {
+            val repo = CountingRepository()
+            val vm = makeViewModel(repo = repo)
+            vm.retry()
+            advanceTimeBy(500)
+            repo.searchCount shouldBe 0
+        }
+    }
+
     "検索結果は product.key で一意化される (LazyColumn 重複キークラッシュ防止)" {
         runTest(testDispatcher) {
             // 同一 platform:sku だがタイトルが異なる 2 件。groupByIdentity が別グループに

@@ -5,6 +5,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -95,19 +96,31 @@ internal fun EmptyState(status: EmptyStatus, customText: String = "") {
 }
 
 /**
- * エラー表示カード — 失敗時の最小限の情報だけ。
+ * エラー表示カード — メッセージ + (任意) リトライボタン。
+ *
+ * 検索の失敗は一過性のネットワーク障害が多く、同一クエリは debounce で再発火しない。
+ * onRetry を渡すと「再試行」ボタンを表示し、ユーザーがクエリを変えずにやり直せる。
  */
 @Composable
-internal fun ErrorCard(message: String) {
+internal fun ErrorCard(message: String, onRetry: (() -> Unit)? = null) {
     Surface(
         color = MaterialTheme.colorScheme.errorContainer,
         shape = RoundedCornerShape(CornerRadius.card),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Text(
-            message,
-            Modifier.padding(Spacing.ml),
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        Column(Modifier.padding(Spacing.ml)) {
+            Text(
+                message,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            if (onRetry != null) {
+                TextButton(
+                    onClick = onRetry,
+                    modifier = Modifier.align(Alignment.End),
+                ) {
+                    Text(stringResource(R.string.action_retry))
+                }
+            }
+        }
     }
 }

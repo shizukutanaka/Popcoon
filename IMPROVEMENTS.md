@@ -3,6 +3,56 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 72: Qiita/Zenn 外部知見の適用 — 検索エラーにリトライがない + LaunchedEffect 監査 — 2026-06-21)
+
+### きっかけ (Qiita/Zenn の LaunchedEffect・エラー UX 記事)
+
+- 「`LaunchedEffect(items)` で Room/Flow のリストをキーにすると毎回別参照で
+  再実行され API 無限ループ → CPU100%。`LaunchedEffect(true)` は stale closure で
+  古い値を参照する」 (qiita: LaunchedEffect 完全攻略 / zenn: rememberUpdatedState)
+- 「ネットワークエラーは『リロード』ボタン付きエラービューで再試行可能にする」
+  (qiita: エラービュー+リトライ実装例)
+
+### Popcoon への監査結果
+
+#### LaunchedEffect — **健全、変更なし**
+
+全 6 箇所を点検し、無限ループ/stale closure の罠を回避できていた:
+- `LaunchedEffect(items.size)` (WatchlistScreen): **リスト参照ではなく `.size`** を
+  キーにしており、「毎回別参照で再実行」の罠を正しく回避 ✓
+- `LaunchedEffect(productKey)` / `(vmQuery)` / `(shouldRequest)` / `(intentEvent)`:
+  値ベースのキーで適切 ✓
+- `LaunchedEffect(Unit)` (BarcodeScreen): 一度きりのスキャン起動で、捕捉する
+  `activity`/`scanner`/`context` は画面生存中不変 → stale closure なし ✓
+
+#### エラー UX — 検索のリトライ欠落を発見
+
+`ProductDetailScreen` の Error 状態には「再試行」ボタンがあるのに、
+**`SearchScreen` の `ErrorCard` はメッセージ表示のみでリトライが無い**。
+検索失敗は一過性ネットワーク障害が多く、しかも**同一クエリは `debounce`/
+`distinctUntilChanged` で再発火しない**ため、ユーザーはクエリを変えない限り
+やり直せず詰む。
+
+### 適用した変更
+
+1. **`SearchViewModel.retry()`** を追加: 直近クエリ (`currentQuery.value`) で
+   `performSearch` を直接再実行 (debounce を介さないため同一クエリでも発火)。空は no-op。
+2. **`ErrorCard(message, onRetry)`**: `onRetry` を受け取り「再試行」ボタン
+   (`action_retry`、4 ロケール既存) を表示。`ProductDetailScreen` と UX を統一。
+3. **`SearchScreen`**: `ErrorCard(onRetry = { viewModel.retry() })` で配線。
+4. **`SearchViewModelTest`**: retry が直近クエリで再検索すること / 空クエリでは
+   検索しないこと、の 2 ケースを追加。
+
+### 一般教訓
+
+エラー状態は「メッセージを出して終わり」になりがちだが、**ユーザーが自力で回復できる
+導線 (リトライ)** までが UX。特に検索のように **debounce で同一入力が再発火しない**
+画面では、エラー後に「同じ操作をもう一度」が効かないため、明示的な retry が必須。
+また `LaunchedEffect` は **キーにリスト参照を渡さない** (`.size` や id を使う) のが
+無限再コンポーズ回避の鉄則。
+
+---
+
 ## 製品改善ループ (Tier 71: Qiita/Zenn 外部知見の適用 — セキュリティ監査 (clean) + 設定画面の見出しセマンティクス — 2026-06-21)
 
 ### きっかけ (Qiita/Zenn のセキュリティ・アクセシビリティ記事)

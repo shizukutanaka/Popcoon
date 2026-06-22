@@ -140,7 +140,7 @@ fun SearchScreen(
                         repeat(5) { ProductCardSkeleton() }
                     }
                 is SearchUiState.Error ->
-                    ErrorCard(message = s.message.asString())
+                    ErrorCard(message = s.message.asString(), onRetry = { viewModel.retry() })
                 SearchUiState.Empty ->
                     EmptyState(EmptyStatus.NO_RESULTS)
                 is SearchUiState.Results -> {
