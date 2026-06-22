@@ -18,8 +18,11 @@ import androidx.compose.ui.unit.dp
 import com.example.popcoon.R
 import com.example.popcoon.data.db.WatchlistItem
 import com.example.popcoon.feature.watchlist.WatchlistSort
+import com.example.popcoon.feature.watchlist.WidgetVerdict
+import com.example.popcoon.feature.scorer.BuyTimingScorer
 import com.example.popcoon.ui.components.SmartCartCard
 import com.example.popcoon.ui.components.SwipeToDelete
+import com.example.popcoon.ui.components.VerdictBadge
 import com.example.popcoon.feature.notification.NotificationPermissionHelper
 import com.example.popcoon.feature.notification.RequestNotificationPermission
 import com.example.popcoon.ui.theme.AppIcons
@@ -168,6 +171,20 @@ fun WatchlistScreen(
 private fun undoRemovedMessage(context: android.content.Context, title: String): String =
     context.getString(R.string.watchlist_undo_removed, title.take(15))
 
+/**
+ * ウォッチリスト行の買い時バッジ用 Verdict を返す。
+ *
+ * 判定はホーム画面ウィジェットと同じ [WidgetVerdict]（テスト済み純関数・履歴/通信不要）を
+ * 再利用し、「ウィジェットは買い時を出すのにアプリ内ウォッチリストは出さない」不整合を解消する。
+ * NEUTRAL は視覚ノイズになるため null（バッジ非表示）を返し、BUY_NOW / WAIT のみ表示する。
+ */
+internal fun watchlistBuyVerdict(item: WatchlistItem): BuyTimingScorer.Verdict? =
+    when (WidgetVerdict.forItem(item.realPrice, item.targetPrice, item.addedPrice)) {
+        WidgetVerdict.BUY_NOW -> BuyTimingScorer.Verdict.BUY_NOW
+        WidgetVerdict.WAIT -> BuyTimingScorer.Verdict.WAIT
+        else -> null
+    }
+
 /** WatchlistSort.Mode → 表示用文字列リソース。 */
 @Composable
 private fun sortModeLabel(mode: WatchlistSort.Mode): String = stringResource(
@@ -259,6 +276,13 @@ private fun WatchlistRow(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                    // 買い時バッジ: ウィジェットと同じ WidgetVerdict を再利用し、
+                    // 行動に最も近いウォッチリスト画面でも「今が買いか」を示す。
+                    // NEUTRAL はノイズなので非表示 (BUY_NOW / WAIT のみ表示)。
+                    watchlistBuyVerdict(item)?.let { verdict ->
+                        Spacer(Modifier.width(Spacing.md))
+                        VerdictBadge(verdict)
                     }
                 }
                 // 追加時からの変動（横ばい時は非表示）
