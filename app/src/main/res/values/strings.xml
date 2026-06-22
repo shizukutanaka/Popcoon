@@ -252,6 +252,11 @@
     <!-- ウィジェット -->
     <string name="widget_description">ウォッチリストの最安値とセール情報を表示</string>
     <string name="widget_empty_hint">ウォッチリストに商品を追加してください</string>
+    <string name="widget_empty">ウォッチリストに追加すると\nここに価格が表示されます</string>
+    <string name="widget_sale_yahoo_5day">Yahoo! 5のつく日 +4%</string>
+    <string name="widget_sale_rakuten_50day">楽天 5と0のつく日 +1%</string>
+    <string name="widget_sale_yahoo_sunday">Yahoo! 日曜日 +5%</string>
+    <string name="widget_sale_next">次回: %1$d日 ポイントUP</string>
 
     <!-- App Shortcuts (ホーム画面長押し) -->
     <string name="shortcut_barcode_short">スキャン</string>

@@ -165,6 +165,11 @@
 
     <string name="widget_description">Show watchlist lowest prices and sale info</string>
     <string name="widget_empty_hint">Add products to your watchlist</string>
+    <string name="widget_empty">Add items to your watchlist\nto see prices here</string>
+    <string name="widget_sale_yahoo_5day">Yahoo! 5/15/25 day +4%</string>
+    <string name="widget_sale_rakuten_50day">Rakuten 5 &amp; 0 day +1%</string>
+    <string name="widget_sale_yahoo_sunday">Yahoo! Sunday +5%</string>
+    <string name="widget_sale_next">Next: point-up on day %1$d</string>
 
     <string name="shortcut_barcode_short">Scan</string>
     <string name="shortcut_barcode_long">Barcode scan</string>

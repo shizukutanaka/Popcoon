@@ -42,10 +42,10 @@ import com.example.popcoon.MainActivity
 class PopcoonWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        // ウォッチリストデータは WorkManager や SharedPreferences 経由で取得
-        // ここでは静的なデモデータでウィジェット構造を示す
+        // ウォッチリスト最新価格は WidgetUpdater が SharedPreferences (widget_cache) に
+        // キャッシュ済み。ここではそれを読み出す。
         val items = loadWidgetItems(context)
-        val todayInfo = loadTodayInfo()
+        val todayInfo = loadTodayInfo(context)
 
         provideContent {
             WidgetContent(items = items, todayInfo = todayInfo)
@@ -66,30 +66,50 @@ class PopcoonWidget : GlanceAppWidget() {
         }
     }
 
-    private fun loadTodayInfo(): TodayInfo {
+    private fun loadTodayInfo(context: Context): TodayInfo {
         val today = java.time.LocalDate.now()
-        return PopcoonWidgetLogic.todayInfo(today.dayOfMonth, today.dayOfWeek)
+        val sale = PopcoonWidgetLogic.todayInfo(today.dayOfMonth, today.dayOfWeek)
+        // i18n: ロジックは SaleKind を返し、ラベル文字列はここでロケール解決する。
+        val label = when (sale.kind) {
+            PopcoonWidgetLogic.SaleKind.YAHOO_5DAY ->
+                context.getString(com.example.popcoon.R.string.widget_sale_yahoo_5day)
+            PopcoonWidgetLogic.SaleKind.RAKUTEN_50DAY ->
+                context.getString(com.example.popcoon.R.string.widget_sale_rakuten_50day)
+            PopcoonWidgetLogic.SaleKind.YAHOO_SUNDAY ->
+                context.getString(com.example.popcoon.R.string.widget_sale_yahoo_sunday)
+            PopcoonWidgetLogic.SaleKind.NEXT ->
+                context.getString(com.example.popcoon.R.string.widget_sale_next, sale.nextDay)
+        }
+        return TodayInfo(label = label, isActive = sale.isActive)
     }
 }
 
 /**
  * ウィジェットの「今日のセール情報」判定 (純関数、Context 非依存)。
  * 単体テストで網羅検証する。
+ *
+ * i18n: 表示文字列は持たず **どのセールか (SaleKind)** だけを返す。ラベルの
+ * ロケール解決は [PopcoonWidget.loadTodayInfo] が string resource で行う。
  */
 internal object PopcoonWidgetLogic {
 
-    fun todayInfo(day: Int, dow: java.time.DayOfWeek): TodayInfo = when {
+    enum class SaleKind { YAHOO_5DAY, RAKUTEN_50DAY, YAHOO_SUNDAY, NEXT }
+
+    /** @param nextDay NEXT のときのみ意味を持つ (次回ポイントアップ日)。 */
+    data class SaleInfo(val kind: SaleKind, val isActive: Boolean, val nextDay: Int = 0)
+
+    fun todayInfo(day: Int, dow: java.time.DayOfWeek): SaleInfo = when {
         // Yahoo! 5のつく日 (5/15/25) — 共有日は高還元の Yahoo を優先表示。
         day == 5 || day == 15 || day == 25 ->
-            TodayInfo("Yahoo! 5のつく日 +4%", isActive = true)
+            SaleInfo(SaleKind.YAHOO_5DAY, isActive = true)
         // 楽天 5と0のつく日のうち Yahoo と重ならない日 (10/20/30)。
         // (5/15/25 は上で Yahoo に振るので、ここに 5 を入れると到達不能=デッドになる)
         day == 10 || day == 20 || day == 30 ->
-            TodayInfo("楽天 5と0のつく日 +1%", isActive = true)
+            SaleInfo(SaleKind.RAKUTEN_50DAY, isActive = true)
         dow == java.time.DayOfWeek.SUNDAY ->
-            TodayInfo("Yahoo! 日曜日 +5%", isActive = true)
+            SaleInfo(SaleKind.YAHOO_SUNDAY, isActive = true)
         else ->
-            TodayInfo("次回: ${nextPointDay(day)}日 ポイントUP", isActive = false)
+            SaleInfo(SaleKind.NEXT, isActive = false, nextDay = nextPointDay(day))
     }
 
     /** 今日以降で次にポイントアップする日 (5と0のつく日)。月末を越えると翌月の 5。 */
@@ -148,7 +168,7 @@ private fun WidgetContent(items: List<WidgetItem>, todayInfo: TodayInfo) {
         // ウォッチリスト商品 (最大3件)
         if (items.isEmpty()) {
             Text(
-                "ウォッチリストに追加すると\nここに価格が表示されます",
+                LocalContext.current.getString(com.example.popcoon.R.string.widget_empty),
                 style = TextStyle(color = subtleColor, fontSize = 10.sp),
             )
         } else {

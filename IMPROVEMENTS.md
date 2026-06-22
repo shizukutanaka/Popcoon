@@ -3,6 +3,50 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 74: 長所短所改善 — ホーム画面ウィジェットの i18n 漏れ — 2026-06-21)
+
+### 監査対象: Glance ウィジェット (`PopcoonWidget` / `WidgetUpdater`)
+
+#### 長所
+- Glance API (Compose ベース・型安全)、`PopcoonWidgetLogic` が純関数でテスト済み
+  (`WidgetSaleLogicTest`)、`WidgetUpdater` はデバウンス + `apply()` 非同期書き込み +
+  スレッド安全 (`synchronized`)、ワンタップでアプリ起動、買い時で価格を色分け。
+
+#### 短所 (発見した欠陥)
+- **ホーム画面という主要面に日本語ハードコード文字列が 5 種**:
+  空状態 (「ウォッチリストに追加すると…」) と、`PopcoonWidgetLogic.todayInfo` が
+  **直接生成する** セールラベル 4 種 (「Yahoo! 5のつく日 +4%」等)。
+  → EN/KO/ZH ロケールのユーザーには**ウィジェットだけ日本語**で表示されていた
+  (Tier 64 の createChooser と同型の i18n 漏れ、ただし常時表示なので影響大)。
+- 根本原因: 純関数 `todayInfo` が **表示文字列を組み立てていた** (ロジックと
+  プレゼンテーションの混在)。Glance は `RemoteViews` 系で `stringResource` を
+  直接使えないため見落とされやすい。
+
+### 適用した改善 (ロジック / i18n の分離 — Tier 67 plurals と同方針)
+
+1. **`PopcoonWidgetLogic.todayInfo`** を `SaleInfo(kind: SaleKind, isActive, nextDay)`
+   を返すよう変更。日本語ラベルを排し **「どのセールか」だけ**を返す純関数に。
+2. **`PopcoonWidget.loadTodayInfo(context)`** が `SaleKind` → string resource を
+   ロケール解決 (`context.getString`)。`widget_sale_next` は `%1$d` で次回日を埋める。
+3. **空状態**も `LocalContext.current.getString(R.string.widget_empty)` に。
+4. **4 ロケールに 5 キー追加**: `widget_empty` / `widget_sale_yahoo_5day` /
+   `widget_sale_rakuten_50day` / `widget_sale_yahoo_sunday` / `widget_sale_next`。
+5. **`WidgetSaleLogicTest`** を `kind`/`nextDay` 検証に更新 (ラベル文字列の
+   アサートを廃止 — ロケール解決は UI 層の責務に移動)。
+
+### 検証
+- i18n パリティ **3 passed** (5 キー × 4 ロケール、`widget_sale_next` の `%1$d` 一致)。
+- `TodayInfo(label, isActive)` は UI 層のデータ保持として存続 (ロジックは `SaleInfo`)。
+
+### 一般教訓
+**RemoteViews/Glance のような「`stringResource` が直接使えない面」は i18n 漏れの
+温床**。純関数が「判定」だけでなく「表示文字列の組み立て」まで担うと、ロケール対応の
+フックが失われる。`todayInfo` のように **enum/型を返し、文字列化は Context を持つ
+境界で行う**設計に分離すると、テスト容易性と i18n を両立できる (Tier 67 の plurals、
+Tier 64 の ViewModel i18n と同じ教訓の再確認)。
+
+---
+
 ## 製品改善ループ (Tier 73: ソクラテス式 — 新機能: ウォッチリストに買い時バッジ — 2026-06-21)
 
 ### ソクラテス式問答 (「ホーム画面の方がアプリ本体より多くを語っていないか?」)

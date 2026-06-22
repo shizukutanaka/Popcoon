@@ -8,9 +8,12 @@ import java.time.LocalDate
 /**
  * ウィジェットのセール判定ロジックテスト。
  *
- * Glance UI 部分は Instrumentation テストに委ね、ここでは日付→セール情報の
+ * Glance UI 部分は Instrumentation テストに委ね、ここでは日付→セール種別の
  * pure 計算 (PopcoonWidgetLogic) を **本番コードを直接呼んで** 検証する。
  * (以前は本番ロジックをテスト内に再実装しており、回帰を検出できなかった)
+ *
+ * i18n リファクタ後: ロジックは日本語ラベルではなく SaleKind を返すので、
+ * テストは種別 (enum) と nextDay を検証する (ラベルのロケール解決は UI 層)。
  */
 class WidgetSaleLogicTest : StringSpec({
 
@@ -18,26 +21,26 @@ class WidgetSaleLogicTest : StringSpec({
 
     "5日: Yahoo 5のつく日" {
         val r = info(LocalDate.of(2026, 5, 5))
-        r.label shouldBe "Yahoo! 5のつく日 +4%"
+        r.kind shouldBe PopcoonWidgetLogic.SaleKind.YAHOO_5DAY
         r.isActive shouldBe true
     }
 
     "15日・25日も Yahoo 5のつく日" {
-        info(LocalDate.of(2026, 5, 15)).label shouldBe "Yahoo! 5のつく日 +4%"
-        info(LocalDate.of(2026, 5, 25)).label shouldBe "Yahoo! 5のつく日 +4%"
+        info(LocalDate.of(2026, 5, 15)).kind shouldBe PopcoonWidgetLogic.SaleKind.YAHOO_5DAY
+        info(LocalDate.of(2026, 5, 25)).kind shouldBe PopcoonWidgetLogic.SaleKind.YAHOO_5DAY
     }
 
     "10日・20日・30日: 楽天 5と0のつく日" {
-        info(LocalDate.of(2026, 5, 10)).label shouldBe "楽天 5と0のつく日 +1%"
-        info(LocalDate.of(2026, 5, 20)).label shouldBe "楽天 5と0のつく日 +1%"
-        info(LocalDate.of(2026, 4, 30)).label shouldBe "楽天 5と0のつく日 +1%"
+        info(LocalDate.of(2026, 5, 10)).kind shouldBe PopcoonWidgetLogic.SaleKind.RAKUTEN_50DAY
+        info(LocalDate.of(2026, 5, 20)).kind shouldBe PopcoonWidgetLogic.SaleKind.RAKUTEN_50DAY
+        info(LocalDate.of(2026, 4, 30)).kind shouldBe PopcoonWidgetLogic.SaleKind.RAKUTEN_50DAY
     }
 
     "日曜日: Yahoo 日曜 +5% (5と0のつく日でない日)" {
         val date = LocalDate.of(2026, 5, 3)  // 日曜
         date.dayOfWeek shouldBe DayOfWeek.SUNDAY
         val r = info(date)
-        r.label shouldBe "Yahoo! 日曜日 +5%"
+        r.kind shouldBe PopcoonWidgetLogic.SaleKind.YAHOO_SUNDAY
         r.isActive shouldBe true
     }
 
@@ -45,15 +48,18 @@ class WidgetSaleLogicTest : StringSpec({
         val date = LocalDate.of(2026, 6, 1)
         if (date.dayOfWeek != DayOfWeek.SUNDAY) {
             val r = info(date)
+            r.kind shouldBe PopcoonWidgetLogic.SaleKind.NEXT
             r.isActive shouldBe false
-            r.label shouldBe "次回: 5日 ポイントUP"
+            r.nextDay shouldBe 5
         }
     }
 
     "26日 (非日曜): 次回 = 30日" {
         val date = LocalDate.of(2026, 5, 26)
         if (date.dayOfWeek != DayOfWeek.SUNDAY) {
-            info(date).label shouldBe "次回: 30日 ポイントUP"
+            val r = info(date)
+            r.kind shouldBe PopcoonWidgetLogic.SaleKind.NEXT
+            r.nextDay shouldBe 30
         }
     }
 
