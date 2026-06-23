@@ -52,6 +52,17 @@ class BuyingAdvisor @Inject constructor(
         }
     }
 
+    /**
+     * 商品の買い時アドバイスを取得する。成功時は助言テキストを返しキャッシュする。
+     *
+     * **失敗時は例外を投げる** (API キー未設定 / ネットワーク失敗 / 空応答)。
+     * 以前は日本語のエラー文字列を return していたが、それでは
+     *  - EN/KO/ZH ロケールに日本語が漏れる
+     *  - 例外メッセージが UI に露出する
+     *  - 呼び出し側 (ProductDetailViewModel) のローカライズ済みエラー処理が死にコード化
+     *  - エラー文字列が「有効な助言」として再キャッシュされる
+     * という問題があった。表示文言のロケール解決は UI 層の責務とする。
+     */
     suspend fun advise(
         product: Product,
         score: BuyTimingScorer.Score,
@@ -60,9 +71,7 @@ class BuyingAdvisor @Inject constructor(
         // 1. キャッシュチェック
         cache.get(product, score)?.let { return it }
 
-        if (apiKey.isBlank()) {
-            return "AIアドバイザー無効 (APIキー未設定)"
-        }
+        require(apiKey.isNotBlank()) { "Anthropic API key not configured" }
 
         val systemPrompt = """
             あなたは日本のショッピング・アシスタント「Popcoon」です。
@@ -91,8 +100,7 @@ class BuyingAdvisor @Inject constructor(
             messages = listOf(ClaudeMessage("user", userPrompt)),
         )
 
-        var isError = false
-        val advice = runCatching {
+        val advice = try {
             val response = client.post("https://api.anthropic.com/v1/messages") {
                 header("x-api-key", apiKey)
                 header("anthropic-version", "2023-06-01")
@@ -101,19 +109,17 @@ class BuyingAdvisor @Inject constructor(
             }
             val body = response.body<ClaudeResponse>()
             body.content.firstOrNull { it.type == "text" }?.text
-                ?: run { isError = true; "アドバイス取得失敗" }
-        }.getOrElse { e ->
-            if (e is CancellationException) throw e
+                ?: error("Claude response had no text content")
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // 診断のため記録しつつ、ローカライズは呼び出し側に委ねるため再 throw する。
             PopcoonLogger.w("BuyingAdvisor", "API 呼び出し失敗", e)
-            isError = true
-            "ネットワークエラー: ${e.message?.take(50)}"
+            throw e
         }
 
-        // 2. キャッシュ保存 (エラーはキャッシュしない)
-        if (!isError) {
-            cache.put(product, score, advice)
-        }
-
+        // 2. 成功時のみキャッシュ保存
+        cache.put(product, score, advice)
         return advice
     }
 }

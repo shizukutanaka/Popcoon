@@ -3,6 +3,58 @@
 コードベース全層 (build / data・network / feature・domain / Python TDD parity / UI・Compose /
 CI) を調査した結果と、適用した改善・今後のバックログ。
 
+## 製品改善ループ (Tier 75: 長所短所改善 — AI アドバイザーのエラー文字列 i18n 漏れ + 死にコード化したローカライズ処理 — 2026-06-21)
+
+### 監査対象: `BuyingAdvisor` (Claude API 連携)
+
+#### 長所
+- キャッシュ統合 (`AdviceCache`、24h TTL / LRU 100)、プライバシー配慮 (価格・スコア・
+  タイトルのみ送信、端末識別子なし)、適切なタイムアウト設定、`CancellationException`
+  の正しい伝播。
+
+#### 短所 (発見した連鎖的欠陥)
+`advise()` が**例外を内部で握り潰し、日本語のエラー文字列を return** していた:
+1. **i18n 漏れ**: 「AIアドバイザー無効」「アドバイス取得失敗」「ネットワークエラー: …」が
+   UI (商品詳細) にそのまま表示 → EN/KO/ZH ユーザーに日本語が漏れる。
+2. **例外メッセージの UI 露出**: `"ネットワークエラー: ${e.message}"` で内部例外文言を表示。
+3. **ローカライズ処理の死にコード化**: 呼び出し側 `ProductDetailViewModel` の
+   `.onFailure → R.string.error_ai_advisor_failed` (ローカライズ済み) が、`advise()` が
+   決して throw しないため**永久に到達不能**だった。
+4. **エラーの再キャッシュ**: ViewModel の `onSuccess` がエラー文字列を「有効な助言」として
+   `adviceCache.put` し、次回も誤った助言を表示しうる。
+
+#### 根本原因
+**feature 層 (BuyingAdvisor) が表示用ローカライズ文字列を生成**していた。
+表示文言は Context/resources を持つ UI 層の責務であるべき (Tier 64/74 と同型)。
+
+### 適用した改善
+
+`advise()` を **成功時は助言テキストを返し、失敗時は例外を投げる** 契約に変更:
+- API キー未設定 → `require(apiKey.isNotBlank())`
+- 空応答 → `error("...")`
+- ネットワーク等 → ログ記録のうえ **再 throw** (`CancellationException` は素通し)
+- キャッシュ保存は**成功時のみ**
+→ これにより `ProductDetailViewModel.onFailure` の `error_ai_advisor_failed`
+   (4 ロケール完備) が初めて正しく機能し、日本語漏れ・例外露出・誤キャッシュが一掃される。
+
+### スコープ外 (今回は変更しない)
+- AI 助言**本文**が常に日本語な点 (system prompt が日本語指定): 日本の EC 特化アプリの
+  設計上の選択であり、出力言語のロケール対応は「機能追加」なので別途検討。
+  今回は **エラー処理の i18n/アーキテクチャ欠陥**に限定。
+
+### 検証
+- `advise()` 呼び出し元は `ProductDetailViewModel` の 1 箇所のみ → 契約変更の影響範囲は閉じている。
+- 残存ハードコード日本語エラー: grep で 0 件。`error_ai_advisor_failed` は 4 ロケール完備。
+- エラー文字列に依存するテストは存在しない (BuyingAdvisor 直テストなし)。
+
+### 一般教訓
+**「失敗時に何を返すか」はレイヤ責務の分かれ目**。データ/feature 層がローカライズ済み
+エラー文字列を return すると、(a) i18n が漏れ、(b) UI 層の正しいエラー処理が死にコード化し、
+(c) エラーが正常値として扱われる三重の事故になる。**feature 層は throw / sealed result で
+失敗を表現し、文言は UI 層でローカライズ**するのが鉄則。
+
+---
+
 ## 製品改善ループ (Tier 74: 長所短所改善 — ホーム画面ウィジェットの i18n 漏れ — 2026-06-21)
 
 ### 監査対象: Glance ウィジェット (`PopcoonWidget` / `WidgetUpdater`)
