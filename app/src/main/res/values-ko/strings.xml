@@ -255,6 +255,9 @@
     <string name="prediction_seasonal_7d">계절 예측(7일 후)</string>
     <string name="prediction_historic_low">최저가 %1$s</string>
     <string name="prediction_historic_high">최고가 %1$s</string>
+    <string name="prediction_buy_now_prob">지금 살 때 지수</string>
+    <string name="prediction_buy_now_prob_value">%1$d%%</string>
+    <string name="prediction_buy_now_prob_a11y">지금 살 때 지수 %1$d 퍼센트</string>
     <string name="tco_title">총 소유 비용 (%1$d년)</string>
     <string name="tco_purchase">본체 가격</string>
     <string name="tco_consumables">소모품</string>

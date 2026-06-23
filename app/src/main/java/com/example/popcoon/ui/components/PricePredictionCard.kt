@@ -58,6 +58,10 @@ fun PricePredictionCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
+            // 買い時度 (0-100%): 過去価格に対する現在価格の安さ + 下落トレンド。
+            // エンジンが算出済みだが従来 UI 非表示だった指標を明示する。
+            BuyNowProbabilityRow(probability = prediction.buyNowProbability)
+
             PredictionRow(
                 label = stringResource(R.string.prediction_7d),
                 price = prediction.predicted7d,
@@ -98,6 +102,39 @@ fun PricePredictionCard(
                 )
             }
         }
+    }
+}
+
+/**
+ * 買い時度バー。probability(0.0-1.0)を 0-100% で表示し、値が高いほど強調色。
+ * 高 (≥0.7) = primary、中 (≥0.4) = onSurface、低 = onSurfaceVariant。
+ */
+@Composable
+private fun BuyNowProbabilityRow(probability: Float) {
+    val pct = (probability * 100).toInt().coerceIn(0, 100)
+    val color = when {
+        probability >= 0.7f -> MaterialTheme.colorScheme.primary
+        probability >= 0.4f -> MaterialTheme.colorScheme.onSurface
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val a11y = stringResource(R.string.prediction_buy_now_prob_a11y, pct)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(top = Spacing.sm)
+            .semantics(mergeDescendants = true) { contentDescription = a11y },
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            stringResource(R.string.prediction_buy_now_prob),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Text(
+            text = stringResource(R.string.prediction_buy_now_prob_value, pct),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = color,
+        )
     }
 }
 

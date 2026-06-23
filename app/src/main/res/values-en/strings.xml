@@ -260,6 +260,9 @@
     <string name="prediction_seasonal_7d">Seasonal Forecast (7d)</string>
     <string name="prediction_historic_low">Lowest %1$s</string>
     <string name="prediction_historic_high">Highest %1$s</string>
+    <string name="prediction_buy_now_prob">Buy-now score</string>
+    <string name="prediction_buy_now_prob_value">%1$d%%</string>
+    <string name="prediction_buy_now_prob_a11y">Buy-now score %1$d percent</string>
     <string name="tco_title">Total Cost of Ownership (%1$d yr)</string>
     <string name="tco_purchase">Purchase price</string>
     <string name="tco_consumables">Consumables</string>

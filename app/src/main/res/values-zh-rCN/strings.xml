@@ -255,6 +255,9 @@
     <string name="prediction_seasonal_7d">季节预测（7天后）</string>
     <string name="prediction_historic_low">历史最低 %1$s</string>
     <string name="prediction_historic_high">历史最高 %1$s</string>
+    <string name="prediction_buy_now_prob">入手时机指数</string>
+    <string name="prediction_buy_now_prob_value">%1$d%%</string>
+    <string name="prediction_buy_now_prob_a11y">入手时机指数 %1$d 百分比</string>
     <string name="tco_title">总拥有成本 (%1$d年)</string>
     <string name="tco_purchase">购买价格</string>
     <string name="tco_consumables">耗材</string>
