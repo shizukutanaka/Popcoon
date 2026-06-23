@@ -340,4 +340,8 @@
     <!-- "I'll wait" action on dark-pattern warning -->
     <string name="detail_warning_wait">Hold off for now</string>
     <string name="detail_warning_wait_done">Smart move. We\'ll notify you if the price changes.</string>
+    <!-- Notification settings -->
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_notif_drop_pct">Price alert sensitivity</string>
+    <string name="settings_notif_drop_pct_desc">Notify when the price drops by at least this percentage</string>
 </resources>

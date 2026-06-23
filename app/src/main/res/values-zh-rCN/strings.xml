@@ -334,4 +334,8 @@
     <!-- 对暗黑模式警告的"再观望"操作 -->
     <string name="detail_warning_wait">先观望一下</string>
     <string name="detail_warning_wait_done">明智的选择。价格变动时会通知您。</string>
+    <!-- 通知设置 -->
+    <string name="settings_notifications">通知</string>
+    <string name="settings_notif_drop_pct">价格提醒灵敏度</string>
+    <string name="settings_notif_drop_pct_desc">价格下降此百分比以上时发送通知</string>
 </resources>

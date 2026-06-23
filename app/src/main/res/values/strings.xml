@@ -362,4 +362,8 @@
     <!-- ダークパターン警告への「様子を見る」アクション -->
     <string name="detail_warning_wait">いったん様子を見る</string>
     <string name="detail_warning_wait_done">賢い判断です。価格が動いたら通知します</string>
+    <!-- 通知設定 -->
+    <string name="settings_notifications">通知</string>
+    <string name="settings_notif_drop_pct">価格アラートの感度</string>
+    <string name="settings_notif_drop_pct_desc">このパーセント以上値下がりしたら通知します</string>
 </resources>

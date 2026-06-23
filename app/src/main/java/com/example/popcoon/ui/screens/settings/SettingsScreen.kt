@@ -123,6 +123,35 @@ fun SettingsScreen(
                 )
             }
 
+            // ── 通知 ───────────────────────────────────
+            SectionCard(stringResource(R.string.settings_notifications)) {
+                Column(Modifier.padding(Spacing.ml)) {
+                    Text(
+                        stringResource(R.string.settings_notif_drop_pct),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        stringResource(R.string.settings_notif_drop_pct_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(Spacing.sm))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        listOf(1, 3, 5, 10).forEach { pct ->
+                            FilterChip(
+                                selected = state.notifDropPercent == pct,
+                                onClick = { viewModel.setNotifDropPercent(pct) },
+                                label = { Text("$pct%") },
+                            )
+                        }
+                    }
+                }
+            }
+
             // ── データ ─────────────────────────────────
             SectionCard(stringResource(R.string.settings_data)) {
                 if (state.isPremium) {

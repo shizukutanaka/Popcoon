@@ -37,6 +37,8 @@ data class SettingsUiState(
     val yahooPremium: Boolean = false,
     val paypaySoftbank: Boolean = false,
     val amazonPrime: Boolean = false,
+    // 通知感度 — 値下がり通知の最小変動率（%）
+    val notifDropPercent: Int = 3,
 )
 
 @HiltViewModel
@@ -83,6 +85,10 @@ class SettingsViewModel @Inject constructor(
                 amazonPrime = ap,
             )
         }.onEach { _state.value = it }.launchIn(viewModelScope)
+
+        prefs.notifDropPercent
+            .onEach { _state.value = _state.value.copy(notifDropPercent = it) }
+            .launchIn(viewModelScope)
     }
 
     fun setCrashOptin(v: Boolean) { viewModelScope.launch { prefs.setCrashReportOptin(v) } }
@@ -93,6 +99,7 @@ class SettingsViewModel @Inject constructor(
     fun setYahooPremium(v: Boolean) { viewModelScope.launch { prefs.setYahooPremium(v) } }
     fun setPaypaySoftbank(v: Boolean) { viewModelScope.launch { prefs.setPaypaySoftbank(v) } }
     fun setAmazonPrime(v: Boolean) { viewModelScope.launch { prefs.setAmazonPrime(v) } }
+    fun setNotifDropPercent(pct: Int) { viewModelScope.launch { prefs.setNotifDropPercent(pct) } }
 
     /**
      * Activity からサブスク購入フローを起動する。

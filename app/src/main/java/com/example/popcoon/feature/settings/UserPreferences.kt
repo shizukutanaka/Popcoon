@@ -55,6 +55,9 @@ class UserPreferences @Inject constructor(
         private val KEY_YAHOO_PREMIUM = booleanPreferencesKey("yahoo_premium")
         private val KEY_PAYPAY_SOFTBANK = booleanPreferencesKey("paypay_softbank")
         private val KEY_AMAZON_PRIME = booleanPreferencesKey("amazon_prime")
+
+        // 通知感度 — PriceAlertEvaluator.minDropPercent に供給
+        private val KEY_NOTIF_DROP_PCT = intPreferencesKey("notif_drop_pct")
     }
 
     val onboarded: Flow<Boolean> = safeData
@@ -145,6 +148,16 @@ class UserPreferences @Inject constructor(
 
     suspend fun setAmazonPrime(v: Boolean) {
         context.dataStore.edit { it[KEY_AMAZON_PRIME] = v }
+    }
+
+    /**
+     * 価格アラートの最小値下がり率（%）。1/3/5/10 から選択。
+     * PriceSyncWorker が PriceAlertEvaluator.evaluate() に渡す。デフォルト 3%。
+     */
+    val notifDropPercent: Flow<Int> = safeData.map { it[KEY_NOTIF_DROP_PCT] ?: 3 }
+
+    suspend fun setNotifDropPercent(pct: Int) {
+        context.dataStore.edit { it[KEY_NOTIF_DROP_PCT] = pct.coerceIn(1, 20) }
     }
 
     /** GDPR Article 17 — 全データ削除 */

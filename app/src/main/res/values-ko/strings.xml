@@ -334,4 +334,8 @@
     <!-- 다크 패턴 경고에 대한 "기다리기" 액션 -->
     <string name="detail_warning_wait">일단 기다리기</string>
     <string name="detail_warning_wait_done">현명한 선택이에요. 가격이 바뀌면 알려드릴게요.</string>
+    <!-- 알림 설정 -->
+    <string name="settings_notifications">알림</string>
+    <string name="settings_notif_drop_pct">가격 알림 민감도</string>
+    <string name="settings_notif_drop_pct_desc">이 비율 이상 가격이 내려가면 알림을 보냅니다</string>
 </resources>

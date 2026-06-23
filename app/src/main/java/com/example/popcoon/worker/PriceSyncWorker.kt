@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import java.util.concurrent.TimeUnit
+import com.example.popcoon.feature.settings.UserPreferences
 
 /**
  * バックグラウンド価格同期 Worker。
@@ -59,10 +60,12 @@ class PriceSyncWorker @AssistedInject constructor(
     private val backend: BackendClient,
     private val reviewPrompter: ReviewPrompter,
     private val notificationManager: LocalNotificationManager,
+    private val prefs: com.example.popcoon.feature.settings.UserPreferences,
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
         PopcoonLogger.i(this, "価格同期開始 run=$runAttemptCount")
+        val minDropPercent = prefs.notifDropPercent.first()
         val watchlist = try {
             watchlistDao.observeAll().first()
         } catch (e: CancellationException) {
@@ -110,7 +113,7 @@ class PriceSyncWorker @AssistedInject constructor(
                                 previousPrice = previousPrice,
                                 latestPrice = latest.realPrice,
                                 targetPrice = item.targetPrice,
-                                minDropPercent = MIN_DROP_PERCENT,
+                                minDropPercent = minDropPercent,
                             )
                             if (alert.shouldNotify) {
                                 Drop(
