@@ -89,7 +89,16 @@ fun ProductDetailScreen(
             when (val s = state) {
                 DetailUiState.Loading ->
                     com.example.popcoon.ui.components.ProductDetailSkeleton()
-                is DetailUiState.Loaded -> LoadedContent(s, s.affiliateOptin)
+                is DetailUiState.Loaded -> {
+                    val act = context as? Activity
+                    LoadedContent(
+                        s = s,
+                        affiliateOptin = s.affiliateOptin,
+                        onAiHelpful = {
+                            if (act != null) viewModel.requestReviewIfEligible(act)
+                        },
+                    )
+                }
                 is DetailUiState.Error -> {
                     androidx.compose.foundation.layout.Box(
                         modifier = Modifier.fillMaxSize(),
@@ -122,7 +131,11 @@ fun ProductDetailScreen(
 }
 
 @Composable
-private fun LoadedContent(s: DetailUiState.Loaded, affiliateOptin: Boolean) {
+private fun LoadedContent(
+    s: DetailUiState.Loaded,
+    affiliateOptin: Boolean,
+    onAiHelpful: () -> Unit = {},
+) {
     // ─ タイトル
     // ─ 商品画像 + タイトル
     Row(verticalAlignment = androidx.compose.ui.Alignment.Top) {
@@ -222,11 +235,32 @@ private fun LoadedContent(s: DetailUiState.Loaded, affiliateOptin: Boolean) {
 
     // ─ AI買い物アドバイザー
     s.aiAdvice?.let { advice ->
+        var feedbackGiven by remember { mutableStateOf(false) }
         Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(CornerRadius.card)) {
             Column(Modifier.padding(Spacing.ml)) {
                 Text(stringResource(R.string.detail_ai_advice), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(Spacing.ml))
                 Text(advice.asString(), style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(Spacing.ml))
+                if (feedbackGiven) {
+                    Text(
+                        stringResource(R.string.detail_ai_feedback_thanks),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        TextButton(onClick = { feedbackGiven = true; onAiHelpful() }) {
+                            Text(stringResource(R.string.detail_ai_helpful))
+                        }
+                        TextButton(onClick = { feedbackGiven = true }) {
+                            Text(
+                                stringResource(R.string.detail_ai_not_helpful),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
             }
         }
     }

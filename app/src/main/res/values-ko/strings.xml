@@ -327,4 +327,8 @@
     <string name="platform_yahoo">야후!</string>
     <!-- TalkBack: 구매 판정 배지 읽기 (%1$s=판정 라벨, %2$d=점수) -->
     <string name="a11y_verdict_score">%1$s, 구매 타이밍 점수 %2$d점</string>
+    <!-- AI 조언 피드백 -->
+    <string name="detail_ai_helpful">도움됐어요</string>
+    <string name="detail_ai_not_helpful">아니에요</string>
+    <string name="detail_ai_feedback_thanks">피드백 감사합니다!</string>
 </resources>

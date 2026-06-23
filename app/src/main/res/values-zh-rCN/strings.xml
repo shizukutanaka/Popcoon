@@ -327,4 +327,8 @@
     <string name="platform_yahoo">雅虎!</string>
     <!-- TalkBack: 购买判定徽章朗读 (%1$s=判定标签, %2$d=评分) -->
     <string name="a11y_verdict_score">%1$s，购买时机评分 %2$d 分</string>
+    <!-- AI 建议反馈 -->
+    <string name="detail_ai_helpful">有帮助</string>
+    <string name="detail_ai_not_helpful">没帮助</string>
+    <string name="detail_ai_feedback_thanks">感谢反馈！</string>
 </resources>

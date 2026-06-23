@@ -355,4 +355,8 @@
     <string name="platform_yahoo">Yahoo!</string>
     <!-- TalkBack: Verdict バッジの読み上げ (%1$s=判定ラベル, %2$d=スコア) -->
     <string name="a11y_verdict_score">%1$s、買い時スコア%2$d点</string>
+    <!-- AI アドバイス フィードバック -->
+    <string name="detail_ai_helpful">役立った</string>
+    <string name="detail_ai_not_helpful">役立たなかった</string>
+    <string name="detail_ai_feedback_thanks">フィードバックありがとう</string>
 </resources>
