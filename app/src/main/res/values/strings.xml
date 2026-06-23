@@ -359,4 +359,7 @@
     <string name="detail_ai_helpful">役立った</string>
     <string name="detail_ai_not_helpful">役立たなかった</string>
     <string name="detail_ai_feedback_thanks">フィードバックありがとう</string>
+    <!-- ダークパターン警告への「様子を見る」アクション -->
+    <string name="detail_warning_wait">いったん様子を見る</string>
+    <string name="detail_warning_wait_done">賢い判断です。価格が動いたら通知します</string>
 </resources>

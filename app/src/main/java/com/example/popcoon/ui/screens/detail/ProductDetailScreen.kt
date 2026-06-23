@@ -97,6 +97,9 @@ fun ProductDetailScreen(
                         onAiHelpful = {
                             if (act != null) viewModel.requestReviewIfEligible(act)
                         },
+                        onWaitChosen = {
+                            if (act != null) viewModel.requestReviewIfEligible(act)
+                        },
                     )
                 }
                 is DetailUiState.Error -> {
@@ -135,6 +138,7 @@ private fun LoadedContent(
     s: DetailUiState.Loaded,
     affiliateOptin: Boolean,
     onAiHelpful: () -> Unit = {},
+    onWaitChosen: () -> Unit = {},
 ) {
     // ─ タイトル
     // ─ 商品画像 + タイトル
@@ -218,6 +222,7 @@ private fun LoadedContent(
 
     // ─ 警告 (ダークパターン)
     if (s.warnings.isNotEmpty()) {
+        var waitChosen by remember(s.product.key) { mutableStateOf(false) }
         Card(Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.errorContainer),
@@ -228,6 +233,19 @@ private fun LoadedContent(
                 s.warnings.forEach { w ->
                     Text("• $w", style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.height(Spacing.ml))
+                }
+                // ダークパターン警告に対して能動的な「様子を見る」選択肢を提示する。
+                // 衝動買いを思いとどまる後押し + ReviewPrompter の成功イベント (4番目の文書化経路)。
+                if (waitChosen) {
+                    Text(
+                        stringResource(R.string.detail_warning_wait_done),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                } else {
+                    FilledTonalButton(onClick = { waitChosen = true; onWaitChosen() }) {
+                        Text(stringResource(R.string.detail_warning_wait))
+                    }
                 }
             }
         }

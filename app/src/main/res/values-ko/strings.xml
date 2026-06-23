@@ -331,4 +331,7 @@
     <string name="detail_ai_helpful">도움됐어요</string>
     <string name="detail_ai_not_helpful">아니에요</string>
     <string name="detail_ai_feedback_thanks">피드백 감사합니다!</string>
+    <!-- 다크 패턴 경고에 대한 "기다리기" 액션 -->
+    <string name="detail_warning_wait">일단 기다리기</string>
+    <string name="detail_warning_wait_done">현명한 선택이에요. 가격이 바뀌면 알려드릴게요.</string>
 </resources>

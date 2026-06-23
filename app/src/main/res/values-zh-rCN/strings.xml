@@ -331,4 +331,7 @@
     <string name="detail_ai_helpful">有帮助</string>
     <string name="detail_ai_not_helpful">没帮助</string>
     <string name="detail_ai_feedback_thanks">感谢反馈！</string>
+    <!-- 对暗黑模式警告的"再观望"操作 -->
+    <string name="detail_warning_wait">先观望一下</string>
+    <string name="detail_warning_wait_done">明智的选择。价格变动时会通知您。</string>
 </resources>

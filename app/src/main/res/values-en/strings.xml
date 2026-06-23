@@ -337,4 +337,7 @@
     <string name="detail_ai_helpful">Helpful</string>
     <string name="detail_ai_not_helpful">Not helpful</string>
     <string name="detail_ai_feedback_thanks">Thanks for your feedback!</string>
+    <!-- "I'll wait" action on dark-pattern warning -->
+    <string name="detail_warning_wait">Hold off for now</string>
+    <string name="detail_warning_wait_done">Smart move. We\'ll notify you if the price changes.</string>
 </resources>
