@@ -26,6 +26,7 @@ import com.example.popcoon.ui.util.HapticFeedback
 import androidx.compose.ui.unit.dp
 import com.example.popcoon.feature.scorer.BuyTimingScorer
 import com.example.popcoon.ui.components.VerdictBadge
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +39,14 @@ fun ProductDetailScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val warningDesc = stringResource(R.string.a11y_warning)
+
+    // 10-second dwell = documented success event → increments ReviewPrompter counter.
+    // LaunchedEffect is cancelled automatically on back-navigation, so premature exits are safe.
+    LaunchedEffect(productKey, "dwell") {
+        val act = context as? Activity ?: return@LaunchedEffect
+        delay(10_000L)
+        viewModel.requestReviewIfEligible(act)
+    }
 
     Scaffold(
         topBar = {
