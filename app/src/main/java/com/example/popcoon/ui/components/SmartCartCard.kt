@@ -71,13 +71,19 @@ fun SmartCartCard(
                 Platform.RAKUTEN to Platform.RAKUTEN.localizedName(),
                 Platform.YAHOO to Platform.YAHOO.localizedName(),
             )
+            // 点数は plurals でロケール化 (英語の "1 item"/"2 items" を出し分け)。
+            // joinToString のラムダは非 Composable なので Context.resources 経由で引く。
+            val res = androidx.compose.ui.platform.LocalContext.current.resources
             val mallSummary = result.assignment.values
                 .groupBy { it }
                 .entries
                 .sortedBy { it.key }
                 .joinToString(" · ") { (mall, indices) ->
                     val name = Platform.fromIdOrNull(mall)?.let { platformNames[it] } ?: mall
-                    "$name ${indices.size}点"
+                    val count = res.getQuantityString(
+                        R.plurals.smart_cart_item_count, indices.size, indices.size,
+                    )
+                    "$name $count"
                 }
             Text(
                 text = mallSummary,

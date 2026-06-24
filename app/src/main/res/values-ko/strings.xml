@@ -121,6 +121,9 @@
     <string name="smart_cart_shipping">배송비 %1$s</string>
     <string name="smart_cart_coupon">쿠폰 −%1$s</string>
     <string name="smart_cart_greedy">추정</string>
+    <plurals name="smart_cart_item_count">
+        <item quantity="other">%1$d개</item>
+    </plurals>
 
     <string name="watchlist_title">즐겨찾기</string>
     <string name="watchlist_empty">즐겨찾기가 비어 있습니다</string>

@@ -121,6 +121,9 @@
     <string name="smart_cart_shipping">运费 %1$s</string>
     <string name="smart_cart_coupon">优惠券 −%1$s</string>
     <string name="smart_cart_greedy">估算</string>
+    <plurals name="smart_cart_item_count">
+        <item quantity="other">%1$d件</item>
+    </plurals>
 
     <string name="watchlist_title">收藏</string>
     <string name="watchlist_empty">收藏列表为空</string>

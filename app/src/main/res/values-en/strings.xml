@@ -121,6 +121,10 @@
     <string name="smart_cart_shipping">Shipping %1$s</string>
     <string name="smart_cart_coupon">Coupon −%1$s</string>
     <string name="smart_cart_greedy">Estimate</string>
+    <plurals name="smart_cart_item_count">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
 
     <string name="watchlist_title">Watchlist</string>
     <string name="watchlist_empty">Watchlist is empty</string>
