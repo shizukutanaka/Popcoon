@@ -50,11 +50,13 @@ fun ProductDetailScreen(
 
     // Dark pattern detected → warning vibration. Documented in HapticFeedback.warning()
     // but was never triggered when warnings were displayed (promise-vs-reality gap).
-    LaunchedEffect(state) {
-        val loaded = state as? DetailUiState.Loaded ?: return@LaunchedEffect
-        if (loaded.warnings.isNotEmpty()) {
-            HapticFeedback.warning(context)
-        }
+    // Key on the product key (only when warnings exist), NOT the whole state object:
+    // aiAdvice loads async (null→cached→text), so keying on `state` would re-fire the
+    // vibration on every async update. This fires exactly once per product-with-warnings.
+    val warningKey = (state as? DetailUiState.Loaded)
+        ?.takeIf { it.warnings.isNotEmpty() }?.product?.key
+    LaunchedEffect(warningKey) {
+        if (warningKey != null) HapticFeedback.warning(context)
     }
 
     Scaffold(
