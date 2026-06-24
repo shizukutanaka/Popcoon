@@ -25,7 +25,6 @@ import com.example.popcoon.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 
 /**
@@ -71,7 +70,9 @@ fun SwipeToDelete(
                     modifier = Modifier.padding(end = 20.dp),
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp,
+                    // 中央 Typography に揃える (bodyLarge=15sp)。直書き fontSize は端末の
+                    // フォントスケールには追従するが lineHeight 等のトークンを失うため避ける。
+                    style = MaterialTheme.typography.bodyLarge,
                 )
             }
 
