@@ -16,6 +16,7 @@ import com.example.popcoon.ui.theme.CornerRadius
 import com.example.popcoon.ui.theme.Spacing
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.popcoon.R
@@ -41,7 +42,7 @@ fun ScoreCard(
     var expanded by remember { mutableStateOf(false) }
 
     Card(
-        modifier = modifier.fillMaxWidth().clickable { expanded = !expanded },
+        modifier = modifier.fillMaxWidth().clickable(role = Role.Button) { expanded = !expanded },
         shape = RoundedCornerShape(CornerRadius.modal),
         colors = CardDefaults.cardColors(
             containerColor = when (verdict) {

@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.popcoon.R
@@ -85,7 +86,7 @@ private fun SuggestionRow(item: SuggestionItem, onSelect: (String) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .a11yMinTouchTarget()
-            .clickable { onSelect(item.text) }
+            .clickable(role = Role.Button) { onSelect(item.text) }
             .padding(horizontal = Spacing.lg, vertical = Spacing.ml),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),

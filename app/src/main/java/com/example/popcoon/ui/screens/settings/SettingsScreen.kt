@@ -2,6 +2,7 @@ package com.example.popcoon.ui.screens.settings
 
 import android.app.Activity
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -158,18 +159,18 @@ fun SettingsScreen(
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.settings_export_csv)) },
                         supportingContent = { Text(stringResource(R.string.settings_export_desc)) },
-                        modifier = Modifier.padding(Spacing.ml).clickable { viewModel.exportCsv() },
+                        modifier = Modifier.padding(Spacing.ml).clickable(role = Role.Button) { viewModel.exportCsv() },
                     )
                     HorizontalDivider()
                 }
                 ListItem(
                     headlineContent = { Text(stringResource(R.string.settings_clear_history)) },
-                    modifier = Modifier.padding(Spacing.ml).clickable { viewModel.clearSearchHistory() },
+                    modifier = Modifier.padding(Spacing.ml).clickable(role = Role.Button) { viewModel.clearSearchHistory() },
                 )
                 HorizontalDivider()
                 ListItem(
                     headlineContent = { Text(stringResource(R.string.settings_clear_watchlist)) },
-                    modifier = Modifier.padding(Spacing.ml).clickable { viewModel.clearWatchlist() },
+                    modifier = Modifier.padding(Spacing.ml).clickable(role = Role.Button) { viewModel.clearWatchlist() },
                 )
                 HorizontalDivider()
                 ListItem(
@@ -183,7 +184,7 @@ fun SettingsScreen(
                     supportingContent = { Text(stringResource(R.string.settings_delete_desc)) },
                     modifier = Modifier
                         .padding(Spacing.ml)
-                        .clickable { deleteDialogVisible = true },
+                        .clickable(role = Role.Button) { deleteDialogVisible = true },
                 )
             }
 
@@ -192,7 +193,7 @@ fun SettingsScreen(
                 ListItem(
                     headlineContent = { Text(stringResource(R.string.customs_simulate)) },
                     supportingContent = { Text(stringResource(R.string.customs_entry_desc)) },
-                    modifier = Modifier.padding(Spacing.ml).clickable { onCustoms() },
+                    modifier = Modifier.padding(Spacing.ml).clickable(role = Role.Button) { onCustoms() },
                 )
             }
 
@@ -228,12 +229,12 @@ fun SettingsScreen(
                 HorizontalDivider()
                 ListItem(
                     headlineContent = { Text(stringResource(R.string.settings_privacy_policy)) },
-                    modifier = Modifier.padding(Spacing.ml).clickable { viewModel.openPrivacy() },
+                    modifier = Modifier.padding(Spacing.ml).clickable(role = Role.Button) { viewModel.openPrivacy() },
                 )
                 HorizontalDivider()
                 ListItem(
                     headlineContent = { Text(stringResource(R.string.settings_licenses)) },
-                    modifier = Modifier.padding(Spacing.ml).clickable { viewModel.openLicenses() },
+                    modifier = Modifier.padding(Spacing.ml).clickable(role = Role.Button) { viewModel.openLicenses() },
                 )
             }
         }

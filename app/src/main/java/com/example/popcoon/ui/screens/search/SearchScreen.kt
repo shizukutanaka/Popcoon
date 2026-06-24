@@ -22,6 +22,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import com.example.popcoon.R
@@ -121,7 +122,7 @@ fun SearchScreen(
         Spacer(Modifier.height(Spacing.ml))
 
         // ── セールバナー (タップでセールカレンダー画面へ) ──────────────────
-        SaleBanner(modifier = Modifier.clickable { onSaleCalendar() })
+        SaleBanner(modifier = Modifier.clickable(role = Role.Button) { onSaleCalendar() })
         Spacer(Modifier.height(Spacing.ml))
 
         // ── 状態遷移 (Apple HIG: AnimatedContent でフェード) ──────────────
