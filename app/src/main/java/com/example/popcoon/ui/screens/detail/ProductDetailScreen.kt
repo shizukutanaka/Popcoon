@@ -48,6 +48,15 @@ fun ProductDetailScreen(
         viewModel.requestReviewIfEligible(act)
     }
 
+    // Dark pattern detected → warning vibration. Documented in HapticFeedback.warning()
+    // but was never triggered when warnings were displayed (promise-vs-reality gap).
+    LaunchedEffect(state) {
+        val loaded = state as? DetailUiState.Loaded ?: return@LaunchedEffect
+        if (loaded.warnings.isNotEmpty()) {
+            HapticFeedback.warning(context)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
