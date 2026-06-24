@@ -17,6 +17,7 @@ import com.example.popcoon.ui.theme.Spacing
 import com.example.popcoon.feature.barcode.BarcodeScanner
 import com.example.popcoon.feature.barcode.JanCodeQuery
 import com.example.popcoon.feature.share.UrlClassifier
+import com.example.popcoon.ui.util.HapticFeedback
 
 /**
  * バーコードスキャン画面。
@@ -67,6 +68,7 @@ fun BarcodeScreen(
                     val query = JanCodeQuery.toSearchQuery(result.rawValue)
                     if (query != null) {
                         scanState = ScanState.Success(query)
+                        HapticFeedback.success(context)
                         onQueryResult(query)
                     } else {
                         scanState = ScanState.Error(
@@ -80,16 +82,19 @@ fun BarcodeScreen(
                     if (classified != null) {
                         val key = "${classified.platform.id}:${classified.sku}"
                         scanState = ScanState.Success(result.rawValue)
+                        HapticFeedback.success(context)
                         onProductResult(key)
                     } else {
                         // EC 以外の URL → クエリとして検索
                         scanState = ScanState.Success(result.rawValue)
+                        HapticFeedback.success(context)
                         onQueryResult(result.rawValue)
                     }
                 }
                 // その他 (CODE_128 等) → キーワード検索
                 else -> {
                     scanState = ScanState.Success(result.rawValue)
+                    HapticFeedback.success(context)
                     onQueryResult(result.rawValue)
                 }
             }
