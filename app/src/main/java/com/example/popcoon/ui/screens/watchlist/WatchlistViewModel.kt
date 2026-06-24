@@ -15,6 +15,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -38,15 +39,19 @@ class WatchlistViewModel @Inject constructor(
     private val rawItems: Flow<List<WatchlistItem>> = dao.observeAll().distinctUntilChanged()
 
     /** 現在の並べ替えモード（永続化された設定から復元）。 */
-    val sortMode: Flow<WatchlistSort.Mode> = prefs.watchlistSortOrdinal
+    // 冷たい Flow を Compose に直接公開すると、購読のたびに upstream (DataStore 読込) が
+    // 再実行される。stateIn(WhileSubscribed) で StateFlow 化し、画面回転やナビ往復の短い
+    // 非購読を跨いで値を保持し、再計算を避ける (smartCart と同方針)。
+    val sortMode: StateFlow<WatchlistSort.Mode> = prefs.watchlistSortOrdinal
         .map { ordinal ->
             WatchlistSort.Mode.entries.getOrElse(ordinal) { WatchlistSort.Mode.ADDED_DESC }
         }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WatchlistSort.Mode.ADDED_DESC)
 
     /** 並べ替え適用済みのウォッチリスト。画面はこれを購読する。 */
-    val items: Flow<List<WatchlistItem>> = combine(rawItems, sortMode) { list, mode ->
+    val items: StateFlow<List<WatchlistItem>> = combine(rawItems, sortMode) { list, mode ->
         WatchlistSort.sort(list, mode)
-    }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /**
      * ウォッチリスト全体の横断カート最適化結果。

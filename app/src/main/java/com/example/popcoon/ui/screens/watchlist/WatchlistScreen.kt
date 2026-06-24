@@ -50,9 +50,10 @@ fun WatchlistScreen(
     onGoSearch: () -> Unit = {},
     viewModel: WatchlistViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
-    val items by viewModel.items.collectAsStateWithLifecycle(initialValue = emptyList())
+    // StateFlow なので初期値は ViewModel 側が保持する (collectAsStateWithLifecycle は引数不要)。
+    val items by viewModel.items.collectAsStateWithLifecycle()
     val smartCart by viewModel.smartCart.collectAsStateWithLifecycle()
-    val sortMode by viewModel.sortMode.collectAsStateWithLifecycle(initialValue = WatchlistSort.Mode.ADDED_DESC)
+    val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
