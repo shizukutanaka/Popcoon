@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -30,7 +31,11 @@ class WatchlistViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
-    private val rawItems: Flow<List<WatchlistItem>> = dao.observeAll()
+    // Room の observe クエリはテーブルへの任意の書き込みで再発火する (結果が同一でも)。
+    // PriceSyncWorker が毎日 lastNotifiedPrice/在庫を更新するため、表示リストが変わらなくても
+    // 下流の WatchlistSort.sort と SmartCartService.optimize (最大 200k 通り) が無駄に再計算される。
+    // distinctUntilChanged で同一内容の List を構造等価で弾き、再計算を抑制する。
+    private val rawItems: Flow<List<WatchlistItem>> = dao.observeAll().distinctUntilChanged()
 
     /** 現在の並べ替えモード（永続化された設定から復元）。 */
     val sortMode: Flow<WatchlistSort.Mode> = prefs.watchlistSortOrdinal
