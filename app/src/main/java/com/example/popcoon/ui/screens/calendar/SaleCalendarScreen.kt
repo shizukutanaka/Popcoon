@@ -91,13 +91,28 @@ fun SaleCalendarScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             contentPadding = PaddingValues(vertical = Spacing.ml),
         ) {
+            // key: イベントは name+startDate で一意 (upcomingSales の distinctBy と同基準)。
+            // active と upcoming は startDate で排他なのでセクション接頭辞で全体一意を担保する。
+            // contentType: 見出しとイベントカードで構成を分け、スクロール時の再利用を効かせる。
             if (active.isNotEmpty()) {
-                item { SectionHeader(stringResource(R.string.sale_calendar_active)) }
-                items(active) { event -> SaleEventCard(event, today) }
+                item(key = "header_active", contentType = "header") {
+                    SectionHeader(stringResource(R.string.sale_calendar_active))
+                }
+                items(
+                    active,
+                    key = { "active:${it.name}:${it.startDate}" },
+                    contentType = { "event" },
+                ) { event -> SaleEventCard(event, today) }
             }
             if (upcoming.isNotEmpty()) {
-                item { SectionHeader(stringResource(R.string.sale_calendar_upcoming)) }
-                items(upcoming) { event -> SaleEventCard(event, today) }
+                item(key = "header_upcoming", contentType = "header") {
+                    SectionHeader(stringResource(R.string.sale_calendar_upcoming))
+                }
+                items(
+                    upcoming,
+                    key = { "upcoming:${it.name}:${it.startDate}" },
+                    contentType = { "event" },
+                ) { event -> SaleEventCard(event, today) }
             }
         }
     }

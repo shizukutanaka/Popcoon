@@ -112,12 +112,17 @@ fun WatchlistScreen(
                 verticalArrangement = Arrangement.spacedBy(Spacing.ml),
             ) {
                 // スマートカート最適化カード（2件以上ある場合のみ）
+                // contentType でカードと行を区別し、スクロール時の composition 再利用を効かせる。
                 smartCart?.let { result ->
-                    item(key = "smart_cart") {
+                    item(key = "smart_cart", contentType = "smart_cart") {
                         SmartCartCard(cartResult = result)
                     }
                 }
-                items(items, key = { it.productKey }) { item ->
+                items(
+                    items,
+                    key = { it.productKey },
+                    contentType = { "watchlist_row" },
+                ) { item ->
                     SwipeToDelete(
                         onDelete = {
                             HapticFeedback.heavy(context)
