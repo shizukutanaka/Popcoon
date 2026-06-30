@@ -18,11 +18,13 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
+import android.util.Log
 
 /**
  * Cloudflare Workers backend クライアント。
@@ -52,21 +54,51 @@ class BackendClient @Inject constructor() {
      * 以前は結果 1 件ごとに launch しており、検索のたびに数十の無制限な並行 POST が
      * never-cancelled な singleton scope 上に積まれていた (fan-out)。
      * レスポンスは bodyAsText() で消費してコネクションを解放する。
+     *
+     * 再試行: 指数バックオフで最大 3 回まで試行。
      */
     fun postPricesAsync(records: List<PriceRecord>) {
         if (records.isEmpty()) return
         asyncScope.launch {
+            var succeeded = 0
+            var failed = 0
             records.forEach { record ->
-                runCatching {
+                val success = retryWithBackoff(maxAttempts = 3) {
                     client.post("$baseUrl/v1/history") {
                         contentType(ContentType.Application.Json)
                         setBody(record)
                     }.bodyAsText()
-                }.onFailure { e ->
-                    if (e is CancellationException) throw e
+                }
+                if (success) succeeded++ else failed++
+            }
+            if (failed > 0) {
+                Log.w(
+                    "BackendClient",
+                    "Price sync: $succeeded/${records.size} succeeded, $failed failed",
+                )
+            }
+        }
+    }
+
+    private suspend fun retryWithBackoff(maxAttempts: Int, block: suspend () -> Unit): Boolean {
+        repeat(maxAttempts) { attempt ->
+            runCatching {
+                block()
+                return true
+            }.onFailure { e ->
+                if (e is CancellationException) throw e
+                if (attempt < maxAttempts - 1) {
+                    val delayMs = (1000 * (1 shl attempt)).toLong()  // 1s, 2s, 4s
+                    delay(delayMs)
+                } else {
+                    Log.w(
+                        "BackendClient",
+                        "Price POST failed after $maxAttempts attempts: ${e.message}",
+                    )
                 }
             }
         }
+        return false
     }
 
     suspend fun getPriceHistory(productKey: String): List<PriceRecord> {

@@ -87,6 +87,11 @@ class ProductDetailViewModel @Inject constructor(
     fun load(productKey: String) {
         viewModelScope.launch {
             _state.value = DetailUiState.Loading
+            if (!isValidProductKey(productKey)) {
+                PopcoonLogger.w(this@ProductDetailViewModel, "Malformed productKey: $productKey")
+                _state.value = DetailUiState.Error(UiText.StringResource(R.string.detail_error_invalid_key))
+                return@launch
+            }
             runCatching {
                 // 1. 価格履歴を backend から取得 (非同期)
                 val historyDeferred = async { repository.getPriceHistory(productKey) }
@@ -306,6 +311,13 @@ class ProductDetailViewModel @Inject constructor(
         if (title.contains("エコ")) out += "エコマーク"
         if (title.lowercase().contains("green") || title.contains("オーガニック")) out += "green"
         return out
+    }
+
+    /** productKey の形式検証: "platform:sku" (スキップ不可、空文字列不可) */
+    private fun isValidProductKey(key: String): Boolean {
+        if (key.isBlank()) return false
+        val parts = key.split(":", limit = 2)
+        return parts.size == 2 && parts[0].isNotEmpty() && parts[1].isNotEmpty()
     }
 
     /** productKey だけで最小 Product を構築するフォールバック */

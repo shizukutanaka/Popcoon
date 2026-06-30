@@ -74,7 +74,8 @@ fun PopcoonNavGraph(
 
         composable("detail/{productKey}") { entry ->
             val key = entry.arguments?.getString("productKey")
-            if (key == null) {
+            if (key == null || key.isBlank()) {
+                android.util.Log.w("PopcoonNavGraph", "Invalid deep link: null or blank productKey")
                 navController.popBackStack()
                 return@composable
             }

@@ -26,6 +26,7 @@
     <string name="detail_save">保存</string>
     <string name="detail_buy_button">購入ページを開く</string>
     <string name="detail_buy_ad_badge">#ad アフィリエイトリンクを使用しています</string>
+    <string name="detail_error_invalid_key">無効な商品リンク — このアイテムは見つかりません</string>
 
     <!-- 設定画面 -->
     <string name="settings_title">設定</string>
