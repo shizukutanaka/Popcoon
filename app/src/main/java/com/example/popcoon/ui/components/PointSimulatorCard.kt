@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -16,6 +17,7 @@ import com.example.popcoon.data.model.Platform
 import com.example.popcoon.data.model.Product
 import com.example.popcoon.feature.points.PointSimulator
 import com.example.popcoon.ui.localizedName
+import com.example.popcoon.ui.util.HapticFeedback
 
 /**
  * ポイント還元シミュレーターカード。
@@ -36,6 +38,7 @@ fun PointSimulatorCard(
     modifier: Modifier = Modifier,
     userCtx: PointSimulator.UserContext = remember { PointSimulator.UserContext() },
 ) {
+    val context = LocalContext.current
     var expanded by remember { mutableStateOf(false) }
 
     val result = remember(product, userCtx) { PointSimulator.simulate(product, userCtx) }
@@ -61,7 +64,10 @@ fun PointSimulatorCard(
                     fontWeight = FontWeight.Bold,
                 )
                 // 内訳展開ボタン
-                TextButton(onClick = { expanded = !expanded }) {
+                TextButton(onClick = {
+                    HapticFeedback.light(context)
+                    expanded = !expanded
+                }) {
                     Text(
                         if (expanded) {
                             stringResource(R.string.action_collapse)

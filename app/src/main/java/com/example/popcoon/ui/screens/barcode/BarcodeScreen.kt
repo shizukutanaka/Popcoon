@@ -47,17 +47,17 @@ fun BarcodeScreen(
     // Activity は非 null 前提
     val activity = context as? Activity
 
-    LaunchedEffect(Unit) {
+    DisposableEffect(scanner, activity) {
         if (activity == null) {
             scanState = ScanState.Error(context.getString(R.string.barcode_camera_failed))
-            return@LaunchedEffect
+            return@DisposableEffect onDispose {}
         }
         scanner.bind(activity)
         scanState = ScanState.Scanning
 
         val task = runCatching { scanner.startScan() }.getOrElse {
             scanState = ScanState.Error(context.getString(R.string.barcode_unavailable))
-            return@LaunchedEffect
+            return@DisposableEffect onDispose {}
         }
 
         task.addOnSuccessListener { barcode ->
@@ -108,6 +108,10 @@ fun BarcodeScreen(
                 scanState = ScanState.Error(context.getString(R.string.barcode_error))
             }
         }
+
+        onDispose {
+            scanner.unbind()
+        }
     }
 
     // UI: Google Code Scanner はシステム UI なので
@@ -116,8 +120,6 @@ fun BarcodeScreen(
         state = scanState,
         onRetry = {
             scanState = ScanState.Idle
-            // LaunchedEffect は key Unit のため再実行不可 → Back で再表示
-            onBack()
         },
         onBack = onBack,
     )

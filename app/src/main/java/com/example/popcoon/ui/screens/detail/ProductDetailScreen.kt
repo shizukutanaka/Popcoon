@@ -307,6 +307,7 @@ private fun LoadedContent(
         Column(Modifier.fillMaxWidth(), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
             Button(
                 onClick = {
+                    HapticFeedback.success(context)
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
                 },
                 modifier = Modifier.fillMaxWidth(),

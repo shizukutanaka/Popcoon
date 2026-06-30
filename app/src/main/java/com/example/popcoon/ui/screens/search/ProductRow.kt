@@ -156,12 +156,12 @@ internal fun ProductRow(
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.watchlist_add)) },
                 onClick = { showMenu = false; onAddWatchlist?.invoke() },
-                leadingIcon = { Icon(AppIcons.Save, null) },
+                leadingIcon = { Icon(AppIcons.Save, stringResource(R.string.watchlist_add)) },
             )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.share_received)) },
                 onClick = { showMenu = false; onShare?.invoke() },
-                leadingIcon = { Icon(AppIcons.Share, null) },
+                leadingIcon = { Icon(AppIcons.Share, stringResource(R.string.share_received)) },
             )
         }
     }

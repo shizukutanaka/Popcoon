@@ -15,11 +15,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.popcoon.R
 import com.example.popcoon.ui.theme.Spacing
+import com.example.popcoon.ui.util.HapticFeedback
 
 /**
  * 目標価格を設定 / 解除するダイアログ。
@@ -36,6 +38,7 @@ fun TargetPriceDialog(
     onConfirm: (Long?) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
     var text by remember { mutableStateOf(currentTarget?.toString() ?: "") }
     // 数字のみ抽出して解釈（全角・記号・カンマを許容）。
     val parsed = text.filter { it.isDigit() }.toLongOrNull()
@@ -66,6 +69,7 @@ fun TargetPriceDialog(
             TextButton(
                 enabled = valid,
                 onClick = {
+                    HapticFeedback.success(context)
                     // 空入力 = 解除（null）、数字あり = その値で設定。
                     onConfirm(if (text.isBlank()) null else parsed)
                 },
