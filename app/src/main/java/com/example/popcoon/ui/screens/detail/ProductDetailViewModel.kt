@@ -235,9 +235,16 @@ class ProductDetailViewModel @Inject constructor(
                 }
             }.onFailure { e ->
                 if (e is CancellationException) throw e
+                // 生の例外メッセージ (英語スタックトレース等) をユーザーに見せない
+                // (SearchViewModel と同方針)。ネットワーク起因は専用の案内文、
+                // それ以外は汎用エラーに丸める。
+                PopcoonLogger.w(this@ProductDetailViewModel, "商品詳細の取得に失敗: ${e.message}")
+                val isNetworkError = e is java.io.IOException
                 _state.value = DetailUiState.Error(
-                    e.message?.take(80)?.let { UiText.DynamicString(it) }
-                        ?: UiText.StringResource(R.string.error_detail_load_failed)
+                    UiText.StringResource(
+                        if (isNetworkError) R.string.error_network_unavailable
+                        else R.string.error_detail_load_failed,
+                    ),
                 )
             }
         }

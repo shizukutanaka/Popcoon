@@ -12,10 +12,13 @@ import com.example.popcoon.feature.watchlist.WatchlistSort
 import com.example.popcoon.widget.WidgetUpdater
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import com.example.popcoon.core.PopcoonLogger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -48,10 +51,23 @@ class WatchlistViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WatchlistSort.Mode.ADDED_DESC)
 
-    /** 並べ替え適用済みのウォッチリスト。画面はこれを購読する。 */
+    /**
+     * 並べ替え適用済みのウォッチリスト。画面はこれを購読する。
+     *
+     * こちらは smartCart よりも影響が大きい: WatchlistSort.sort が万一例外を投げると
+     * stateIn(WhileSubscribed) は例外終了から自動復帰しないため、画面の主表示そのものが
+     * 古いリストのまま固まってしまう (アイテム追加・削除・並べ替えが一切反映されなくなる)。
+     * catch でフォールバックし、少なくとも未整列の raw list を表示し続ける。
+     */
     val items: StateFlow<List<WatchlistItem>> = combine(rawItems, sortMode) { list, mode ->
         WatchlistSort.sort(list, mode)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    }
+        .catch { e ->
+            if (e is CancellationException) throw e
+            PopcoonLogger.w(this@WatchlistViewModel, "ウォッチリスト並べ替えに失敗: ${e.message}", e)
+            emit(rawItems.first())
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /**
      * ウォッチリスト全体の横断カート最適化結果。
@@ -77,6 +93,15 @@ class WatchlistViewModel @Inject constructor(
         SmartCartService.optimize(list, userCtx = userCtx)
     }
         .flowOn(Dispatchers.Default)
+        // stateIn(WhileSubscribed) は「未処理の例外による Flow の終了」からは自動復帰しない
+        // (start/stop の再購読でしか upstream を再起動しないため)。catch を入れないと、
+        // optimize() が一度でも例外を投げた時点でこの StateFlow は以後ずっと更新が止まる
+        // (エラー表示もされず、ただ古い値のまま固まって見える)。
+        .catch { e ->
+            if (e is CancellationException) throw e
+            PopcoonLogger.w(this@WatchlistViewModel, "smartCart 最適化に失敗: ${e.message}", e)
+            emit(null)
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun setSortMode(mode: WatchlistSort.Mode) {
