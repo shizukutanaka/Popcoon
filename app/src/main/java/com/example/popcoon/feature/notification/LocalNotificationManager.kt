@@ -52,9 +52,45 @@ class LocalNotificationManager @Inject constructor() {
         title: String,
         priceText: String,
     ) {
-        // 通知 ID / Deep Link は検証済みの純関数を単一の真実源として使う
-        // (インラインで再構築すると notificationId/deepLinkUri テストが実挙動を縛れない)。
-        val notifId = notificationId(productKey)
+        sendProductNotification(
+            context = context,
+            notifId = notificationId(productKey),
+            productKey = productKey,
+            title = title,
+            body = priceText,
+            failureLogMessage = { "価格アラート通知の発行に失敗: $it" },
+        )
+    }
+
+    fun sendStockAlert(
+        context: Context,
+        productKey: String,
+        productTitle: String,
+    ) {
+        val body = context.getString(R.string.notif_back_in_stock_body, productTitle.take(20))
+        sendProductNotification(
+            context = context,
+            notifId = notificationId(productKey) xor 0x5A00,  // price と衝突しないオフセット
+            productKey = productKey,
+            title = context.getString(R.string.notif_back_in_stock),
+            body = body,
+            failureLogMessage = { "在庫アラート通知の発行に失敗: $it" },
+        )
+    }
+
+    /**
+     * 商品詳細へのディープリンクを持つ通知 (価格アラート / 在庫アラート) の共通発行処理。
+     * 両者で intent flags・PendingIntent flags・NotificationCompat の組み立てが完全に
+     * 重複していたため集約 (片方だけ更新して挙動が乖離するのを防ぐ)。
+     */
+    private fun sendProductNotification(
+        context: Context,
+        notifId: Int,
+        productKey: String,
+        title: String,
+        body: String,
+        failureLogMessage: (String?) -> String,
+    ) {
         val deepLinkIntent = Intent(context, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
             data = android.net.Uri.parse(deepLinkUri(productKey))
@@ -70,42 +106,6 @@ class LocalNotificationManager @Inject constructor() {
         val notification = NotificationCompat.Builder(context, PopcoonApp.CHANNEL_PRICE_ALERT)
             .setSmallIcon(R.drawable.ic_shortcut_star)
             .setContentTitle(title)
-            .setContentText(priceText)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(priceText))
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setVibrate(longArrayOf(0, 200, 100, 200))
-            .build()
-
-        runCatching {
-            NotificationManagerCompat.from(context).notify(notifId, notification)
-        }.onFailure { e ->
-            // POST_NOTIFICATIONS 権限欠如等で SecurityException になり得る。
-            // 握りつぶすと「アラート有効なのに通知が来ない」を診断できないため記録する。
-            PopcoonLogger.w(this, "価格アラート通知の発行に失敗: ${e.message}", e)
-        }
-    }
-
-    fun sendStockAlert(
-        context: Context,
-        productKey: String,
-        productTitle: String,
-    ) {
-        val notifId = notificationId(productKey) xor 0x5A00  // price と衝突しないオフセット
-        val deepLinkIntent = Intent(context, MainActivity::class.java).apply {
-            action = Intent.ACTION_VIEW
-            data = android.net.Uri.parse(deepLinkUri(productKey))
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            context, notifId, deepLinkIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-        val body = context.getString(R.string.notif_back_in_stock_body, productTitle.take(20))
-        val notification = NotificationCompat.Builder(context, PopcoonApp.CHANNEL_PRICE_ALERT)
-            .setSmallIcon(R.drawable.ic_shortcut_star)
-            .setContentTitle(context.getString(R.string.notif_back_in_stock))
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setContentIntent(pendingIntent)
@@ -117,7 +117,9 @@ class LocalNotificationManager @Inject constructor() {
         runCatching {
             NotificationManagerCompat.from(context).notify(notifId, notification)
         }.onFailure { e ->
-            PopcoonLogger.w(this, "在庫アラート通知の発行に失敗: ${e.message}", e)
+            // POST_NOTIFICATIONS 権限欠如等で SecurityException になり得る。
+            // 握りつぶすと「アラート有効なのに通知が来ない」を診断できないため記録する。
+            PopcoonLogger.w(this, failureLogMessage(e.message), e)
         }
     }
 

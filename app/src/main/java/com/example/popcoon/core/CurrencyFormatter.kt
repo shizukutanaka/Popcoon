@@ -26,10 +26,16 @@ object CurrencyFormatter {
         return "$sign¥${String.format(Locale.US, "%,d", abs(diff))}"
     }
 
-    /** 割引率 (例: "20% OFF") */
+    /**
+     * 割引率 (例: "20% OFF")
+     *
+     * (original - current) * 100 を Long のまま計算すると、両者が Long.MAX_VALUE 近くの
+     * 極端な値の場合にオーバーフローして符号が反転しうる (円価格では非現実的だが、
+     * 将来の多通貨対応や不正な外部データ流入に備えて Double 計算で桁あふれを避ける)。
+     */
     fun discountPercent(original: Long, current: Long): String {
         if (original <= 0) return ""
-        val pct = ((original - current) * 100 / original).toInt()
+        val pct = ((original - current).toDouble() * 100.0 / original.toDouble()).toInt()
         return if (pct > 0) "${pct}% OFF" else ""
     }
 

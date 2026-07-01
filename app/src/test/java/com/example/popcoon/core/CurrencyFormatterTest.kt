@@ -47,6 +47,14 @@ class CurrencyFormatterTest : StringSpec({
         CurrencyFormatter.discountPercent(0, 1000) shouldBe ""
     }
 
+    // 回帰防止: (original - current) * 100 を Long のまま計算するとオーバーフローし、
+    // 符号が反転して誤った割引率 (または空文字) を返しうる。Double 計算で桁あふれを回避する。
+    "discountPercent: Long オーバーフロー相当の極端な値でも符号が反転しない" {
+        val original = Long.MAX_VALUE / 2
+        val current = Long.MAX_VALUE / 4
+        CurrencyFormatter.discountPercent(original, current) shouldBe "50% OFF"
+    }
+
     "pointsBack: フォーマット確認" {
         CurrencyFormatter.pointsBack(100, "1.0%") shouldBe "+¥100 (1.0%)"
     }

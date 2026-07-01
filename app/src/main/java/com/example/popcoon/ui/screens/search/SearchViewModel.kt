@@ -52,7 +52,9 @@ class SearchViewModel @Inject constructor(
     private val _state = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
     val state: StateFlow<SearchUiState> = _state.asStateFlow()
 
-    val currentQuery = MutableStateFlow("")
+    // プロセスキル → 再起動でも入力中/直前のクエリを失わないよう SavedStateHandle に復元・永続化する。
+    // (バーコード結果と同じ savedStateHandle を使うが、別キーなので競合しない)
+    val currentQuery = MutableStateFlow(savedStateHandle.get<String>(KEY_SEARCH_QUERY) ?: "")
 
     // サジェスト: Trie 候補 + 検索履歴
     private val _suggestions = MutableStateFlow<List<String>>(emptyList())
@@ -79,6 +81,11 @@ class SearchViewModel @Inject constructor(
             }
         }
 
+        // プロセス再起動での復元 (バーコード結果が優先、上のブロックで queryFlow 済みなら二重発火しない)
+        if (queryFlow.value.isBlank() && currentQuery.value.isNotBlank()) {
+            queryFlow.value = currentQuery.value
+        }
+
         // 検索履歴を非同期で読み込む
         viewModelScope.launch {
             val recent = historyDao.observeRecent(10).first()
@@ -99,6 +106,7 @@ class SearchViewModel @Inject constructor(
     fun onQueryChange(q: String) {
         queryFlow.value = q
         currentQuery.value = q
+        savedStateHandle[KEY_SEARCH_QUERY] = q
     }
 
     /**
@@ -214,5 +222,9 @@ class SearchViewModel @Inject constructor(
                 ),
             )
         }
+    }
+
+    private companion object {
+        const val KEY_SEARCH_QUERY = "search_query"
     }
 }
