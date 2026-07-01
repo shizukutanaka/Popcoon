@@ -45,25 +45,25 @@ open class ProductRepository @Inject constructor(
     private val backend: BackendClient,
 ) : IProductRepository {
 
+    // プラットフォーム毎に独立したブレーカー。1 つの API が連続障害中でも
+    // 他 2 プラットフォームの検索速度には影響しない。
+    private val amazonBreaker = CircuitBreaker()
+    private val rakutenBreaker = CircuitBreaker()
+    private val yahooBreaker = CircuitBreaker()
+
     /**
      * 3 EC 並列検索。1つが失敗しても他の結果を返す。
      * fire-and-forget で backend に価格を送信 (ユーザー体感を阻害しない)。
      */
     override suspend fun search(keyword: String, limit: Int = 10): List<Product> = coroutineScope {
         val amazonJob = async {
-            try { amazon.searchItems(keyword, limit) }
-            catch (e: CancellationException) { throw e }
-            catch (e: Exception) { PopcoonLogger.w("ProductRepository", "Amazon 検索失敗", e); emptyList() }
+            searchWithBreaker("Amazon", amazonBreaker) { amazon.searchItems(keyword, limit) }
         }
         val rakutenJob = async {
-            try { rakuten.search(keyword, limit) }
-            catch (e: CancellationException) { throw e }
-            catch (e: Exception) { PopcoonLogger.w("ProductRepository", "楽天 検索失敗", e); emptyList() }
+            searchWithBreaker("楽天", rakutenBreaker) { rakuten.search(keyword, limit) }
         }
         val yahooJob = async {
-            try { yahoo.search(keyword, limit) }
-            catch (e: CancellationException) { throw e }
-            catch (e: Exception) { PopcoonLogger.w("ProductRepository", "Yahoo 検索失敗", e); emptyList() }
+            searchWithBreaker("Yahoo", yahooBreaker) { yahoo.search(keyword, limit) }
         }
 
         val results = listOf(amazonJob.await(), rakutenJob.await(), yahooJob.await())
@@ -108,6 +108,31 @@ open class ProductRepository @Inject constructor(
         catch (e: CancellationException) { throw e }
         catch (e: Exception) {
             PopcoonLogger.w("ProductRepository", "価格履歴取得失敗", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * サーキットブレーカー越しに 1 プラットフォームを検索する共通処理。
+     * OPEN 中は API を呼ばず即座に空リストを返す (タイムアウト待ちを回避)。
+     */
+    private suspend fun searchWithBreaker(
+        label: String,
+        breaker: CircuitBreaker,
+        call: suspend () -> List<Product>,
+    ): List<Product> {
+        val now = System.currentTimeMillis()
+        if (!breaker.allowRequest(now)) {
+            PopcoonLogger.w("ProductRepository", "$label はサーキットブレーカー OPEN 中 — スキップ")
+            return emptyList()
+        }
+        return try {
+            call().also { breaker.recordSuccess() }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            breaker.recordFailure(System.currentTimeMillis())
+            PopcoonLogger.w("ProductRepository", "$label 検索失敗", e)
             emptyList()
         }
     }
