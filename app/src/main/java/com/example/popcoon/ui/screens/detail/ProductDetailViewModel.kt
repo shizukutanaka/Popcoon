@@ -20,6 +20,7 @@ import com.example.popcoon.feature.retention.ReviewPrompter
 import com.example.popcoon.feature.settings.UserPreferences
 import com.example.popcoon.ui.UiText
 import com.example.popcoon.feature.tco.TCOCalculator
+import com.example.popcoon.core.CurrencyFormatter
 import com.example.popcoon.core.PopcoonLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -214,7 +215,12 @@ class ProductDetailViewModel @Inject constructor(
                         // キャッシュミス → API call (UI ブロックなし)
                         viewModelScope.launch {
                             runCatching {
-                                advisor.advise(product, score)
+                                // prediction (Holt 線形予測) を userContext として渡す。
+                                // 渡さないと、AI が「買い時スコア」だけを見て「今買うべき」と
+                                // 助言する一方、同じ画面の PricePredictionCard は「30日後に
+                                // 値下がり予測」を表示する、という自己矛盾が起こりうる
+                                // (両者は独立に計算され、従来 AI 側には全く伝わっていなかった)。
+                                advisor.advise(product, score, userContext = predictionContext(prediction))
                             }.onSuccess { text ->
                                 adviceCache.put(product, score, text)
                                 _state.update { cur ->
@@ -318,6 +324,20 @@ class ProductDetailViewModel @Inject constructor(
         if (title.contains("エコ")) out += "エコマーク"
         if (title.lowercase().contains("green") || title.contains("オーガニック")) out += "green"
         return out
+    }
+
+    /**
+     * PricePredictionEngine の予測を BuyingAdvisor の userContext 用テキストに変換する。
+     * AI の自然文助言が、同画面の PricePredictionCard の数値予測と矛盾しないようにする。
+     */
+    private fun predictionContext(prediction: PricePredictionEngine.Prediction?): String {
+        if (prediction == null) return ""
+        val trend = when {
+            prediction.predicted30d < prediction.currentPrice -> "下降傾向"
+            prediction.predicted30d > prediction.currentPrice -> "上昇傾向"
+            else -> "横ばい"
+        }
+        return "価格予測 (統計モデル): 30日後 ${CurrencyFormatter.yen(prediction.predicted30d)} ($trend)"
     }
 
     /** productKey の形式検証: "platform:sku" (スキップ不可、空文字列不可) */
