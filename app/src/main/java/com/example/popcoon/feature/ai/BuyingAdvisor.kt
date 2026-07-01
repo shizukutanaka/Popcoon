@@ -94,7 +94,7 @@ class BuyingAdvisor @Inject constructor(
         }
 
         val request = ClaudeRequest(
-            model = "claude-sonnet-4-6",
+            model = "claude-sonnet-5",
             maxTokens = 200,
             system = systemPrompt,
             messages = listOf(ClaudeMessage("user", userPrompt)),

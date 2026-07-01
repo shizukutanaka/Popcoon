@@ -35,7 +35,7 @@ Google Play Console の Data safety section と一致する内容。
 - FCM デバイストークン (価格アラート通知配信用)
 - AI アドバイス要求時の商品情報 (Claude API 宛)
 
-AI アドバイザーは Anthropic の API (`claude-sonnet-4-6`) に接続する。
+AI アドバイザーは Anthropic の API (`claude-sonnet-5`) に接続する。
 送信されるのは商品タイトル・価格・買い時スコアのみで、個人情報 (ID、位置、連絡先) は含まない。
 
 ## 収集しないデータ
