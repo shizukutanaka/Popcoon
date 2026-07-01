@@ -204,9 +204,14 @@ class SearchViewModel @Inject constructor(
             _state.value = SearchUiState.Results(rows.distinctBy { it.product.key })
         }.onFailure { e ->
             if (e is CancellationException) throw e
+            // 生の例外メッセージ (英語スタックトレース等) をユーザーに見せない。
+            // ネットワーク起因は専用の案内文、それ以外は汎用エラーに丸める。
+            val isNetworkError = e is java.io.IOException
             _state.value = SearchUiState.Error(
-                e.message?.take(80)?.let { UiText.DynamicString(it) }
-                    ?: UiText.StringResource(R.string.error_search_failed)
+                UiText.StringResource(
+                    if (isNetworkError) R.string.error_network_unavailable
+                    else R.string.error_search_failed,
+                ),
             )
         }
     }

@@ -326,6 +326,7 @@
 
     <!-- 错误消息 (UiText.StringResource) -->
     <string name="error_search_failed">搜索失败</string>
+    <string name="error_network_unavailable">请检查网络连接</string>
     <string name="error_detail_load_failed">无法加载商品详情</string>
     <string name="error_ai_advisor_failed">无法获取 AI 建议</string>
     <!-- 平台显示名称 (从 Composable Platform.localizedName() 使用) -->

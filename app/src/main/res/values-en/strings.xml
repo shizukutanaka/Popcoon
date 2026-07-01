@@ -333,6 +333,7 @@
 
     <!-- Error messages (UiText.StringResource) -->
     <string name="error_search_failed">Search failed</string>
+    <string name="error_network_unavailable">Please check your network connection</string>
     <string name="error_detail_load_failed">Failed to load product details</string>
     <string name="error_ai_advisor_failed">Could not load AI advice</string>
     <!-- Platform display names (used from Composable Platform.localizedName()) -->

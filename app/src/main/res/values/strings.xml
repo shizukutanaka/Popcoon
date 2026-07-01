@@ -354,6 +354,7 @@
 
     <!-- エラーメッセージ (UiText.StringResource で使用: ViewModel は R.string のみ保持) -->
     <string name="error_search_failed">検索に失敗しました</string>
+    <string name="error_network_unavailable">ネットワーク接続を確認してください</string>
     <string name="error_detail_load_failed">商品情報の取得に失敗しました</string>
     <string name="error_ai_advisor_failed">AI アドバイスを取得できませんでした</string>
     <!-- プラットフォーム表示名 (Composable Platform.localizedName() から使用) -->
