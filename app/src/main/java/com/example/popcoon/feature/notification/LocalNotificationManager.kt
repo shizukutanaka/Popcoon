@@ -127,11 +127,26 @@ class LocalNotificationManager @Inject constructor() {
         context: Context,
         summary: String,
     ) {
+        // 価格/在庫アラートと異なり、従来 contentIntent が未設定で「タップしても何も起きない」
+        // 通知になっていた (ソクラテス式レビューで発見)。ウォッチリスト画面への Deep Link を張る。
+        val deepLinkIntent = Intent(context, MainActivity::class.java).apply {
+            action = Intent.ACTION_VIEW
+            data = android.net.Uri.parse(com.example.popcoon.core.DeepLinks.WATCHLIST)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            WEEKLY_DIGEST_NOTIF_ID,
+            deepLinkIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
         val notification = NotificationCompat.Builder(context, PopcoonApp.CHANNEL_WEEKLY_DIGEST)
             .setSmallIcon(R.drawable.ic_shortcut_star)
             .setContentTitle(context.getString(R.string.notif_weekly_digest_title))
             .setContentText(summary)
             .setStyle(NotificationCompat.BigTextStyle().bigText(summary))
+            .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
