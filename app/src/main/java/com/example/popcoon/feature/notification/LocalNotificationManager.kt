@@ -27,8 +27,18 @@ import javax.inject.Singleton
 class LocalNotificationManager @Inject constructor() {
 
     companion object {
-        /** Context 非依存の純関数 — テストで直接呼ぶ。 */
-        fun notificationId(productKey: String): Int = productKey.hashCode()
+        /**
+         * Context 非依存の純関数 — テストで直接呼ぶ。
+         *
+         * String.hashCode() (32bit) は誕生日効果で衝突しうる (通知 ID は
+         * PendingIntent の request code も兼ねるため、衝突すると別商品の
+         * 通知タップで違う商品詳細に飛ぶ)。UUID v3 (nameUUIDFromBytes) の
+         * ハッシュ空間を使うことで衝突確率を実用上無視できる水準まで下げる。
+         */
+        fun notificationId(productKey: String): Int {
+            val uuid = java.util.UUID.nameUUIDFromBytes(productKey.toByteArray())
+            return (uuid.mostSignificantBits xor uuid.leastSignificantBits).toInt() and 0x7FFFFFFF
+        }
         /** ディープリンクは [DeepLinks] を単一の真実源とする (MainActivity の解析側と一致)。 */
         fun deepLinkUri(productKey: String): String =
             com.example.popcoon.core.DeepLinks.product(productKey)

@@ -20,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -47,6 +48,10 @@ class BackendClient @Inject constructor() {
     private val baseUrl = BuildConfig.BACKEND_URL
     private val asyncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    companion object {
+        private const val BATCH_TIMEOUT_MS = 120_000L  // 2分: 大量 records でも無制限に走らせない
+    }
+
     /**
      * 価格履歴をまとめて fire-and-forget で送信。失敗しても UI に影響させない。
      *
@@ -56,27 +61,33 @@ class BackendClient @Inject constructor() {
      * レスポンスは bodyAsText() で消費してコネクションを解放する。
      *
      * 再試行: 指数バックオフで最大 3 回まで試行。
+     *
+     * asyncScope は singleton (アプリ全体で 1 つ、never-cancelled) のため、
+     * 万一 records が大量かつ全件リトライ尽くしになっても battery/network を
+     * 無制限に消費しないよう、バッチ全体に上限時間を設ける。
      */
     fun postPricesAsync(records: List<PriceRecord>) {
         if (records.isEmpty()) return
         asyncScope.launch {
-            var succeeded = 0
-            var failed = 0
-            records.forEach { record ->
-                val success = retryWithBackoff(maxAttempts = 3) {
-                    client.post("$baseUrl/v1/history") {
-                        contentType(ContentType.Application.Json)
-                        setBody(record)
-                    }.bodyAsText()
+            withTimeoutOrNull(BATCH_TIMEOUT_MS) {
+                var succeeded = 0
+                var failed = 0
+                records.forEach { record ->
+                    val success = retryWithBackoff(maxAttempts = 3) {
+                        client.post("$baseUrl/v1/history") {
+                            contentType(ContentType.Application.Json)
+                            setBody(record)
+                        }.bodyAsText()
+                    }
+                    if (success) succeeded++ else failed++
                 }
-                if (success) succeeded++ else failed++
-            }
-            if (failed > 0) {
-                Log.w(
-                    "BackendClient",
-                    "Price sync: $succeeded/${records.size} succeeded, $failed failed",
-                )
-            }
+                if (failed > 0) {
+                    Log.w(
+                        "BackendClient",
+                        "Price sync: $succeeded/${records.size} succeeded, $failed failed",
+                    )
+                }
+            } ?: Log.w("BackendClient", "Price sync aborted: exceeded ${BATCH_TIMEOUT_MS}ms budget")
         }
     }
 
