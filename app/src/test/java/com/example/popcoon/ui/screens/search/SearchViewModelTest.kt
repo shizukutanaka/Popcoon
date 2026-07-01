@@ -185,11 +185,14 @@ private class FakeUserPreferences(
     yahoo: Boolean = false,
     softbank: Boolean = false,
     prime: Boolean = false,
+    ecPromptDismissed: Boolean = true,
 ) : IUserPreferences {
     override val rakutenSpu: Flow<Int> = flowOf(spu)
     override val yahooPremium: Flow<Boolean> = flowOf(yahoo)
     override val paypaySoftbank: Flow<Boolean> = flowOf(softbank)
     override val amazonPrime: Flow<Boolean> = flowOf(prime)
+    override val ecPromptDismissed: Flow<Boolean> = flowOf(ecPromptDismissed)
+    override suspend fun dismissEcPrompt() {}
 }
 
 /**

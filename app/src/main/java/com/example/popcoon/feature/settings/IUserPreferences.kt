@@ -8,4 +8,10 @@ interface IUserPreferences {
     val yahooPremium: Flow<Boolean>
     val paypaySoftbank: Flow<Boolean>
     val amazonPrime: Flow<Boolean>
+
+    /** EC 会員設定の案内バナーを既に閉じた/確認済みか。 */
+    val ecPromptDismissed: Flow<Boolean>
+
+    /** バナーを閉じる/設定へ進んだ操作を記録し、以後表示しない。 */
+    suspend fun dismissEcPrompt()
 }

@@ -73,6 +73,8 @@
 
     <!-- EC 회원 설정 -->
     <string name="settings_ec_membership">EC 회원 설정</string>
+    <string name="ec_membership_prompt">EC 회원 설정을 하면 더 정확한 실질 가격을 표시할 수 있습니다. 탭하여 설정</string>
+    <string name="action_dismiss">닫기</string>
     <string name="settings_rakuten_spu">라쿠텐 SPU 배율</string>
     <string name="settings_rakuten_spu_desc">라쿠텐 슈퍼 포인트 업 프로그램 배율을 설정하세요 (1–15배)</string>
     <string name="settings_yahoo_premium">Yahoo! 프리미엄 회원</string>

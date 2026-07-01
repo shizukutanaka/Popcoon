@@ -73,6 +73,8 @@
 
     <!-- EC 会员设置 -->
     <string name="settings_ec_membership">EC 会员设置</string>
+    <string name="ec_membership_prompt">设置 EC 会员信息可显示更准确的实际价格。点击设置</string>
+    <string name="action_dismiss">关闭</string>
     <string name="settings_rakuten_spu">乐天 SPU 倍率</string>
     <string name="settings_rakuten_spu_desc">请设置乐天超级积分提升计划的倍率 (1–15倍)</string>
     <string name="settings_yahoo_premium">Yahoo! 高级会员</string>

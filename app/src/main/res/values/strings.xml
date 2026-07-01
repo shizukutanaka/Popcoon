@@ -153,6 +153,8 @@
 
     <!-- EC 会員設定 (ポイント還元ランキング個人化) -->
     <string name="settings_ec_membership">EC 会員設定</string>
+    <string name="ec_membership_prompt">EC会員設定でより正確な実質価格を表示できます。タップして設定</string>
+    <string name="action_dismiss">閉じる</string>
     <string name="settings_rakuten_spu">楽天 SPU 倍率</string>
     <string name="settings_rakuten_spu_desc">楽天スーパーポイントアッププログラムの倍率を設定してください (1–15倍)</string>
     <string name="settings_yahoo_premium">Yahoo!プレミアム会員</string>

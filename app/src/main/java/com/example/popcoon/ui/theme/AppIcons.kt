@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PhotoCamera
@@ -52,4 +53,5 @@ object AppIcons {
     // 一覧操作
     val Sort: ImageVector = Icons.AutoMirrored.Filled.Sort
     val Check: ImageVector = Icons.Default.Check
+    val Close: ImageVector = Icons.Default.Close
 }

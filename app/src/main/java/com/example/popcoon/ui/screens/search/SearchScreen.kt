@@ -58,6 +58,7 @@ fun SearchScreen(
     val vmQuery by viewModel.currentQuery.collectAsStateWithLifecycle()
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
     val recentSearches by viewModel.recentSearches.collectAsStateWithLifecycle()
+    val showEcPrompt by viewModel.showEcPrompt.collectAsStateWithLifecycle()
     var query by remember { mutableStateOf("") }
     var showSuggestions by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
@@ -120,6 +121,18 @@ fun SearchScreen(
             )
         }
         Spacer(Modifier.height(Spacing.ml))
+
+        // ── EC 会員設定 案内バナー (実質価格ランキングの精度に直結、一度だけ表示) ──
+        if (showEcPrompt) {
+            com.example.popcoon.ui.components.EcMembershipBanner(
+                onOpenSettings = {
+                    viewModel.dismissEcPrompt()
+                    onSettings()
+                },
+                onDismiss = viewModel::dismissEcPrompt,
+            )
+            Spacer(Modifier.height(Spacing.ml))
+        }
 
         // ── セールバナー (タップでセールカレンダー画面へ) ──────────────────
         SaleBanner(modifier = Modifier.clickable(role = Role.Button) { onSaleCalendar() })

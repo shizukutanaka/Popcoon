@@ -22,13 +22,16 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -62,6 +65,21 @@ class SearchViewModel @Inject constructor(
 
     private val _recentSearches = MutableStateFlow<List<String>>(emptyList())
     val recentSearches: StateFlow<List<String>> = _recentSearches.asStateFlow()
+
+    /**
+     * EC 会員設定 (楽天SPU/Yahooプレミアム/PayPay/Amazonプライム) の案内バナーを出すべきか。
+     * 実質価格ランキングはこれらの設定に依存するが設定画面のみに存在するため、
+     * 未設定のまま気づかれずアプリの核心機能 (個人化されたポイント込み実質価格) が
+     * 常に最低倍率で計算され続けるユーザーが多い。一度だけ案内し、閉じる/設定へ進む操作で
+     * 二度と表示しない。
+     */
+    val showEcPrompt: StateFlow<Boolean> = prefs.ecPromptDismissed
+        .map { dismissed -> !dismissed }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    fun dismissEcPrompt() {
+        viewModelScope.launch { prefs.dismissEcPrompt() }
+    }
 
     // Trie — 検索実行した商品タイトルを蓄積してオートコンプリート
     private val trie = Trie()

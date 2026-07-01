@@ -58,6 +58,9 @@ class UserPreferences @Inject constructor(
 
         // 通知感度 — PriceAlertEvaluator.minDropPercent に供給
         private val KEY_NOTIF_DROP_PCT = intPreferencesKey("notif_drop_pct")
+
+        // EC 会員設定を一度でも案内済みか (SearchScreen のバナー用)
+        private val KEY_EC_PROMPT_DISMISSED = booleanPreferencesKey("ec_prompt_dismissed")
     }
 
     val onboarded: Flow<Boolean> = safeData
@@ -158,6 +161,22 @@ class UserPreferences @Inject constructor(
 
     suspend fun setNotifDropPercent(pct: Int) {
         context.dataStore.edit { it[KEY_NOTIF_DROP_PCT] = pct.coerceIn(1, 20) }
+    }
+
+    /**
+     * EC 会員設定バナーを一度でも閉じた/設定画面に遷移したか。
+     *
+     * 実質価格ランキング (PointSimulator) は楽天SPU/Yahooプレミアム/PayPay/Amazonプライムの
+     * 4設定に依存するが、全てデフォルト OFF かつ設定画面のみに存在するため、オンボーディングを
+     * 終えたユーザーの大半が一度も気づかず「実質価格」が常に最低倍率で計算され続けていた
+     * (アプリの差別化機能が事実上死蔵)。SearchScreen に一度だけ案内バナーを出し、
+     * 閉じる/設定へ進むいずれかの操作で再表示しないようにする。
+     */
+    val ecPromptDismissed: Flow<Boolean> = safeData
+        .map { it[KEY_EC_PROMPT_DISMISSED] ?: false }
+
+    override suspend fun dismissEcPrompt() {
+        context.dataStore.edit { it[KEY_EC_PROMPT_DISMISSED] = true }
     }
 
     /** GDPR Article 17 — 全データ削除 */
