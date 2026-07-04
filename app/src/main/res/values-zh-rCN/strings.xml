@@ -191,6 +191,7 @@
 
     <!-- Detail -->
     <string name="detail_price_history">价格历史</string>
+    <string name="detail_more_info">详细信息</string>
     <string name="detail_saved">已保存</string>
     <string name="detail_save">保存</string>
     <string name="detail_buy_button">打开商品页面</string>
@@ -250,9 +251,7 @@
     <string name="settings_privacy_policy">隐私政策</string>
     <string name="settings_licenses">开源许可证</string>
     <string name="settings_info">信息</string>
-    <string name="premium_feature_no_ads">无联盟链接</string>
     <string name="premium_feature_export">价格历史CSV导出</string>
-    <string name="premium_feature_ai_detail">详细AI建议</string>
     <string name="confidence_unknown">未知</string>
     <string name="prediction_title">价格预测</string>
     <string name="prediction_confidence">置信度: %1$s</string>

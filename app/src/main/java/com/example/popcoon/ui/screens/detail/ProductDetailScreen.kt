@@ -3,6 +3,8 @@ package com.example.popcoon.ui.screens.detail
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalContext
@@ -202,33 +205,66 @@ private fun LoadedContent(
         com.example.popcoon.ui.components.PricePredictionCard(prediction = pred)
     }
 
-    // ─ セット販売の実質単価 (Popcoon 独自 — まとめ買いの1個あたり価格)
-    s.bundle?.let { bundle ->
+    // ─ 詳細情報 (セット単価/レビュー信頼度/TCO/エコ倫理) — Progressive Disclosure。
+    // 主要な買い時判断材料 (ScoreCard/価格/予測/AI助言) と、あると便利だが必須ではない
+    // 補足情報を分離し、既定で折りたたむ (機能過不足監査 C1: 商品詳細画面の
+    // カード積層過多への対応。ScoreCard と同じ展開パターンを踏襲)。
+    val hasSupplementalInfo = s.bundle != null ||
+        (s.reviewTrust != null &&
+            s.reviewTrust.trust != com.example.popcoon.feature.review.ReviewTrustScorer.Trust.UNKNOWN) ||
+        s.tco != null || s.ethics != null
+    if (hasSupplementalInfo) {
+        var detailsExpanded by remember(s.product.key) { mutableStateOf(false) }
         Spacer(Modifier.height(Spacing.md))
-        com.example.popcoon.ui.components.BundleCard(analysis = bundle)
-    }
-
-    // ─ レビュー信頼度 (統計的サクラ検出 — レビュー本文を端末外に送らない)
-    s.reviewTrust?.let { rt ->
-        if (rt.trust != com.example.popcoon.feature.review.ReviewTrustScorer.Trust.UNKNOWN) {
-            Spacer(Modifier.height(Spacing.md))
-            com.example.popcoon.ui.components.ReviewTrustBadge(result = rt)
+        Card(
+            modifier = Modifier.fillMaxWidth().clickable(role = Role.Button) {
+                detailsExpanded = !detailsExpanded
+            },
+            shape = RoundedCornerShape(CornerRadius.card),
+        ) {
+            Column(Modifier.padding(Spacing.lg)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(R.string.detail_more_info),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        if (detailsExpanded) "▲" else "▼",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                AnimatedVisibility(visible = detailsExpanded) {
+                    Column(
+                        Modifier.padding(top = Spacing.ml),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                    ) {
+                        s.bundle?.let { bundle ->
+                            com.example.popcoon.ui.components.BundleCard(analysis = bundle)
+                        }
+                        s.reviewTrust?.let { rt ->
+                            if (rt.trust != com.example.popcoon.feature.review.ReviewTrustScorer.Trust.UNKNOWN) {
+                                com.example.popcoon.ui.components.ReviewTrustBadge(result = rt)
+                            }
+                        }
+                        s.tco?.let { tco ->
+                            com.example.popcoon.ui.components.TCOCard(result = tco)
+                        }
+                        s.ethics?.let { ethics ->
+                            com.example.popcoon.ui.components.EthicsCard(
+                                score = ethics,
+                                origin = s.product.originCountry,
+                            )
+                        }
+                    }
+                }
+            }
         }
-    }
-
-    // ─ TCO カード (総保有コスト — プリンター/PC 等の長期コスト可視化)
-    s.tco?.let { tco ->
-        Spacer(Modifier.height(Spacing.md))
-        com.example.popcoon.ui.components.TCOCard(result = tco)
-    }
-
-    // ─ 環境・倫理スコア (原産国の CO2/労働指標 — 競合非搭載の差別化機能)
-    s.ethics?.let { ethics ->
-        Spacer(Modifier.height(Spacing.md))
-        com.example.popcoon.ui.components.EthicsCard(
-            score = ethics,
-            origin = s.product.originCountry,
-        )
     }
 
     // ─ 警告 (ダークパターン)

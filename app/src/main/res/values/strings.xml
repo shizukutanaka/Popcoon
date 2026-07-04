@@ -21,6 +21,7 @@
     <string name="detail_score_breakdown">スコア内訳</string>
     <string name="detail_warnings_title">景品表示法 注意</string>
     <string name="detail_price_history">価格履歴</string>
+    <string name="detail_more_info">詳細情報</string>
     <string name="detail_ai_advice">AI アドバイス</string>
     <string name="detail_saved">保存済み</string>
     <string name="detail_save">保存</string>
@@ -278,9 +279,7 @@
     <string name="channel_weekly_digest_desc">ウォッチリストの週次価格変動サマリー</string>
     <string name="channel_system_name">システム通知</string>
     <string name="channel_system_desc">アプリからのお知らせ</string>
-    <string name="premium_feature_no_ads">アフィリエイトリンク非表示</string>
     <string name="premium_feature_export">価格履歴 CSV エクスポート</string>
-    <string name="premium_feature_ai_detail">AI アドバイス詳細表示</string>
     <string name="confidence_unknown">不明</string>
     <string name="prediction_title">価格予測</string>
     <string name="prediction_confidence">信頼度: %1$s</string>

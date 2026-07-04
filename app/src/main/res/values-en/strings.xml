@@ -192,6 +192,7 @@
 
     <!-- Detail screen (extended) -->
     <string name="detail_price_history">Price history</string>
+    <string name="detail_more_info">More details</string>
     <string name="detail_saved">Saved</string>
     <string name="detail_save">Save</string>
     <string name="detail_buy_button">Open product page</string>
@@ -256,9 +257,7 @@
 
     <!-- ソートオプション -->
     <string name="score_breakdown">Score breakdown</string>
-    <string name="premium_feature_no_ads">No affiliate links</string>
     <string name="premium_feature_export">Price history CSV export</string>
-    <string name="premium_feature_ai_detail">Detailed AI advice</string>
     <string name="confidence_unknown">Unknown</string>
     <string name="prediction_title">Price Forecast</string>
     <string name="prediction_confidence">Confidence: %1$s</string>

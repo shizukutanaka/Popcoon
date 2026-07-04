@@ -205,9 +205,12 @@ fun SettingsScreen(
                     Column(Modifier.padding(Spacing.ml)) {
                         Text(stringResource(R.string.settings_premium_features), fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(Spacing.ml))
-                        Text("• " + stringResource(R.string.premium_feature_no_ads), style = MaterialTheme.typography.bodyMedium)
+                        // 「アフィリエイトリンク非表示」「AIアドバイス詳細表示」は過去ここに特典として
+                        // 記載されていたが、前者は無料設定 (settings_affiliate_optin) と機能的に同一、
+                        // 後者は isPremium によるゲートが実装のどこにも存在せず無料ユーザーと同一体験
+                        // だった (機能過不足監査で発見)。実際に isPremium でゲートされている CSV
+                        // エクスポートのみを特典として訴求する。
                         Text("• " + stringResource(R.string.premium_feature_export), style = MaterialTheme.typography.bodyMedium)
-                        Text("• " + stringResource(R.string.premium_feature_ai_detail), style = MaterialTheme.typography.bodyMedium)
                         Spacer(Modifier.height(Spacing.ml))
                         Button(
                             onClick = { activity?.let { viewModel.launchPurchase(it) } },
