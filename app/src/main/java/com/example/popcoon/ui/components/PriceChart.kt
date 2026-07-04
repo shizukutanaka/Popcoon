@@ -1,18 +1,26 @@
 package com.example.popcoon.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.example.popcoon.ui.theme.CornerRadius
 import com.example.popcoon.ui.theme.Spacing
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -38,7 +46,14 @@ import java.time.Instant
  *  - Compose Canvas で純粋に描画 (依存ライブラリゼロ)
  *  - 過去最安値ライン + 現在価格マーカーを強調 (買い時判断支援)
  *  - 小画面でも読みやすいよう余白多め (Keepa の弱点を解決)
+ *  - 期間切替 (1週間/1ヶ月/全期間) — 競合標準機能。全 records は保持したまま
+ *    表示範囲だけをフィルタするので、切替のたびに再取得は不要。
  */
+enum class PriceChartRange(val days: Int?) {
+    WEEK(7), MONTH(30), ALL(null)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PriceChart(
     records: List<PriceRecord>,
@@ -46,9 +61,53 @@ fun PriceChart(
     lineColor: Color = MaterialTheme.colorScheme.primary,
     minMarkerColor: Color = Color(0xFF118A4E),
 ) {
+    var selectedRange by remember { mutableStateOf(PriceChartRange.ALL) }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            modifier = Modifier.padding(bottom = Spacing.sm),
+        ) {
+            PriceChartRange.entries.forEach { r ->
+                FilterChip(
+                    selected = selectedRange == r,
+                    onClick = { selectedRange = r },
+                    label = {
+                        Text(
+                            when (r) {
+                                PriceChartRange.WEEK -> stringResource(R.string.price_chart_range_week)
+                                PriceChartRange.MONTH -> stringResource(R.string.price_chart_range_month)
+                                PriceChartRange.ALL -> stringResource(R.string.price_chart_range_all)
+                            },
+                        )
+                    },
+                )
+            }
+        }
+        PriceChartCanvas(
+            records = filterByRange(records, selectedRange),
+            lineColor = lineColor,
+            minMarkerColor = minMarkerColor,
+        )
+    }
+}
+
+/** 選択期間で records を絞り込む (pure function、テスト容易)。ALL は絞り込まない。 */
+internal fun filterByRange(records: List<PriceRecord>, chartRange: PriceChartRange): List<PriceRecord> {
+    val days = chartRange.days ?: return records
+    val cutoff = Instant.now().minusSeconds(days.toLong() * 86_400)
+    return records.filter { it.recordedAt >= cutoff }
+}
+
+@Composable
+private fun PriceChartCanvas(
+    records: List<PriceRecord>,
+    lineColor: Color,
+    minMarkerColor: Color,
+) {
     if (records.size < 2) {
         Surface(
-            modifier = modifier.fillMaxWidth().height(Spacing.chart),
+            modifier = Modifier.fillMaxWidth().height(Spacing.chart),
             shape = RoundedCornerShape(CornerRadius.card),
             color = MaterialTheme.colorScheme.surfaceVariant,
         ) {
@@ -69,7 +128,7 @@ fun PriceChart(
     val range = remember(minPrice, maxPrice) { (maxPrice - minPrice).coerceAtLeast(1L) }
 
     Surface(
-        modifier = modifier.fillMaxWidth().height(Spacing.chart),
+        modifier = Modifier.fillMaxWidth().height(Spacing.chart),
         shape = RoundedCornerShape(CornerRadius.card),
         color = MaterialTheme.colorScheme.surfaceVariant,
     ) {

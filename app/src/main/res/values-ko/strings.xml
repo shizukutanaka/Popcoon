@@ -305,6 +305,9 @@
     <string name="offline_cached">오프라인 — 캐시 표시 중</string>
     <string name="search_recent">최근 검색</string>
     <string name="price_chart_insufficient">가격 기록 부족</string>
+    <string name="price_chart_range_week">1주일</string>
+    <string name="price_chart_range_month">1개월</string>
+    <string name="price_chart_range_all">전체 기간</string>
     <string name="point_effective_price">포인트 적용 후 실질 가격</string>
     <string name="point_breakdown">내역</string>
     <string name="point_effective_subtitle">정가 %1$s 에서 %2$s 적립</string>

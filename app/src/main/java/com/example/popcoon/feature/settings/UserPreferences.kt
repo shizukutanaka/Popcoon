@@ -47,7 +47,6 @@ class UserPreferences @Inject constructor(
         private val KEY_PREMIUM = booleanPreferencesKey("premium")
         private val KEY_SUCCESS_COUNT = intPreferencesKey("success_count")
         private val KEY_LAST_REVIEW_REQUEST = longPreferencesKey("last_review")
-        private val KEY_LANGUAGE = intPreferencesKey("language_idx")
         private val KEY_WATCHLIST_SORT = intPreferencesKey("watchlist_sort_idx")
 
         // EC 会員設定 — PointSimulator.UserContext に供給し実質価格ランキングを個人化する

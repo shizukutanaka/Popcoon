@@ -312,6 +312,9 @@
     <string name="offline_cached">Offline — showing cached data</string>
     <string name="search_recent">Recent searches</string>
     <string name="price_chart_insufficient">Not enough price history</string>
+    <string name="price_chart_range_week">1 week</string>
+    <string name="price_chart_range_month">1 month</string>
+    <string name="price_chart_range_all">All time</string>
     <string name="point_effective_price">Effective price after points</string>
     <string name="point_breakdown">Breakdown</string>
     <string name="point_effective_subtitle">%2$s back off list price %1$s</string>

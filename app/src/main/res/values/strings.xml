@@ -333,6 +333,9 @@
     <string name="offline_cached">オフライン — キャッシュを表示中</string>
     <string name="search_recent">最近の検索</string>
     <string name="price_chart_insufficient">価格履歴データ不足</string>
+    <string name="price_chart_range_week">1週間</string>
+    <string name="price_chart_range_month">1ヶ月</string>
+    <string name="price_chart_range_all">全期間</string>
     <string name="point_effective_price">ポイント還元後 実質価格</string>
     <string name="point_breakdown">内訳</string>
     <string name="point_effective_subtitle">定価 %1$s より %2$s 還元</string>

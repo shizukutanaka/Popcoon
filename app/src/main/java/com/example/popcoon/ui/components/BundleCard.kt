@@ -27,9 +27,14 @@ import com.example.popcoon.ui.theme.Spacing
  *
  * Popcoon 独自機能 (競合8社非搭載):
  *  「3本セット ¥2,400」を「1本あたり ¥800」に換算して提示。
- *  まとめ買いが本当にお得か一目で分かる。
  *
- * NOT_A_BUNDLE / UNKNOWN の場合は何も描画しない。
+ * 現状の制約: 単品価格の照合元 (同一商品の単品リスティング検索) が未実装のため、
+ * `BundlePackDetector.Analysis.singlePrice` は本番では常に null で、verdict は常に
+ * UNKNOWN — つまり「単品より安いか」の判定・割引率表示は行われず、パック内単価
+ * (例: 1本あたり ¥800) の換算表示のみが機能する。判定を有効化するには、呼び出し側
+ * (ProductDetailViewModel) で単品版のタイトル検索マッチングを実装する必要がある。
+ *
+ * NOT_A_BUNDLE の場合は何も描画しない。UNKNOWN (単品価格不明) でも単価換算行は表示する。
  */
 @Composable
 fun BundleCard(
