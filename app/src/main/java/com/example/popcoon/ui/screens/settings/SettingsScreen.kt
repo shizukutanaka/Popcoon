@@ -1,6 +1,8 @@
 package com.example.popcoon.ui.screens.settings
 
 import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.*
@@ -31,6 +33,9 @@ fun SettingsScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     var deleteDialogVisible by remember { mutableStateOf(false) }
     val activity = LocalContext.current as? Activity
+    val restoreLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri -> uri?.let { viewModel.restoreWatchlist(it) } }
 
     Scaffold(
         topBar = {
@@ -163,6 +168,22 @@ fun SettingsScreen(
                     )
                     HorizontalDivider()
                 }
+                // ウォッチリスト バックアップ/復元 — 全ユーザー無料 (機種変更・再インストール対策)。
+                // 上記 CSV エクスポートは価格履歴の分析用データ抽出 (Premium 限定) で別機能。
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.watchlist_backup)) },
+                    supportingContent = { Text(stringResource(R.string.watchlist_backup_desc)) },
+                    modifier = Modifier.padding(Spacing.ml).clickable(role = Role.Button) { viewModel.backupWatchlist() },
+                )
+                HorizontalDivider()
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.watchlist_restore)) },
+                    supportingContent = { Text(stringResource(R.string.watchlist_restore_desc)) },
+                    modifier = Modifier.padding(Spacing.ml).clickable(role = Role.Button) {
+                        restoreLauncher.launch(arrayOf("application/json"))
+                    },
+                )
+                HorizontalDivider()
                 ListItem(
                     headlineContent = { Text(stringResource(R.string.settings_clear_history)) },
                     modifier = Modifier.padding(Spacing.ml).clickable(role = Role.Button) { viewModel.clearSearchHistory() },
@@ -261,6 +282,19 @@ fun SettingsScreen(
             dismissButton = {
                 TextButton(onClick = { deleteDialogVisible = false }) {
                     Text(stringResource(R.string.settings_cancel))
+                }
+            },
+        )
+    }
+
+    state.restoreResultMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = viewModel::clearRestoreResult,
+            title = { Text(stringResource(R.string.watchlist_restore)) },
+            text = { Text(message.asString()) },
+            confirmButton = {
+                TextButton(onClick = viewModel::clearRestoreResult) {
+                    Text(stringResource(R.string.action_dismiss))
                 }
             },
         )

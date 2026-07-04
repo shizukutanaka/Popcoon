@@ -234,6 +234,15 @@
     <string name="settings_export_csv">가격 이력을 CSV로 내보내기</string>
     <string name="settings_export_desc">모든 즐겨찾기 상품 이력 내보내기</string>
     <string name="csv_share_chooser_title">CSV 공유</string>
+    <string name="watchlist_backup">즐겨찾기 백업</string>
+    <string name="watchlist_backup_desc">기기 변경・재설치에 대비해 데이터를 내보냅니다 (무료)</string>
+    <string name="watchlist_backup_share_title">백업 공유</string>
+    <string name="watchlist_restore">즐겨찾기 복원</string>
+    <string name="watchlist_restore_desc">백업 파일에서 복원합니다 (기존 즐겨찾기는 유지됩니다)</string>
+    <plurals name="watchlist_restore_success">
+        <item quantity="other">즐겨찾기 상품 %1$d개를 복원했습니다</item>
+    </plurals>
+    <string name="watchlist_restore_failed">복원에 실패했습니다. 파일 형식을 확인해 주세요</string>
     <string name="settings_clear_history">검색 기록 삭제</string>
     <string name="settings_clear_watchlist">즐겨찾기 삭제</string>
     <string name="settings_delete_all">모든 데이터 삭제 (GDPR 제17조)</string>

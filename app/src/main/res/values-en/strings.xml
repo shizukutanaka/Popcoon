@@ -212,6 +212,16 @@
     <string name="settings_export_csv">Export price history as CSV</string>
     <string name="settings_export_desc">Export all watchlist product history</string>
     <string name="csv_share_chooser_title">Share CSV</string>
+    <string name="watchlist_backup">Back up watchlist</string>
+    <string name="watchlist_backup_desc">Export your data before switching devices or reinstalling (free)</string>
+    <string name="watchlist_backup_share_title">Share backup</string>
+    <string name="watchlist_restore">Restore watchlist</string>
+    <string name="watchlist_restore_desc">Restore from a backup file (existing favorites are kept)</string>
+    <plurals name="watchlist_restore_success">
+        <item quantity="one">Restored %1$d watchlist item</item>
+        <item quantity="other">Restored %1$d watchlist items</item>
+    </plurals>
+    <string name="watchlist_restore_failed">Restore failed. Please check the file format</string>
     <string name="settings_clear_history">Clear search history</string>
     <string name="settings_clear_watchlist">Clear watchlist</string>
     <string name="settings_delete_all">Delete all data (GDPR Article 17)</string>

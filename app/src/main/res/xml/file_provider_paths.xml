@@ -2,6 +2,8 @@
 <paths>
     <!-- CSV エクスポートファイルの共有パス -->
     <cache-path name="exports" path="exports/" />
+    <!-- ウォッチリスト バックアップファイルの共有パス -->
+    <cache-path name="backups" path="backups/" />
     <!-- クラッシュログの共有パス (Premium サポート送信用) -->
     <files-path name="crashes" path="crashes/" />
 </paths>

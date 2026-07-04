@@ -11,7 +11,9 @@ import com.example.popcoon.R
 import com.example.popcoon.core.PopcoonLogger
 import com.example.popcoon.data.db.PopcoonDatabase
 import com.example.popcoon.feature.billing.BillingManager
+import com.example.popcoon.feature.export.WatchlistBackupManager
 import com.example.popcoon.feature.settings.UserPreferences
+import com.example.popcoon.ui.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,6 +41,8 @@ data class SettingsUiState(
     val amazonPrime: Boolean = false,
     // 通知感度 — 値下がり通知の最小変動率（%）
     val notifDropPercent: Int = 3,
+    /** ウォッチリスト バックアップ復元の結果 (一時表示、null で非表示)。 */
+    val restoreResultMessage: UiText? = null,
 )
 
 @HiltViewModel
@@ -46,6 +50,7 @@ class SettingsViewModel @Inject constructor(
     private val prefs: UserPreferences,
     private val database: PopcoonDatabase,
     private val csvExporter: com.example.popcoon.feature.export.PriceHistoryCsvExporter,
+    private val watchlistBackup: WatchlistBackupManager,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -196,6 +201,56 @@ class SettingsViewModel @Inject constructor(
                 PopcoonLogger.w(this@SettingsViewModel, "exportCsv failed: ${e.message}", e)
             }
         }
+    }
+
+    /**
+     * ウォッチリスト全体を JSON バックアップとして共有する (全ユーザー無料)。
+     * `exportCsv()` (Premium 限定・価格履歴の分析用データ抽出) とは別機能: こちらは
+     * `WatchlistItem` を過不足なく含み、機種変更・再インストール時の完全復元に使う。
+     */
+    fun backupWatchlist() {
+        viewModelScope.launch {
+            try {
+                val intent = watchlistBackup.shareIntent(context)
+                if (intent != null) {
+                    context.startActivity(
+                        Intent.createChooser(intent, context.getString(R.string.watchlist_backup_share_title))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                PopcoonLogger.w(this@SettingsViewModel, "backupWatchlist failed: ${e.message}", e)
+            }
+        }
+    }
+
+    /**
+     * ファイルピッカーで選択されたバックアップ JSON からウォッチリストを復元する (upsert のみ、削除なし)。
+     * @param uri [ActivityResultContracts.OpenDocument] 等で取得した URI。
+     */
+    fun restoreWatchlist(uri: Uri) {
+        viewModelScope.launch {
+            val result = watchlistBackup.import(context, uri)
+            val message = when (result) {
+                is WatchlistBackupManager.ImportResult.Success ->
+                    // 単複区別が必要な英語等のため plurals を使う (UiText.StringResource は
+                    // pluralStringResource に対応しないため、ここで resolve して DynamicString 化)。
+                    UiText.DynamicString(
+                        context.resources.getQuantityString(
+                            R.plurals.watchlist_restore_success, result.count, result.count,
+                        ),
+                    )
+                is WatchlistBackupManager.ImportResult.Failure ->
+                    UiText.StringResource(R.string.watchlist_restore_failed)
+            }
+            _state.value = _state.value.copy(restoreResultMessage = message)
+        }
+    }
+
+    fun clearRestoreResult() {
+        _state.value = _state.value.copy(restoreResultMessage = null)
     }
 
     fun openPrivacy() {
