@@ -144,6 +144,12 @@
     <string name="target_price_dialog_desc">We\'ll notify you once the price drops to this level, regardless of the discount rate.</string>
     <string name="target_price_hint">Target price (JPY)</string>
     <string name="target_price_clear">Clear</string>
+
+    <!-- Watchlist tags (folders) -->
+    <string name="watchlist_tag_button">Tag</string>
+    <string name="watchlist_tag_filter_all">All</string>
+    <string name="watchlist_tag_dialog_title">Set tag</string>
+    <string name="watchlist_tag_hint">Tag name</string>
     <string name="watchlist_sort_label">Sort</string>
     <string name="wl_sort_added">Recently added</string>
     <string name="wl_sort_price_asc">Price: low to high</string>

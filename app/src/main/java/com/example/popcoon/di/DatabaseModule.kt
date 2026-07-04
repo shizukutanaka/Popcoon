@@ -30,6 +30,7 @@ object DatabaseModule {
                 PopcoonDatabase.MIGRATION_2_3,
                 PopcoonDatabase.MIGRATION_3_4,
                 PopcoonDatabase.MIGRATION_4_5,
+                PopcoonDatabase.MIGRATION_5_6,
             )
             // debug のみ破壊的フォールバックを許可。
             // release ではスキーマ変更時に明示 Migration を必須化し、

@@ -234,6 +234,12 @@
     <string name="target_price_hint">目標価格（円）</string>
     <string name="target_price_clear">解除</string>
 
+    <!-- ウォッチリスト タグ (フォルダ分類) -->
+    <string name="watchlist_tag_button">タグ</string>
+    <string name="watchlist_tag_filter_all">すべて</string>
+    <string name="watchlist_tag_dialog_title">タグを設定</string>
+    <string name="watchlist_tag_hint">タグ名</string>
+
     <!-- ウォッチリスト並べ替え -->
     <string name="watchlist_sort_label">並べ替え</string>
     <string name="wl_sort_added">追加が新しい順</string>

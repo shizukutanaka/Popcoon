@@ -3,6 +3,7 @@ package com.example.popcoon.ui.screens.watchlist
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -23,6 +24,7 @@ import com.example.popcoon.feature.watchlist.WidgetVerdict
 import com.example.popcoon.feature.scorer.BuyTimingScorer
 import com.example.popcoon.ui.components.SmartCartCard
 import com.example.popcoon.ui.components.SwipeToDelete
+import com.example.popcoon.ui.components.TagDialog
 import com.example.popcoon.ui.components.VerdictBadge
 import com.example.popcoon.feature.notification.NotificationPermissionHelper
 import com.example.popcoon.feature.notification.RequestNotificationPermission
@@ -52,6 +54,9 @@ fun WatchlistScreen(
 ) {
     // StateFlow なので初期値は ViewModel 側が保持する (collectAsStateWithLifecycle は引数不要)。
     val items by viewModel.items.collectAsStateWithLifecycle()
+    val filteredItems by viewModel.filteredItems.collectAsStateWithLifecycle()
+    val availableTags by viewModel.availableTags.collectAsStateWithLifecycle()
+    val selectedTag by viewModel.selectedTag.collectAsStateWithLifecycle()
     val smartCart by viewModel.smartCart.collectAsStateWithLifecycle()
     val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -60,6 +65,8 @@ fun WatchlistScreen(
 
     // 目標価格ダイアログの対象アイテム（null = 非表示）
     var targetDialogItem by remember { mutableStateOf<WatchlistItem?>(null) }
+    // タグ設定ダイアログの対象アイテム（null = 非表示）
+    var tagDialogItem by remember { mutableStateOf<WatchlistItem?>(null) }
 
     // 初回ウォッチリスト追加時に通知権限を要求 (一度だけ)
     var requestNotificationPermission by remember { mutableStateOf(false) }
@@ -111,6 +118,17 @@ fun WatchlistScreen(
                 modifier = Modifier.padding(padding).padding(Spacing.ml),
                 verticalArrangement = Arrangement.spacedBy(Spacing.ml),
             ) {
+                // タグフィルタチップ（タグが1つ以上使われている場合のみ表示）。
+                // (機能過不足監査 B4: ウォッチリストのタグ/フォルダ分類が無かった、への対応)
+                if (availableTags.isNotEmpty()) {
+                    item(key = "tag_filter", contentType = "tag_filter") {
+                        TagFilterRow(
+                            availableTags = availableTags,
+                            selectedTag = selectedTag,
+                            onSelect = viewModel::selectTagFilter,
+                        )
+                    }
+                }
                 // スマートカート最適化カード（2件以上ある場合のみ）
                 // contentType でカードと行を区別し、スクロール時の composition 再利用を効かせる。
                 smartCart?.let { result ->
@@ -119,7 +137,7 @@ fun WatchlistScreen(
                     }
                 }
                 items(
-                    items,
+                    filteredItems,
                     key = { it.productKey },
                     contentType = { "watchlist_row" },
                 ) { item ->
@@ -149,6 +167,7 @@ fun WatchlistScreen(
                                 onItemClick(item.productKey)
                             },
                             onSetTarget = { targetDialogItem = item },
+                            onSetTag = { tagDialogItem = item },
                             onToggleStockAlert = {
                                 viewModel.setStockAlertEnabled(
                                     item.productKey,
@@ -171,6 +190,19 @@ fun WatchlistScreen(
                 targetDialogItem = null
             },
             onDismiss = { targetDialogItem = null },
+        )
+    }
+
+    // タグ (フォルダ分類) ダイアログ
+    tagDialogItem?.let { item ->
+        TagDialog(
+            currentTag = item.tag,
+            existingTags = availableTags,
+            onConfirm = { tag ->
+                viewModel.setTag(item.productKey, tag)
+                tagDialogItem = null
+            },
+            onDismiss = { tagDialogItem = null },
         )
     }
 }
@@ -246,6 +278,7 @@ private fun WatchlistRow(
     item: WatchlistItem,
     onClick: () -> Unit,
     onSetTarget: () -> Unit,
+    onSetTag: () -> Unit,
     onToggleStockAlert: () -> Unit,
 ) {
     Surface(
@@ -294,10 +327,11 @@ private fun WatchlistRow(
                 }
                 // 追加時からの変動（横ばい時は非表示）
                 SinceAddedDelta(item = item)
-                // 目標価格バッジ / 在庫アラートチップ
+                // 目標価格バッジ / タグ / 在庫アラートチップ
                 Spacer(Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     TargetPriceChip(item = item, onClick = onSetTarget)
+                    TagChip(item = item, onClick = onSetTag)
                     StockAlertChip(item = item, onClick = onToggleStockAlert)
                 }
             }
@@ -389,6 +423,54 @@ private fun TargetPriceChip(item: WatchlistItem, onClick: () -> Unit) {
             AssistChipDefaults.assistChipColors()
         },
     )
+}
+
+/**
+ * タグ (フォルダ分類) の状態を表示する小さなチップ。
+ *  - 未分類: 「タグ」設定を促す控えめなボタン
+ *  - 設定済み: タグ名を表示
+ */
+@Composable
+private fun TagChip(item: WatchlistItem, onClick: () -> Unit) {
+    AssistChip(
+        onClick = onClick,
+        label = {
+            Text(
+                item.tag ?: stringResource(R.string.watchlist_tag_button),
+                style = MaterialTheme.typography.labelSmall,
+            )
+        },
+    )
+}
+
+/**
+ * タグフィルタチップ行。「すべて」+ 使用中の各タグ。
+ * 単一選択 (FilterChip の selected で現在のフィルタを示す)。
+ */
+@Composable
+private fun TagFilterRow(
+    availableTags: List<String>,
+    selectedTag: String?,
+    onSelect: (String?) -> Unit,
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        item(key = "tag_filter_all") {
+            FilterChip(
+                selected = selectedTag == null,
+                onClick = { onSelect(null) },
+                label = { Text(stringResource(R.string.watchlist_tag_filter_all)) },
+            )
+        }
+        items(availableTags, key = { it }) { tag ->
+            FilterChip(
+                selected = selectedTag == tag,
+                onClick = { onSelect(if (selectedTag == tag) null else tag) },
+                label = { Text(tag) },
+            )
+        }
+    }
 }
 
 /**

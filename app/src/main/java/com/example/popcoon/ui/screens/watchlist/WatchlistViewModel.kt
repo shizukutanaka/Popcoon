@@ -16,6 +16,7 @@ import com.example.popcoon.core.PopcoonLogger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -68,6 +69,33 @@ class WatchlistViewModel @Inject constructor(
             emit(rawItems.first())
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * 現在使用中のタグ一覧 (フィルタチップ表示用)。
+     * (機能過不足監査 B4: ウォッチリストのタグ/フォルダ分類が無かった、への対応)
+     */
+    val availableTags: StateFlow<List<String>> = dao.observeTags()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** 選択中のタグフィルタ。null = 「すべて」(フィルタなし)。永続化はせず画面単位の一時状態。 */
+    private val _selectedTag = MutableStateFlow<String?>(null)
+    val selectedTag: StateFlow<String?> = _selectedTag
+
+    /** タグフィルタ適用後のウォッチリスト。画面はこれを購読する (未選択時は items と同一)。 */
+    val filteredItems: StateFlow<List<WatchlistItem>> = combine(items, _selectedTag) { list, tag ->
+        if (tag == null) list else list.filter { it.tag == tag }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun selectTagFilter(tag: String?) {
+        _selectedTag.value = tag
+    }
+
+    /** タグ (フォルダ分類) を設定 / 解除する。@param tag null または空文字で「未分類」に戻す。 */
+    fun setTag(productKey: String, tag: String?) {
+        viewModelScope.launch {
+            dao.setTag(productKey, tag?.takeIf { it.isNotBlank() })
+        }
+    }
 
     /**
      * ウォッチリスト全体の横断カート最適化結果。

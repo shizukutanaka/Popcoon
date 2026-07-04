@@ -30,11 +30,25 @@ class WatchlistBackupManagerTest : StringSpec({
         addedPrice = 4500,
         stockAlertEnabled = true,
         previousInStock = true,
+        tag = "ガジェット",
     )
 
     "toBackupEntry → toWatchlistItem は主要フィールドを保持する (previousInStock を除く)" {
         val restored = sample.toBackupEntry().toWatchlistItem()
         restored shouldBe sample.copy(previousInStock = null)
+    }
+
+    "tag (フォルダ分類) もバックアップ・復元される" {
+        sample.toBackupEntry().toWatchlistItem().tag shouldBe "ガジェット"
+    }
+
+    "旧バックアップ (tag 列が無い) は tag=null として復元される (前方互換性)" {
+        val minimalJson = """
+            {"productKey":"amazon:OLD","sku":"OLD","title":"旧商品","platform":"amazon",
+             "realPrice":1000,"listPrice":1500,"url":"https://example.com"}
+        """.trimIndent()
+        val decoded = json.decodeFromString(WatchlistBackupEntry.serializer(), minimalJson)
+        decoded.tag.shouldBeNull()
     }
 
     "previousInStock (内部同期状態) は意図的にバックアップに含まれない" {

@@ -65,6 +65,13 @@ data class WatchlistItem(
      * (v5 で追加 — MIGRATION_4_5)
      */
     val previousInStock: Boolean? = null,
+    /**
+     * ユーザー定義のタグ（フォルダ分類）。null = 未分類。
+     * 自由記述の単一タグ（フォルダ階層ではない — シンプルさ優先）。
+     * WatchlistScreen のフィルタチップに使用。
+     * (v6 で追加 — MIGRATION_5_6)
+     */
+    val tag: String? = null,
 )
 
 // ── Entity: SearchHistory ───────────────────────────────────────────────────
@@ -128,6 +135,14 @@ interface WatchlistDao {
     @Query("UPDATE watchlist SET previousInStock = :wasInStock WHERE productKey = :key")
     suspend fun updateStockState(key: String, wasInStock: Boolean)
 
+    /** タグ（フォルダ分類）を設定 / 解除（null で「未分類」に戻す）。 */
+    @Query("UPDATE watchlist SET tag = :tag WHERE productKey = :key")
+    suspend fun setTag(key: String, tag: String?)
+
+    /** 現在使用中のタグ一覧（重複なし、フィルタチップ表示用）。 */
+    @Query("SELECT DISTINCT tag FROM watchlist WHERE tag IS NOT NULL ORDER BY tag ASC")
+    fun observeTags(): Flow<List<String>>
+
     @Query("SELECT COUNT(*) FROM watchlist")
     suspend fun count(): Int
 
@@ -180,7 +195,7 @@ interface PriceCacheDao {
 // ── Database ────────────────────────────────────────────────────────────────
 @Database(
     entities = [WatchlistItem::class, SearchHistoryEntry::class, PriceCacheEntry::class],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(InstantConverter::class)
@@ -236,6 +251,17 @@ abstract class PopcoonDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE watchlist ADD COLUMN stockAlertEnabled INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE watchlist ADD COLUMN previousInStock INTEGER")
+            }
+        }
+
+        /**
+         * v5 → v6: watchlist にタグ（フォルダ分類）列を追加。
+         * nullable で追加するため既存行はそのまま（tag = NULL = 未分類）。
+         * (機能過不足監査 B4: ウォッチリストのタグ/フォルダ分類が無かった、への対応)
+         */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE watchlist ADD COLUMN tag TEXT")
             }
         }
     }

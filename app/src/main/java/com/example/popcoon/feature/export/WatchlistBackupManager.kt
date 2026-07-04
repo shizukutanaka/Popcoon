@@ -120,6 +120,7 @@ internal data class WatchlistBackupEntry(
     val targetPrice: Long? = null,
     val addedPrice: Long = 0,
     val stockAlertEnabled: Boolean = false,
+    val tag: String? = null,
 )
 
 internal fun WatchlistItem.toBackupEntry(): WatchlistBackupEntry = WatchlistBackupEntry(
@@ -135,6 +136,7 @@ internal fun WatchlistItem.toBackupEntry(): WatchlistBackupEntry = WatchlistBack
     targetPrice = targetPrice,
     addedPrice = addedPrice,
     stockAlertEnabled = stockAlertEnabled,
+    tag = tag,
 )
 
 internal fun WatchlistBackupEntry.toWatchlistItem(): WatchlistItem = WatchlistItem(
@@ -151,4 +153,5 @@ internal fun WatchlistBackupEntry.toWatchlistItem(): WatchlistItem = WatchlistIt
     addedPrice = addedPrice,
     stockAlertEnabled = stockAlertEnabled,
     previousInStock = null,
+    tag = tag,
 )

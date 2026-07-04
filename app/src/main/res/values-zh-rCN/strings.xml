@@ -143,6 +143,12 @@
     <string name="target_price_dialog_desc">价格降到此水平时，无论折扣率如何都会通知您。</string>
     <string name="target_price_hint">目标价格（日元）</string>
     <string name="target_price_clear">清除</string>
+
+    <!-- 收藏标签 (文件夹分类) -->
+    <string name="watchlist_tag_button">标签</string>
+    <string name="watchlist_tag_filter_all">全部</string>
+    <string name="watchlist_tag_dialog_title">设置标签</string>
+    <string name="watchlist_tag_hint">标签名称</string>
     <string name="watchlist_sort_label">排序</string>
     <string name="wl_sort_added">最近添加</string>
     <string name="wl_sort_price_asc">价格从低到高</string>
