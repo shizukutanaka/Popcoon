@@ -1,6 +1,7 @@
 package io.github.shizukutanaka.popcoon.data.network
 
 import io.github.shizukutanaka.popcoon.BuildConfig
+import io.github.shizukutanaka.popcoon.core.retryOnce
 import io.github.shizukutanaka.popcoon.data.model.Product
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -31,14 +32,16 @@ class RakutenClient(
     suspend fun search(keyword: String, hits: Int = 30): List<Product> {
         if (appId.isBlank()) return emptyList()
         val resp = runCatching {
-            val httpResp = client.get("https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601") {
-                parameter("format", "json")
-                parameter("applicationId", appId)
-                parameter("keyword", keyword)
-                parameter("hits", hits.coerceIn(1, 30))
+            retryOnce {
+                val httpResp = client.get("https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601") {
+                    parameter("format", "json")
+                    parameter("applicationId", appId)
+                    parameter("keyword", keyword)
+                    parameter("hits", hits.coerceIn(1, 30))
+                }
+                check(httpResp.status.isSuccess()) { "Rakuten API error: ${httpResp.status}" }
+                httpResp.body<RakutenResponse>()
             }
-            check(httpResp.status.isSuccess()) { "Rakuten API error: ${httpResp.status}" }
-            httpResp.body<RakutenResponse>()
         }.onFailure { if (it is CancellationException) throw it }
             .getOrNull() ?: return emptyList()
 

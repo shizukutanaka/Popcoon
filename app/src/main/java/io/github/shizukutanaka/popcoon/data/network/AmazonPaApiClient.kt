@@ -1,6 +1,7 @@
 package io.github.shizukutanaka.popcoon.data.network
 
 import io.github.shizukutanaka.popcoon.BuildConfig
+import io.github.shizukutanaka.popcoon.core.retryOnce
 import io.github.shizukutanaka.popcoon.data.model.Platform
 import io.github.shizukutanaka.popcoon.data.model.Product
 import io.ktor.client.HttpClient
@@ -91,27 +92,32 @@ class AmazonPaApiClient(
             SearchItemsRequest.serializer(), request)
 
         val response = runCatching {
-            // content-type は SignedHeaders に含まれるため、署名値と実際にワイヤに乗る値を
-            // 厳密に一致させる必要がある (不一致は SignatureDoesNotMatch / 403 を招く)。
-            // 単一の定数を署名と TextContent の双方に渡して取り違えを防ぐ。
-            val signed = signer.sign(
-                method = "POST",
-                path = "/paapi5/searchitems",
-                payload = bodyJson,
-                host = HOST,
-                amzTarget = AMZ_TARGET_PREFIX + "SearchItems",
-                contentType = SIGNED_CONTENT_TYPE,
-            )
-            val httpResp = client.post("https://$HOST/paapi5/searchitems") {
-                header("host", HOST)
-                header("content-encoding", "amz-1.0")
-                header("x-amz-date", signed.amzDate)
-                header("x-amz-target", AMZ_TARGET_PREFIX + "SearchItems")
-                header("authorization", signed.authorizationHeader)
-                setBody(TextContent(bodyJson, ContentType.parse(SIGNED_CONTENT_TYPE)))
+            retryOnce {
+                // content-type は SignedHeaders に含まれるため、署名値と実際にワイヤに乗る値を
+                // 厳密に一致させる必要がある (不一致は SignatureDoesNotMatch / 403 を招く)。
+                // 単一の定数を署名と TextContent の双方に渡して取り違えを防ぐ。
+                // リトライ時は signer.sign() をブロック内で再実行するため、x-amz-date も
+                // 再署名時点の時刻で作り直される (古い日時のまま再送すると
+                // クロックスキュー許容範囲外でサーバーに拒否されうるため、これは正しい)。
+                val signed = signer.sign(
+                    method = "POST",
+                    path = "/paapi5/searchitems",
+                    payload = bodyJson,
+                    host = HOST,
+                    amzTarget = AMZ_TARGET_PREFIX + "SearchItems",
+                    contentType = SIGNED_CONTENT_TYPE,
+                )
+                val httpResp = client.post("https://$HOST/paapi5/searchitems") {
+                    header("host", HOST)
+                    header("content-encoding", "amz-1.0")
+                    header("x-amz-date", signed.amzDate)
+                    header("x-amz-target", AMZ_TARGET_PREFIX + "SearchItems")
+                    header("authorization", signed.authorizationHeader)
+                    setBody(TextContent(bodyJson, ContentType.parse(SIGNED_CONTENT_TYPE)))
+                }
+                check(httpResp.status.isSuccess()) { "PAAPI error: ${httpResp.status}" }
+                httpResp.body<SearchItemsResponse>()
             }
-            check(httpResp.status.isSuccess()) { "PAAPI error: ${httpResp.status}" }
-            httpResp.body<SearchItemsResponse>()
         }.onFailure { if (it is CancellationException) throw it }
             .getOrNull() ?: return emptyList()
 

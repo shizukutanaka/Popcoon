@@ -1,6 +1,7 @@
 package io.github.shizukutanaka.popcoon.data.network
 
 import io.github.shizukutanaka.popcoon.BuildConfig
+import io.github.shizukutanaka.popcoon.core.retryOnce
 import io.github.shizukutanaka.popcoon.data.model.Product
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -31,13 +32,15 @@ class YahooClient(
     suspend fun search(keyword: String, results: Int = 30): List<Product> {
         if (appId.isBlank()) return emptyList()
         val resp = runCatching {
-            val httpResp = client.get("https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch") {
-                parameter("appid", appId)
-                parameter("query", keyword)
-                parameter("results", results.coerceIn(1, 50))
+            retryOnce {
+                val httpResp = client.get("https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch") {
+                    parameter("appid", appId)
+                    parameter("query", keyword)
+                    parameter("results", results.coerceIn(1, 50))
+                }
+                check(httpResp.status.isSuccess()) { "Yahoo API error: ${httpResp.status}" }
+                httpResp.body<YahooResponse>()
             }
-            check(httpResp.status.isSuccess()) { "Yahoo API error: ${httpResp.status}" }
-            httpResp.body<YahooResponse>()
         }.onFailure { if (it is CancellationException) throw it }
             .getOrNull() ?: return emptyList()
 
