@@ -1,5 +1,6 @@
 package io.github.shizukutanaka.popcoon.feature.calendar
 
+import io.github.shizukutanaka.popcoon.R
 import io.github.shizukutanaka.popcoon.data.model.Platform
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -20,13 +21,25 @@ object SaleCalendar {
 
     enum class Tier { MAJOR, MEDIUM, RECURRING }
 
+    /**
+     * @param name 内部識別用の固定日本語文字列。SaleCalendarTest.kt が
+     *   `.name.contains(...)` で判定に使うため保持する (テストは name の値自体を
+     *   ユーザー表示に使わない限り安定した識別子として扱ってよい)。
+     * @param nameRes UI 表示用のロケール対応文字列リソース (SaleCalendarScreen が使用)。
+     *   以前は name をそのまま画面に表示しており EN/KO/ZH ロケールに日本語が漏れていた
+     *   (商用リリース監査で発見)。
+     * @param description 内部識別用の固定日本語文字列 (name と対称に保持)。
+     * @param descRes UI 表示用のロケール対応文字列リソース。
+     */
     data class Event(
         val name: String,
+        val nameRes: Int,
         val platform: Platform?,    // null = 複数モール横断
         val startDate: LocalDate,
         val endDate: LocalDate,
         val tier: Tier,
         val description: String,
+        val descRes: Int,
     )
 
     /** ある日 (today) が今アクティブなセール一覧 */
@@ -79,10 +92,12 @@ object SaleCalendar {
         if (day == 5 || day == 15 || day == 25) {
             events += Event(
                 name = "Yahoo! 5のつく日 +4%",
+                nameRes = R.string.sale_yahoo_5_day_name,
                 platform = Platform.YAHOO,
                 startDate = d, endDate = d,
                 tier = Tier.RECURRING,
                 description = "PayPay ポイント追加4%",
+                descRes = R.string.sale_yahoo_5_day_desc,
             )
         }
 
@@ -90,10 +105,12 @@ object SaleCalendar {
         if (day in listOf(5, 10, 15, 20, 25, 30)) {
             events += Event(
                 name = "楽天 5と0のつく日 +1%",
+                nameRes = R.string.sale_rakuten_5_0_day_name,
                 platform = Platform.RAKUTEN,
                 startDate = d, endDate = d,
                 tier = Tier.RECURRING,
                 description = "エントリー必須、楽天カード利用で +1%",
+                descRes = R.string.sale_rakuten_5_0_day_desc,
             )
         }
 
@@ -101,10 +118,12 @@ object SaleCalendar {
         if (d.dayOfWeek == DayOfWeek.SUNDAY) {
             events += Event(
                 name = "Yahoo! 日曜日 +5%",
+                nameRes = R.string.sale_yahoo_sunday_name,
                 platform = Platform.YAHOO,
                 startDate = d, endDate = d,
                 tier = Tier.RECURRING,
                 description = "PayPay ポイント+5%、要エントリー",
+                descRes = R.string.sale_yahoo_sunday_desc,
             )
         }
 
@@ -120,53 +139,68 @@ object SaleCalendar {
         return listOf(
             // 楽天スーパーセール (3, 6, 9, 12月の頭)
             Event(
-                "楽天スーパーセール (春)", Platform.RAKUTEN,
-                LocalDate.of(year, 3, 4), LocalDate.of(year, 3, 11),
-                Tier.MAJOR,
-                "半額商品 + ポイント最大44倍",
+                name = "楽天スーパーセール (春)", nameRes = R.string.sale_rakuten_super_spring_name,
+                platform = Platform.RAKUTEN,
+                startDate = LocalDate.of(year, 3, 4), endDate = LocalDate.of(year, 3, 11),
+                tier = Tier.MAJOR,
+                description = "半額商品 + ポイント最大44倍", descRes = R.string.sale_rakuten_super_desc,
             ),
             Event(
-                "楽天スーパーセール (夏)", Platform.RAKUTEN,
-                LocalDate.of(year, 6, 4), LocalDate.of(year, 6, 11),
-                Tier.MAJOR, "半額商品 + ポイント最大44倍",
+                name = "楽天スーパーセール (夏)", nameRes = R.string.sale_rakuten_super_summer_name,
+                platform = Platform.RAKUTEN,
+                startDate = LocalDate.of(year, 6, 4), endDate = LocalDate.of(year, 6, 11),
+                tier = Tier.MAJOR,
+                description = "半額商品 + ポイント最大44倍", descRes = R.string.sale_rakuten_super_desc,
             ),
             Event(
-                "楽天スーパーセール (秋)", Platform.RAKUTEN,
-                LocalDate.of(year, 9, 4), LocalDate.of(year, 9, 11),
-                Tier.MAJOR, "半額商品 + ポイント最大44倍",
+                name = "楽天スーパーセール (秋)", nameRes = R.string.sale_rakuten_super_autumn_name,
+                platform = Platform.RAKUTEN,
+                startDate = LocalDate.of(year, 9, 4), endDate = LocalDate.of(year, 9, 11),
+                tier = Tier.MAJOR,
+                description = "半額商品 + ポイント最大44倍", descRes = R.string.sale_rakuten_super_desc,
             ),
             Event(
-                "楽天スーパーセール (冬)", Platform.RAKUTEN,
-                LocalDate.of(year, 12, 4), LocalDate.of(year, 12, 11),
-                Tier.MAJOR, "半額商品 + ポイント最大44倍",
+                name = "楽天スーパーセール (冬)", nameRes = R.string.sale_rakuten_super_winter_name,
+                platform = Platform.RAKUTEN,
+                startDate = LocalDate.of(year, 12, 4), endDate = LocalDate.of(year, 12, 11),
+                tier = Tier.MAJOR,
+                description = "半額商品 + ポイント最大44倍", descRes = R.string.sale_rakuten_super_desc,
             ),
 
             // Amazon プライムデー (例年7月)
             Event(
-                "Amazon プライムデー", Platform.AMAZON,
-                LocalDate.of(year, 7, 16), LocalDate.of(year, 7, 17),
-                Tier.MAJOR, "プライム会員限定大幅値引き",
+                name = "Amazon プライムデー", nameRes = R.string.sale_amazon_prime_day_name,
+                platform = Platform.AMAZON,
+                startDate = LocalDate.of(year, 7, 16), endDate = LocalDate.of(year, 7, 17),
+                tier = Tier.MAJOR,
+                description = "プライム会員限定大幅値引き", descRes = R.string.sale_amazon_prime_day_desc,
             ),
 
             // Amazon ブラックフライデー
             Event(
-                "Amazon ブラックフライデー", Platform.AMAZON,
-                LocalDate.of(year, 11, 24), LocalDate.of(year, 12, 1),
-                Tier.MAJOR, "年末大型セール",
+                name = "Amazon ブラックフライデー", nameRes = R.string.sale_amazon_black_friday_name,
+                platform = Platform.AMAZON,
+                startDate = LocalDate.of(year, 11, 24), endDate = LocalDate.of(year, 12, 1),
+                tier = Tier.MAJOR,
+                description = "年末大型セール", descRes = R.string.sale_amazon_black_friday_desc,
             ),
 
             // Amazon サイバーマンデー
             Event(
-                "Amazon サイバーマンデー", Platform.AMAZON,
-                LocalDate.of(year, 12, 6), LocalDate.of(year, 12, 12),
-                Tier.MAJOR, "週末限定セール",
+                name = "Amazon サイバーマンデー", nameRes = R.string.sale_amazon_cyber_monday_name,
+                platform = Platform.AMAZON,
+                startDate = LocalDate.of(year, 12, 6), endDate = LocalDate.of(year, 12, 12),
+                tier = Tier.MAJOR,
+                description = "週末限定セール", descRes = R.string.sale_amazon_cyber_monday_desc,
             ),
 
             // Yahoo! 超 PayPay 祭り (不定期、参考)
             Event(
-                "Yahoo! 超PayPay祭", Platform.YAHOO,
-                LocalDate.of(year, 11, 1), LocalDate.of(year, 11, 30),
-                Tier.MEDIUM, "11月恒例の大型キャンペーン",
+                name = "Yahoo! 超PayPay祭", nameRes = R.string.sale_yahoo_paypay_matsuri_name,
+                platform = Platform.YAHOO,
+                startDate = LocalDate.of(year, 11, 1), endDate = LocalDate.of(year, 11, 30),
+                tier = Tier.MEDIUM,
+                description = "11月恒例の大型キャンペーン", descRes = R.string.sale_yahoo_paypay_matsuri_desc,
             ),
         )
     }

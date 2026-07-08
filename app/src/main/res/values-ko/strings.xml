@@ -325,6 +325,27 @@
     <string name="sale_calendar_empty">현재 예정된 세일이 없습니다</string>
     <string name="sale_calendar_open">캘린더 열기</string>
 
+    <!-- SaleCalendar 이벤트 이름/설명 (현지화 표시용, SaleCalendar.Event.nameRes/descRes) -->
+    <string name="sale_yahoo_5_day_name">Yahoo! 5가 붙는 날 +4%</string>
+    <string name="sale_yahoo_5_day_desc">PayPay 포인트 추가 4%</string>
+    <string name="sale_rakuten_5_0_day_name">라쿠텐 5와 0이 붙는 날 +1%</string>
+    <string name="sale_rakuten_5_0_day_desc">응모 필수, 라쿠텐 카드 이용 시 +1%</string>
+    <string name="sale_yahoo_sunday_name">Yahoo! 일요일 +5%</string>
+    <string name="sale_yahoo_sunday_desc">PayPay 포인트 +5%, 응모 필요</string>
+    <string name="sale_rakuten_super_spring_name">라쿠텐 슈퍼세일 (봄)</string>
+    <string name="sale_rakuten_super_summer_name">라쿠텐 슈퍼세일 (여름)</string>
+    <string name="sale_rakuten_super_autumn_name">라쿠텐 슈퍼세일 (가을)</string>
+    <string name="sale_rakuten_super_winter_name">라쿠텐 슈퍼세일 (겨울)</string>
+    <string name="sale_rakuten_super_desc">반값 상품 + 포인트 최대 44배</string>
+    <string name="sale_amazon_prime_day_name">Amazon 프라임 데이</string>
+    <string name="sale_amazon_prime_day_desc">프라임 회원 한정 대폭 할인</string>
+    <string name="sale_amazon_black_friday_name">Amazon 블랙 프라이데이</string>
+    <string name="sale_amazon_black_friday_desc">연말 대형 세일</string>
+    <string name="sale_amazon_cyber_monday_name">Amazon 사이버 먼데이</string>
+    <string name="sale_amazon_cyber_monday_desc">주말 한정 세일</string>
+    <string name="sale_yahoo_paypay_matsuri_name">Yahoo! 초 PayPay 축제</string>
+    <string name="sale_yahoo_paypay_matsuri_desc">11월 연례 대형 캠페인</string>
+
     <!-- 공통 UI 라벨 -->
     <string name="action_delete">삭제</string>
     <string name="action_collapse">닫기</string>

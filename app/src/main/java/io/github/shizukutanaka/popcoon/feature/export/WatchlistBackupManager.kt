@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
+import io.github.shizukutanaka.popcoon.R
 import io.github.shizukutanaka.popcoon.core.PopcoonLogger
 import io.github.shizukutanaka.popcoon.data.db.WatchlistDao
 import io.github.shizukutanaka.popcoon.data.db.WatchlistItem
@@ -69,7 +70,9 @@ class WatchlistBackupManager @Inject constructor(
         return Intent(Intent.ACTION_SEND).apply {
             type = "application/json"
             putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_SUBJECT, "Popcoon ウォッチリスト バックアップ")
+            // ハードコードされた日本語件名は EN/KO/ZH ロケールに漏れていた
+            // (商用リリース監査で発見)。context があるので直接 getString で解決する。
+            putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.watchlist_backup_share_title))
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
     }

@@ -333,6 +333,27 @@
     <string name="sale_calendar_empty">No sales scheduled right now</string>
     <string name="sale_calendar_open">Open calendar</string>
 
+    <!-- SaleCalendar event names/descriptions (localized display, SaleCalendar.Event.nameRes/descRes) -->
+    <string name="sale_yahoo_5_day_name">Yahoo! Day of 5 +4%</string>
+    <string name="sale_yahoo_5_day_desc">+4% extra PayPay points</string>
+    <string name="sale_rakuten_5_0_day_name">Rakuten Day of 5/0 +1%</string>
+    <string name="sale_rakuten_5_0_day_desc">Entry required; +1% with Rakuten Card</string>
+    <string name="sale_yahoo_sunday_name">Yahoo! Sunday +5%</string>
+    <string name="sale_yahoo_sunday_desc">+5% PayPay points, entry required</string>
+    <string name="sale_rakuten_super_spring_name">Rakuten Super Sale (Spring)</string>
+    <string name="sale_rakuten_super_summer_name">Rakuten Super Sale (Summer)</string>
+    <string name="sale_rakuten_super_autumn_name">Rakuten Super Sale (Autumn)</string>
+    <string name="sale_rakuten_super_winter_name">Rakuten Super Sale (Winter)</string>
+    <string name="sale_rakuten_super_desc">Half-price items + up to 44x points</string>
+    <string name="sale_amazon_prime_day_name">Amazon Prime Day</string>
+    <string name="sale_amazon_prime_day_desc">Major discounts for Prime members</string>
+    <string name="sale_amazon_black_friday_name">Amazon Black Friday</string>
+    <string name="sale_amazon_black_friday_desc">Year-end major sale</string>
+    <string name="sale_amazon_cyber_monday_name">Amazon Cyber Monday</string>
+    <string name="sale_amazon_cyber_monday_desc">Weekend-only sale</string>
+    <string name="sale_yahoo_paypay_matsuri_name">Yahoo! Super PayPay Festival</string>
+    <string name="sale_yahoo_paypay_matsuri_desc">Annual major November campaign</string>
+
     <!-- Common UI labels -->
     <string name="action_delete">Delete</string>
     <string name="action_collapse">Close</string>

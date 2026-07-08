@@ -353,6 +353,27 @@
     <string name="sale_calendar_empty">現在予定されているセールはありません</string>
     <string name="sale_calendar_open">カレンダーを開く</string>
 
+    <!-- SaleCalendar イベント名・説明 (ローカライズ済み表示用、SaleCalendar.Event.nameRes/descRes) -->
+    <string name="sale_yahoo_5_day_name">Yahoo! 5のつく日 +4%</string>
+    <string name="sale_yahoo_5_day_desc">PayPay ポイント追加4%</string>
+    <string name="sale_rakuten_5_0_day_name">楽天 5と0のつく日 +1%</string>
+    <string name="sale_rakuten_5_0_day_desc">エントリー必須、楽天カード利用で +1%</string>
+    <string name="sale_yahoo_sunday_name">Yahoo! 日曜日 +5%</string>
+    <string name="sale_yahoo_sunday_desc">PayPay ポイント+5%、要エントリー</string>
+    <string name="sale_rakuten_super_spring_name">楽天スーパーセール (春)</string>
+    <string name="sale_rakuten_super_summer_name">楽天スーパーセール (夏)</string>
+    <string name="sale_rakuten_super_autumn_name">楽天スーパーセール (秋)</string>
+    <string name="sale_rakuten_super_winter_name">楽天スーパーセール (冬)</string>
+    <string name="sale_rakuten_super_desc">半額商品 + ポイント最大44倍</string>
+    <string name="sale_amazon_prime_day_name">Amazon プライムデー</string>
+    <string name="sale_amazon_prime_day_desc">プライム会員限定大幅値引き</string>
+    <string name="sale_amazon_black_friday_name">Amazon ブラックフライデー</string>
+    <string name="sale_amazon_black_friday_desc">年末大型セール</string>
+    <string name="sale_amazon_cyber_monday_name">Amazon サイバーマンデー</string>
+    <string name="sale_amazon_cyber_monday_desc">週末限定セール</string>
+    <string name="sale_yahoo_paypay_matsuri_name">Yahoo! 超PayPay祭</string>
+    <string name="sale_yahoo_paypay_matsuri_desc">11月恒例の大型キャンペーン</string>
+
     <!-- 共通 UI ラベル -->
     <string name="action_delete">削除</string>
     <string name="action_collapse">閉じる</string>

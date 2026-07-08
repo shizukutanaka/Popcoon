@@ -136,7 +136,7 @@ private fun SaleEventCard(event: SaleCalendar.Event, today: LocalDate) {
     ) {
         Column(Modifier.padding(Spacing.lg)) {
             Text(
-                text = "${platformLabel(event.platform)}${event.name}",
+                text = "${platformLabel(event.platform)}${stringResource(event.nameRes)}",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = tierColor(event.tier),
@@ -173,7 +173,7 @@ private fun SaleEventCard(event: SaleCalendar.Event, today: LocalDate) {
             }
             if (event.description.isNotBlank()) {
                 Text(
-                    text = event.description,
+                    text = stringResource(event.descRes),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = Spacing.xs),
