@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.shizukutanaka.popcoon.R
+import io.github.shizukutanaka.popcoon.ui.a11y.a11yDecorative
 import io.github.shizukutanaka.popcoon.ui.theme.Spacing
 import io.github.shizukutanaka.popcoon.ui.util.HapticFeedback
 import kotlinx.coroutines.launch
@@ -138,7 +139,7 @@ private fun OnboardingPageContent(page: OnboardingPage) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(page.icon, fontSize = 80.sp)
+        Text(page.icon, fontSize = 80.sp, modifier = Modifier.a11yDecorative())
         Spacer(Modifier.height(Spacing.ml))
         Text(
             page.title,

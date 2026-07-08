@@ -19,6 +19,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.shizukutanaka.popcoon.R
 import io.github.shizukutanaka.popcoon.data.db.WatchlistItem
+import io.github.shizukutanaka.popcoon.ui.a11y.a11yDecorative
 import io.github.shizukutanaka.popcoon.feature.watchlist.WatchlistSort
 import io.github.shizukutanaka.popcoon.feature.watchlist.WidgetVerdict
 import io.github.shizukutanaka.popcoon.feature.scorer.BuyTimingScorer
@@ -494,7 +495,11 @@ private fun WatchlistEmptyState(
             verticalArrangement = Arrangement.spacedBy(Spacing.ml),
             modifier = Modifier.padding(Spacing.xxxl),
         ) {
-            Text("⭐", style = MaterialTheme.typography.displayLarge)
+            Text(
+                "⭐",
+                style = MaterialTheme.typography.displayLarge,
+                modifier = Modifier.a11yDecorative(),
+            )
             Text(
                 stringResource(R.string.watchlist_empty),
                 style = MaterialTheme.typography.titleLarge,

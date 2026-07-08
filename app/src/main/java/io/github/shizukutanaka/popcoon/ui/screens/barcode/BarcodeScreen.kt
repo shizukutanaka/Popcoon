@@ -12,6 +12,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.shizukutanaka.popcoon.R
+import io.github.shizukutanaka.popcoon.ui.a11y.a11yDecorative
 import io.github.shizukutanaka.popcoon.ui.theme.CornerRadius
 import io.github.shizukutanaka.popcoon.ui.theme.Spacing
 import io.github.shizukutanaka.popcoon.feature.barcode.BarcodeScanner
@@ -154,7 +155,11 @@ private fun ScanFeedbackUI(
                     )
                 }
                 is ScanState.Success -> {
-                    Text("✓", style = MaterialTheme.typography.displayMedium)
+                    Text(
+                        "✓",
+                        style = MaterialTheme.typography.displayMedium,
+                        modifier = Modifier.a11yDecorative(),
+                    )
                     Text(
                         stringResource(R.string.barcode_read_success, state.value.take(30)),
                         style = MaterialTheme.typography.bodyLarge,

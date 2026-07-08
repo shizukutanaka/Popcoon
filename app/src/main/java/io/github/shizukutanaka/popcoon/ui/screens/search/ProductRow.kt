@@ -65,7 +65,6 @@ internal fun ProductRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ProductImage(
                     imageUrl = row.product.imageUrl,
-                    platformEmoji = platformEmoji(row.product.platform),
                     size = 52.dp,
                 )
                 Spacer(Modifier.width(Spacing.ml))
@@ -166,12 +165,6 @@ internal fun ProductRow(
             )
         }
     }
-}
-
-private fun platformEmoji(p: Platform): String = when (p) {
-    Platform.AMAZON -> "📦"
-    Platform.RAKUTEN -> "🛒"
-    Platform.YAHOO -> "🟡"
 }
 
 @Preview(name = "ProductRow – BUY_NOW", showBackground = true)

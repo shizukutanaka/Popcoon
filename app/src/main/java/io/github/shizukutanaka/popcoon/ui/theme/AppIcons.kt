@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -49,6 +50,15 @@ object AppIcons {
     // 状態表示
     val Offline: ImageVector = Icons.Default.WifiOff
     val History: ImageVector = Icons.Default.History
+    /**
+     * 商品画像が無い/読み込み失敗時のフォールバック。
+     * 以前は EC プラットフォームごとの絵文字 (📦🛒🟡) を使っており、
+     * 実際のブランドと乖離した誤解を招く表現だった (例: 楽天=🛒はどの EC でも
+     * 使われうる汎用アイコンで実際のブランドを表さない、商用リリース監査で発見)。
+     * プラットフォーム名自体は隣接する PlatformChip (テキスト表示) が既に正しく示すため、
+     * ここでは中立的な「画像なし」アイコンにする。
+     */
+    val ImagePlaceholder: ImageVector = Icons.Default.Image
 
     // 一覧操作
     val Sort: ImageVector = Icons.AutoMirrored.Filled.Sort

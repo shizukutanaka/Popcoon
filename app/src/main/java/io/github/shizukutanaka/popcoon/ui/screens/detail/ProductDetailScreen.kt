@@ -159,11 +159,6 @@ private fun LoadedContent(
     Row(verticalAlignment = androidx.compose.ui.Alignment.Top) {
         io.github.shizukutanaka.popcoon.ui.components.ProductImage(
             imageUrl = s.product.imageUrl,
-            platformEmoji = when (s.product.platform) {
-                io.github.shizukutanaka.popcoon.data.model.Platform.AMAZON -> "📦"
-                io.github.shizukutanaka.popcoon.data.model.Platform.RAKUTEN -> "🛒"
-                io.github.shizukutanaka.popcoon.data.model.Platform.YAHOO -> "🟡"
-            },
             size = 80.dp,
         )
         Spacer(Modifier.width(Spacing.ml))
