@@ -21,13 +21,14 @@ RAKUTEN_AFFILIATE_ID=
 YAHOO_APP_ID=
 YAHOO_SID=
 
-# ── Anthropic API (AI アドバイザー) ──────────────────────────────────────────
-# https://console.anthropic.com/ で取得
-ANTHROPIC_API_KEY=
-
 # ── Backend URL ──────────────────────────────────────────────────────────────
 # Cloudflare Workers のデプロイ先 URL
 BACKEND_URL=https://popcoon-backend.workers.dev
+
+# ── Anthropic API キーはここに置かない ──────────────────────────────────────
+# AI アドバイザーの Claude 呼び出しはバックエンド (backend/src/index.ts の
+# POST /v1/advice) がプロキシする。鍵は `wrangler secret put ANTHROPIC_API_KEY`
+# で Workers 側にのみ設定する (APK に埋め込むと抽出可能なため)。
 
 # ── Release Signing (CI/CD で使用) ───────────────────────────────────────────
 # KEYSTORE_PATH=/path/to/release.jks

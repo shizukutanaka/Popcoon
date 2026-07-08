@@ -9,14 +9,12 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CancellationException
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -24,6 +22,14 @@ import javax.inject.Singleton
 
 /**
  * Claude API と統合して「この商品を買うべきか」を自然言語で説明。
+ *
+ * Anthropic API キーは端末に持たせない — バックエンド (Cloudflare Workers)
+ * の POST /v1/advice にプロンプトを送り、鍵はそちら側の Workers secret としてのみ
+ * 保持する。以前は BuildConfig.ANTHROPIC_API_KEY を APK に埋め込み端末から
+ * api.anthropic.com を直接叩いていたが、APK 解析で鍵が抽出可能で無制限課金悪用の
+ * リスクがあった (商用リリース監査で BLOCKER 判定)。プロンプト構築ロジック自体は
+ * 二言語での重複・ドリフトを避けるためこのまま Kotlin 側に残す — Worker は鍵を
+ * 保持するだけの薄いプロキシに徹する。
  *
  * キャッシュ統合 (AdviceCache):
  *  - 同一商品 + 同スコアバケット → キャッシュヒット → API 不要
@@ -39,7 +45,6 @@ import javax.inject.Singleton
 @Singleton
 class BuyingAdvisor @Inject constructor(
     private val cache: AdviceCache,
-    private val apiKey: String = BuildConfig.ANTHROPIC_API_KEY,
 ) {
     private val client = HttpClient {
         install(ContentNegotiation) {
@@ -55,7 +60,7 @@ class BuyingAdvisor @Inject constructor(
     /**
      * 商品の買い時アドバイスを取得する。成功時は助言テキストを返しキャッシュする。
      *
-     * **失敗時は例外を投げる** (API キー未設定 / ネットワーク失敗 / 空応答)。
+     * **失敗時は例外を投げる** (バックエンド未設定 / ネットワーク失敗 / 空応答)。
      * 以前は日本語のエラー文字列を return していたが、それでは
      *  - EN/KO/ZH ロケールに日本語が漏れる
      *  - 例外メッセージが UI に露出する
@@ -70,8 +75,6 @@ class BuyingAdvisor @Inject constructor(
     ): String {
         // 1. キャッシュチェック
         cache.get(product, score)?.let { return it }
-
-        require(apiKey.isNotBlank()) { "Anthropic API key not configured" }
 
         val systemPrompt = """
             あなたは日本のショッピング・アシスタント「Popcoon」です。
@@ -93,28 +96,20 @@ class BuyingAdvisor @Inject constructor(
             if (userContext.isNotEmpty()) append("\n追加文脈: $userContext")
         }
 
-        val request = ClaudeRequest(
-            model = "claude-sonnet-5",
-            maxTokens = 200,
-            system = systemPrompt,
-            messages = listOf(ClaudeMessage("user", userPrompt)),
-        )
+        val request = AdviceRequest(system = systemPrompt, userPrompt = userPrompt)
 
         val advice = try {
-            val response = client.post("https://api.anthropic.com/v1/messages") {
-                header("x-api-key", apiKey)
-                header("anthropic-version", "2023-06-01")
+            val response = client.post("${BuildConfig.BACKEND_URL}/v1/advice") {
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }
-            val body = response.body<ClaudeResponse>()
-            body.content.firstOrNull { it.type == "text" }?.text
-                ?: error("Claude response had no text content")
+            val body = response.body<AdviceResponse>()
+            body.advice.takeIf { it.isNotBlank() } ?: error("advice response was blank")
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             // 診断のため記録しつつ、ローカライズは呼び出し側に委ねるため再 throw する。
-            PopcoonLogger.w("BuyingAdvisor", "API 呼び出し失敗", e)
+            PopcoonLogger.w("BuyingAdvisor", "バックエンド呼び出し失敗", e)
             throw e
         }
 
@@ -125,18 +120,10 @@ class BuyingAdvisor @Inject constructor(
 }
 
 @Serializable
-private data class ClaudeRequest(
-    val model: String,
-    @SerialName("max_tokens") val maxTokens: Int,
+private data class AdviceRequest(
     val system: String,
-    val messages: List<ClaudeMessage>,
+    val userPrompt: String,
 )
 
 @Serializable
-private data class ClaudeMessage(val role: String, val content: String)
-
-@Serializable
-private data class ClaudeResponse(val content: List<Content>) {
-    @Serializable
-    data class Content(val type: String, val text: String? = null)
-}
+private data class AdviceResponse(val advice: String)

@@ -24,6 +24,10 @@ export interface Env {
   MAX_HISTORY_PER_PRODUCT: string;
   FCM_SERVER_KEY?: string;
   ADMIN_API_KEY?: string;
+  // Claude API 呼び出し用。wrangler secret put ANTHROPIC_API_KEY で設定する。
+  // クライアント (Android アプリ) には一切渡さない — POST /v1/advice がこの鍵を
+  // 保持したままプロキシする (APK 埋め込みは抽出可能で課金悪用リスクがあるため)。
+  ANTHROPIC_API_KEY?: string;
 }
 
 interface PriceRecord {
@@ -258,6 +262,53 @@ async function handleRequest(req: Request, env: Env): Promise<Response> {
       expirationTtl: 90 * 24 * 60 * 60,  // 90日で自動削除
     });
     return json({ ok: true });
+  }
+
+  // POST /v1/advice — Claude API プロキシ (AI 買い時アドバイザー)
+  // Anthropic キーはこの Worker だけが保持する。クライアントはシステムプロンプトと
+  // ユーザープロンプト文字列だけを送り、モデル名はここで固定する (クライアントに
+  // 選ばせない — 高額モデルへの誘導や任意のパラメータ注入を防ぐ)。
+  if (req.method === "POST" && url.pathname === "/v1/advice") {
+    if (!env.ANTHROPIC_API_KEY) return bad("advice unavailable", 503);
+
+    // 通常の書き込み系レート制限 (5/分/IP) とは別バケットで絞る — LLM 呼び出しは
+    // 1回あたりの課金コストが history 書き込みより大きいため、より厳しい上限にする。
+    const adviceAllowed = await rateLimit(env, `advice:${ip}`, 3);
+    if (!adviceAllowed) return bad("rate limited", 429);
+
+    const body = await req.json().catch(() => null) as
+      { system?: string; userPrompt?: string } | null;
+    if (!body?.system || !body?.userPrompt) return bad("invalid payload");
+    if (body.system.length > 2000) return bad("system too long");
+    if (body.userPrompt.length > 2000) return bad("userPrompt too long");
+
+    let claudeRes: Response;
+    try {
+      claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-api-key": env.ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-5",
+          max_tokens: 200,
+          system: body.system,
+          messages: [{ role: "user", content: body.userPrompt }],
+        }),
+      });
+    } catch (e) {
+      console.error("advice upstream fetch failed", e);
+      return bad("advice upstream unreachable", 502);
+    }
+    if (!claudeRes.ok) return bad("advice upstream error", 502);
+
+    const data = await claudeRes.json().catch(() => null) as
+      { content?: Array<{ type: string; text?: string }> } | null;
+    const text = data?.content?.find(c => c.type === "text")?.text;
+    if (!text) return bad("advice upstream empty", 502);
+    return json({ advice: text });
   }
 
   // GET /v1/health

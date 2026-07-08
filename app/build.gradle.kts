@@ -45,7 +45,9 @@ android {
         buildConfigField("String", "RAKUTEN_AFFILIATE_ID", "\"${System.getenv("RAKUTEN_AFFILIATE_ID") ?: ""}\"")
         buildConfigField("String", "YAHOO_APP_ID", "\"${System.getenv("YAHOO_APP_ID") ?: ""}\"")
         buildConfigField("String", "YAHOO_SID", "\"${System.getenv("YAHOO_SID") ?: ""}\"")
-        buildConfigField("String", "ANTHROPIC_API_KEY", "\"${System.getenv("ANTHROPIC_API_KEY") ?: ""}\"")
+        // Anthropic API キーはここに置かない — バックエンド (Cloudflare Workers) の
+        // POST /v1/advice がプロキシし、鍵は Workers secret としてのみ保持する
+        // (APK 埋め込みは抽出可能で課金悪用リスクがあるため; BuyingAdvisor.kt 参照)。
         buildConfigField("String", "BACKEND_URL", "\"${System.getenv("BACKEND_URL") ?: "https://popcoon-backend.workers.dev"}\"")
         buildConfigField("String", "VERSION_NAME", "\"0.1.0\"")
 

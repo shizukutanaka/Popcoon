@@ -32,10 +32,13 @@ binding = "RATE_LIMIT"
 id = "${CLOUDFLARE_KV_RATE_LIMIT_ID}"
 
 # ── Secrets (wrangler secret put で設定) ─────────────────────────────────────
-# FCM_SERVER_KEY  : Firebase Cloud Messaging サーバーキー
-# ADMIN_API_KEY   : 管理 API 認証用 (内部)
+# FCM_SERVER_KEY     : Firebase Cloud Messaging サーバーキー
+# ADMIN_API_KEY      : 管理 API 認証用 (内部)
+# ANTHROPIC_API_KEY  : Claude API (POST /v1/advice が使用)。未設定でも
+#                      /v1/advice は 503 を返すだけで他エンドポイントは動作する。
 # wrangler secret put FCM_SERVER_KEY
 # wrangler secret put ADMIN_API_KEY
+# wrangler secret put ANTHROPIC_API_KEY
 
 [vars]
 ENVIRONMENT = "production"
