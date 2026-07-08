@@ -11,6 +11,7 @@ import io.github.shizukutanaka.popcoon.ui.screens.calendar.SaleCalendarScreen
 import io.github.shizukutanaka.popcoon.ui.screens.customs.CustomsSimulatorScreen
 import io.github.shizukutanaka.popcoon.ui.screens.detail.ProductDetailScreen
 import io.github.shizukutanaka.popcoon.ui.screens.detail.navigateToDetail
+import io.github.shizukutanaka.popcoon.ui.screens.licenses.LicensesScreen
 import io.github.shizukutanaka.popcoon.ui.screens.search.SearchScreen
 import io.github.shizukutanaka.popcoon.ui.screens.settings.SettingsScreen
 import io.github.shizukutanaka.popcoon.ui.screens.watchlist.WatchlistScreen
@@ -65,11 +66,16 @@ fun PopcoonNavGraph(
             SettingsScreen(
                 onBack = { navController.popBackStack() },
                 onCustoms = { navController.navigate("customs") { launchSingleTop = true } },
+                onLicenses = { navController.navigate("licenses") { launchSingleTop = true } },
             )
         }
 
         composable("customs") {
             CustomsSimulatorScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable("licenses") {
+            LicensesScreen(onBack = { navController.popBackStack() })
         }
 
         composable("detail/{productKey}") { entry ->

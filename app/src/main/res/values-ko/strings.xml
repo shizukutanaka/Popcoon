@@ -265,6 +265,7 @@
     <string name="settings_version">버전</string>
     <string name="settings_privacy_policy">개인정보 처리방침</string>
     <string name="settings_licenses">오픈소스 라이선스</string>
+    <string name="licenses_intro">Popcoon은 다음 오픈소스 소프트웨어를 사용합니다. 항목을 탭하면 라이선스 전문을 볼 수 있습니다.</string>
     <string name="settings_info">정보</string>
     <string name="premium_feature_export">가격 이력 CSV 내보내기</string>
     <string name="confidence_unknown">알 수 없음</string>

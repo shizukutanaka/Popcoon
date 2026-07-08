@@ -258,18 +258,11 @@ class SettingsViewModel @Inject constructor(
         context.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
-    fun openLicenses() {
-        // Google Play Services OSS ライセンス画面
-        // 依存: com.google.android.gms:play-services-oss-licenses
-        // build.gradle に追加済みの場合:
-        // context.startActivity(
-        //     Intent(context, OssLicensesMenuActivity::class.java)
-        //         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        // )
-        // 暫定: GitHub のライセンスページを開く
-        val uri = Uri.parse("https://github.com/shizukutanaka/popcoon/blob/main/LICENSE")
-        context.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-    }
+    // OSS ライセンス表記は ui/screens/licenses/LicensesScreen.kt (アプリ内画面) が担当する。
+    // 以前はここで外部ブラウザに自プロジェクトの LICENSE を開くだけの暫定実装だったが、
+    // 同梱 OSS 依存 (Compose/Ktor/Room/Hilt 等) の表記が欠落していた
+    // (商用リリース監査で発見)。SettingsScreen から onLicenses コールバック経由で
+    // 直接ナビゲートするため、ここに ViewModel メソッドは不要。
 
     private fun getOrInitBilling(activity: Activity): BillingManager {
         return billing ?: BillingManager(activity).also { billing = it }

@@ -265,6 +265,7 @@
     <string name="settings_version">版本</string>
     <string name="settings_privacy_policy">隐私政策</string>
     <string name="settings_licenses">开源许可证</string>
+    <string name="licenses_intro">Popcoon 使用以下开源软件。点按项目可查看完整许可证文本。</string>
     <string name="settings_info">信息</string>
     <string name="premium_feature_export">价格历史CSV导出</string>
     <string name="confidence_unknown">未知</string>

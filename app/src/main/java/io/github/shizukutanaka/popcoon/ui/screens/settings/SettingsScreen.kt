@@ -28,6 +28,7 @@ import io.github.shizukutanaka.popcoon.ui.theme.Spacing
 fun SettingsScreen(
     onBack: () -> Unit,
     onCustoms: () -> Unit = {},
+    onLicenses: () -> Unit = {},
     viewModel: SettingsViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -258,7 +259,7 @@ fun SettingsScreen(
                 HorizontalDivider()
                 ListItem(
                     headlineContent = { Text(stringResource(R.string.settings_licenses)) },
-                    modifier = Modifier.padding(Spacing.ml).clickable(role = Role.Button) { viewModel.openLicenses() },
+                    modifier = Modifier.padding(Spacing.ml).clickable(role = Role.Button) { onLicenses() },
                 )
             }
         }

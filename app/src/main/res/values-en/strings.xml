@@ -244,6 +244,7 @@
     <string name="settings_version">Version</string>
     <string name="settings_privacy_policy">Privacy policy</string>
     <string name="settings_licenses">Open source licenses</string>
+    <string name="licenses_intro">Popcoon uses the following open source software. Tap an item to view its full license text.</string>
     <string name="settings_info">Info</string>
 
     <!-- Navigation -->

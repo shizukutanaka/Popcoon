@@ -67,6 +67,7 @@
     <string name="settings_version">バージョン</string>
     <string name="settings_privacy_policy">プライバシーポリシー</string>
     <string name="settings_licenses">オープンソースライセンス</string>
+    <string name="licenses_intro">Popcoon は以下のオープンソースソフトウェアを使用しています。項目をタップするとライセンス全文を表示します。</string>
     <string name="settings_info">情報</string>
 
     <!-- ナビゲーション -->
