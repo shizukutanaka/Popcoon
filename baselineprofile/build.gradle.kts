@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.popcoon.baselineprofile"
+    namespace = "io.github.shizukutanaka.popcoon.baselineprofile"
     compileSdk = 35
 
     defaultConfig {

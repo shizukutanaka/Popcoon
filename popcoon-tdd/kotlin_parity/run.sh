@@ -11,7 +11,7 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
-SRC="$ROOT/app/src/main/java/com/example/popcoon"
+SRC="$ROOT/app/src/main/java/io/github/shizukutanaka/popcoon"
 OUT="$(mktemp -d)"
 trap 'rm -rf "$OUT"' EXIT
 

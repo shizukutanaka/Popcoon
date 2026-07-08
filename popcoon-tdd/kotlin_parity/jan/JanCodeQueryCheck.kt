@@ -1,4 +1,4 @@
-package com.example.popcoon.feature.barcode
+package io.github.shizukutanaka.popcoon.feature.barcode
 
 /**
  * Standalone execution check for JanCodeQuery (JAN/EAN check-digit validation).

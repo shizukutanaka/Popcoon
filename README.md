@@ -74,7 +74,7 @@ Python TDD 参照層 (5,216 行 / 273 tests / 100% mutation × 4 modules)
 ```
 popcoon-android/
 ├── app/                      # Android アプリ
-│   ├── src/main/java/com/example/popcoon/
+│   ├── src/main/java/io/github/shizukutanaka/popcoon/
 │   │   ├── data/              # Repository / DB / Network
 │   │   ├── feature/           # ビジネスロジック (10 機能)
 │   │   ├── ui/                # Compose 画面 + コンポーネント

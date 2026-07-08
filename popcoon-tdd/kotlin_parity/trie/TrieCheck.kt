@@ -1,4 +1,4 @@
-import com.example.popcoon.core.Trie
+import io.github.shizukutanaka.popcoon.core.Trie
 
 /**
  * Emits Trie.suggest() outputs for a fixed word list / query set.

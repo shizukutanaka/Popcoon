@@ -1,4 +1,4 @@
-package com.example.popcoon.core
+package io.github.shizukutanaka.popcoon.core
 
 import java.util.Locale
 

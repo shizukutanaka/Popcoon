@@ -18,8 +18,8 @@
         android:shortcutDisabledMessage="@string/shortcut_disabled">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="com.example.popcoon"
-            android:targetClass="com.example.popcoon.MainActivity"
+            android:targetPackage="io.github.shizukutanaka.popcoon"
+            android:targetClass="io.github.shizukutanaka.popcoon.MainActivity"
             android:data="popcoon://barcode" />
         <categories android:name="android.shortcut.conversation" />
     </shortcut>
@@ -34,8 +34,8 @@
         android:shortcutDisabledMessage="@string/shortcut_disabled">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="com.example.popcoon"
-            android:targetClass="com.example.popcoon.MainActivity"
+            android:targetPackage="io.github.shizukutanaka.popcoon"
+            android:targetClass="io.github.shizukutanaka.popcoon.MainActivity"
             android:data="popcoon://watchlist" />
         <categories android:name="android.shortcut.conversation" />
     </shortcut>

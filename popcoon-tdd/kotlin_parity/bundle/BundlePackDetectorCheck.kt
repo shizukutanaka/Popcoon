@@ -1,4 +1,4 @@
-package com.example.popcoon.feature.bundle
+package io.github.shizukutanaka.popcoon.feature.bundle
 
 /**
  * Standalone execution check for BundlePackDetector (set-sale unit-price + deal verdict).

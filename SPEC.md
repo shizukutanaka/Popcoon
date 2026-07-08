@@ -220,7 +220,7 @@ Workers   │  WorkManager (日次価格同期 + 週次ダイジェスト)
 ## ファイル構成
 
 ```
-app/src/main/java/com/example/popcoon/
+app/src/main/java/io/github/shizukutanaka/popcoon/
 ├── data/
 │   ├── db/PopcoonDatabase.kt       (3エンティティ + 3DAO + 4マイグレーション)
 │   ├── model/                      (Product, PriceRecord)

@@ -21,11 +21,11 @@
     kotlinx.serialization.KSerializer serializer(...);
 }
 
--keep,includedescriptorclasses class com.example.popcoon.**$$serializer { *; }
--keepclassmembers class com.example.popcoon.** {
+-keep,includedescriptorclasses class io.github.shizukutanaka.popcoon.**$$serializer { *; }
+-keepclassmembers class io.github.shizukutanaka.popcoon.** {
     *** Companion;
 }
--keepclasseswithmembers class com.example.popcoon.** {
+-keepclasseswithmembers class io.github.shizukutanaka.popcoon.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
 

@@ -1,15 +1,15 @@
-import com.example.popcoon.data.model.PriceRecord
-import com.example.popcoon.feature.cart.CrossMallCartOptimizer
-import com.example.popcoon.feature.crossborder.CustomsSimulator
-import com.example.popcoon.feature.darkpattern.DarkPatternDetector
-import com.example.popcoon.feature.darkpattern.DarkPatternTextDetector
-import com.example.popcoon.feature.ethics.EcoEthicsScorer
-import com.example.popcoon.feature.prediction.ConformalInterval
-import com.example.popcoon.feature.prediction.PricePredictionEngine
-import com.example.popcoon.feature.prediction.SeasonalDecompForecast
-import com.example.popcoon.feature.scorer.BuyTimingScorer
-import com.example.popcoon.feature.scorer.SeasonalDowSignal
-import com.example.popcoon.feature.tco.TCOCalculator
+import io.github.shizukutanaka.popcoon.data.model.PriceRecord
+import io.github.shizukutanaka.popcoon.feature.cart.CrossMallCartOptimizer
+import io.github.shizukutanaka.popcoon.feature.crossborder.CustomsSimulator
+import io.github.shizukutanaka.popcoon.feature.darkpattern.DarkPatternDetector
+import io.github.shizukutanaka.popcoon.feature.darkpattern.DarkPatternTextDetector
+import io.github.shizukutanaka.popcoon.feature.ethics.EcoEthicsScorer
+import io.github.shizukutanaka.popcoon.feature.prediction.ConformalInterval
+import io.github.shizukutanaka.popcoon.feature.prediction.PricePredictionEngine
+import io.github.shizukutanaka.popcoon.feature.prediction.SeasonalDecompForecast
+import io.github.shizukutanaka.popcoon.feature.scorer.BuyTimingScorer
+import io.github.shizukutanaka.popcoon.feature.scorer.SeasonalDowSignal
+import io.github.shizukutanaka.popcoon.feature.tco.TCOCalculator
 import java.time.Instant
 
 /**

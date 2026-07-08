@@ -1,4 +1,4 @@
-package com.example.popcoon.data.network
+package io.github.shizukutanaka.popcoon.data.network
 
 /**
  * YahooMapper.toProduct() の実行検証ハーネス (Android SDK 不要)。

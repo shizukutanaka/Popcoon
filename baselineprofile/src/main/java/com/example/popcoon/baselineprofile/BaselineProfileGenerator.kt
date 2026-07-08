@@ -1,4 +1,4 @@
-package com.example.popcoon.baselineprofile
+package io.github.shizukutanaka.popcoon.baselineprofile
 
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -24,7 +24,7 @@ class BaselineProfileGenerator {
 
     @get:Rule val rule = BaselineProfileRule()
 
-    private val packageName = "com.example.popcoon"
+    private val packageName = "io.github.shizukutanaka.popcoon"
 
     @Test
     fun startup() {

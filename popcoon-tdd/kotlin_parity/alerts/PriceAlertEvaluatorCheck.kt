@@ -1,4 +1,4 @@
-package com.example.popcoon.feature.notification
+package io.github.shizukutanaka.popcoon.feature.notification
 
 private typealias Kind = PriceAlertEvaluator.Kind
 

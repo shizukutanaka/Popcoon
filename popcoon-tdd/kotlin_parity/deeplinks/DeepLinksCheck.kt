@@ -1,4 +1,4 @@
-package com.example.popcoon.core
+package io.github.shizukutanaka.popcoon.core
 
 /**
  * DeepLinks の実行検証ハーネス (Android SDK 不要)。

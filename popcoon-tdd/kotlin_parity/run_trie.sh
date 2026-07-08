@@ -5,7 +5,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
-SRC="$ROOT/app/src/main/java/com/example/popcoon"
+SRC="$ROOT/app/src/main/java/io/github/shizukutanaka/popcoon"
 OUT="$(mktemp -d)"; trap 'rm -rf "$OUT"' EXIT
 
 KC="$(find "$HOME/.gradle" -name 'kotlin-compiler-embeddable-*.jar' 2>/dev/null | head -1 || true)"

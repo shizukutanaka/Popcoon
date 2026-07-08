@@ -24,17 +24,17 @@ composeCompiler {
 }
 
 android {
-    namespace = "com.example.popcoon"
+    namespace = "io.github.shizukutanaka.popcoon"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.popcoon"
+        applicationId = "io.github.shizukutanaka.popcoon"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
 
-        testInstrumentationRunner = "com.example.popcoon.HiltTestRunner"
+        testInstrumentationRunner = "io.github.shizukutanaka.popcoon.HiltTestRunner"
         vectorDrawables.useSupportLibrary = true
 
         // BuildConfig values — override via local.properties or env
@@ -197,8 +197,8 @@ kover {
                     "*.R\$*",
                 )
                 packages(
-                    "com.example.popcoon.di",     // DI は実行時に検証
-                    "com.example.popcoon.ui.theme",  // テーマは Preview で検証
+                    "io.github.shizukutanaka.popcoon.di",     // DI は実行時に検証
+                    "io.github.shizukutanaka.popcoon.ui.theme",  // テーマは Preview で検証
                 )
                 annotatedBy("*Preview*", "*Generated*")
             }

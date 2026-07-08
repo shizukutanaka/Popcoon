@@ -5,8 +5,8 @@
 * @shizukutanaka
 
 # セキュリティ・課金は特に慎重なレビューが必要
-/app/src/main/java/com/example/popcoon/feature/billing/ @shizukutanaka
-/app/src/main/java/com/example/popcoon/data/network/ @shizukutanaka
+/app/src/main/java/io/github/shizukutanaka/popcoon/feature/billing/ @shizukutanaka
+/app/src/main/java/io/github/shizukutanaka/popcoon/data/network/ @shizukutanaka
 /backend/ @shizukutanaka
 /.github/workflows/ @shizukutanaka
 SECURITY.md @shizukutanaka

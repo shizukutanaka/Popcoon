@@ -1,6 +1,6 @@
-package com.example.popcoon.feature.share
+package io.github.shizukutanaka.popcoon.feature.share
 
-import com.example.popcoon.data.model.Platform
+import io.github.shizukutanaka.popcoon.data.model.Platform
 
 /**
  * Standalone execution check for UrlClassifier (share-intent URL -> Platform+SKU).

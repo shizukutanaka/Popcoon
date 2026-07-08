@@ -1,7 +1,7 @@
-package com.example.popcoon.feature.matching
+package io.github.shizukutanaka.popcoon.feature.matching
 
-import com.example.popcoon.data.model.Platform
-import com.example.popcoon.data.model.Product
+import io.github.shizukutanaka.popcoon.data.model.Platform
+import io.github.shizukutanaka.popcoon.data.model.Product
 
 /**
  * Standalone execution check for ProductMatcher model-number extraction.

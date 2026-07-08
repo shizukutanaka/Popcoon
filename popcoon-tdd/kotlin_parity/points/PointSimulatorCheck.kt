@@ -1,7 +1,7 @@
-package com.example.popcoon.feature.points
+package io.github.shizukutanaka.popcoon.feature.points
 
-import com.example.popcoon.data.model.Platform
-import com.example.popcoon.data.model.Product
+import io.github.shizukutanaka.popcoon.data.model.Platform
+import io.github.shizukutanaka.popcoon.data.model.Product
 import java.time.LocalDate
 
 /**

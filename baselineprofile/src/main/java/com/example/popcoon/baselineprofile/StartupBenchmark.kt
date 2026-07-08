@@ -1,4 +1,4 @@
-package com.example.popcoon.baselineprofile
+package io.github.shizukutanaka.popcoon.baselineprofile
 
 import androidx.benchmark.macro.BaselineProfileMode
 import androidx.benchmark.macro.CompilationMode
@@ -24,7 +24,7 @@ class StartupBenchmark {
 
     @get:Rule val rule = MacrobenchmarkRule()
 
-    private val packageName = "com.example.popcoon"
+    private val packageName = "io.github.shizukutanaka.popcoon"
 
     @Test
     fun startupCompilationNone() = startup(CompilationMode.None())
