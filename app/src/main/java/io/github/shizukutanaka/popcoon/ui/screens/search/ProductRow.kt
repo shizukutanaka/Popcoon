@@ -132,15 +132,16 @@ internal fun ProductRow(
                 Spacer(Modifier.height(Spacing.sm))
                 Row {
                     row.warnings.take(2).forEach { w ->
+                        val text = w.asString()
                         Surface(
                             shape = RoundedCornerShape(CornerRadius.tag),
                             color = MaterialTheme.colorScheme.errorContainer,
                             modifier = Modifier
                                 .padding(end = Spacing.sm)
-                                .a11yDescription("⚠ $w"),
+                                .a11yDescription("⚠ $text"),
                         ) {
                             Text(
-                                w, Modifier.padding(horizontal = Spacing.sm, vertical = 2.dp),
+                                text, Modifier.padding(horizontal = Spacing.sm, vertical = 2.dp),
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }
@@ -187,7 +188,7 @@ private fun ProductRowPreview() {
                     realPrice = 29_800,
                 ),
                 verdict = BuyTimingScorer.Verdict.BUY_NOW,
-                warnings = listOf("常態割引"),
+                warnings = listOf(io.github.shizukutanaka.popcoon.ui.UiText.DynamicString("常態割引")),
                 score = 85,
                 alternatives = emptyList(),
             ),

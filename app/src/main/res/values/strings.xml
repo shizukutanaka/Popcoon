@@ -20,6 +20,17 @@
     <string name="detail_price">価格</string>
     <string name="detail_score_breakdown">スコア内訳</string>
     <string name="detail_warnings_title">景品表示法 注意</string>
+
+    <!-- ダークパターン警告ラベル (DarkPatternDetector.Warning のローカライズ済み表示文言) -->
+    <string name="dp_always_on_discount">常設セール</string>
+    <string name="dp_inflated_list_price">参考価格誇張</string>
+    <string name="dp_pre_sale_markup">セール前値上げ</string>
+    <string name="dp_charm_pricing">端数価格</string>
+    <string name="dp_fake_scarcity">在庫を煽る表現</string>
+    <string name="dp_countdown_manipulation">時間制限を煽る表現</string>
+    <string name="dp_drip_pricing_high">送料・手数料が割高 (実質+%1$d%%)</string>
+    <string name="dp_drip_pricing_medium">送料込みで割高 (実質+%1$d%%)</string>
+
     <string name="detail_price_history">価格履歴</string>
     <string name="detail_more_info">詳細情報</string>
     <string name="detail_ai_advice">AI アドバイス</string>

@@ -9,6 +9,7 @@ import io.github.shizukutanaka.popcoon.data.repository.IProductRepository
 import io.github.shizukutanaka.popcoon.feature.ai.BuyingAdvisor
 import io.github.shizukutanaka.popcoon.feature.darkpattern.DarkPatternDetector
 import io.github.shizukutanaka.popcoon.feature.darkpattern.DarkPatternTextDetector
+import io.github.shizukutanaka.popcoon.ui.toLabelResource
 import io.github.shizukutanaka.popcoon.feature.ethics.EcoEthicsScorer
 import io.github.shizukutanaka.popcoon.feature.prediction.PricePredictionEngine
 import io.github.shizukutanaka.popcoon.feature.bundle.BundlePackDetector
@@ -133,8 +134,17 @@ class ProductDetailViewModel @Inject constructor(
                 )
                 // テキスト系: 5カテゴリ検出器（URGENCY/SCARCITY/SOCIAL_PROOF/MISDIRECTION/FORCED_ACTION）
                 val textSignals = DarkPatternTextDetector.detect(product.title)
+                // .label は日本語固定文字列 (BuyTimingScorer 内部識別用) なので UI 表示には使わない。
+                // toLabelResource() で type/severity からロケール対応の文字列リソースへ変換する。
+                // context.getString() を直接使う (このクラスは @ApplicationContext を保持済みで、
+                // SearchViewModel と異なり UiText 経由の Composable 解決を要しない)。
+                // textSignals (DarkPatternTextDetector) の evidence は商品タイトルから抽出した
+                // 生テキストそのもの (翻訳不能・翻訳すべきでない) のため、そのまま残す。
                 val warnings = (priceWarnings + listOfNotNull(dripWarning))
-                    .map { "${it.label} (${it.severity.name})" }
+                    .map { w ->
+                        val (resId, args) = w.toLabelResource()
+                        "${context.getString(resId, *args.toTypedArray())} (${w.severity.name})"
+                    }
                     .toMutableList()
                 warnings += textSignals.map { "${it.evidence} (${it.severity.name})" }
 

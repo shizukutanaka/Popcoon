@@ -20,10 +20,21 @@ object DarkPatternDetector {
 
     enum class Severity { LOW, MEDIUM, HIGH }
 
+    /**
+     * @param label 固定の日本語文字列。Python オラクル (popcoon_core.py) との構築時比較・
+     *   BuyTimingScorer の内部スコア内訳表示に使う (両者とも label の値自体をテスト・
+     *   比較対象にはしていない — WarningType enum のみで判定している)。
+     *   検索結果・商品詳細画面のユーザー向け警告表示はこれを直接使わず、
+     *   ui/DarkPatternLabels.kt が type (+ DRIP_PRICING は severity/labelArgs) から
+     *   ロケール対応の文字列リソースへマッピングする — DarkPatternDetector 自体は
+     *   Android/リソース依存を持ち込まず Python と 1:1 対応する純粋ロジックのまま保つ。
+     * @param labelArgs UI 層でのフォーマット引数 (DRIP_PRICING の割高率 % 等)。
+     */
     data class Warning(
         val type: WarningType,
         val label: String,
         val severity: Severity,
+        val labelArgs: List<Any> = emptyList(),
     )
 
     fun detect(
@@ -89,16 +100,19 @@ object DarkPatternDetector {
         val extra = totalPrice - basePrice
         if (extra <= 0) return null
         val extraRate = extra.toDouble() / basePrice
+        val pct = (extraRate * 100).toInt()
         return when {
             extraRate >= 0.30 -> Warning(
                 WarningType.DRIP_PRICING,
-                "送料・手数料が割高 (実質+${(extraRate * 100).toInt()}%)",
+                "送料・手数料が割高 (実質+${pct}%)",
                 Severity.HIGH,
+                labelArgs = listOf(pct),
             )
             extraRate >= 0.15 -> Warning(
                 WarningType.DRIP_PRICING,
-                "送料込みで割高 (実質+${(extraRate * 100).toInt()}%)",
+                "送料込みで割高 (実質+${pct}%)",
                 Severity.MEDIUM,
+                labelArgs = listOf(pct),
             )
             else -> null
         }

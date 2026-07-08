@@ -65,7 +65,9 @@ private fun ProductRowBuyNowPreview() {
                         shippingFee = 0,
                     ),
                     verdict = BuyTimingScorer.Verdict.BUY_NOW,
-                    warnings = listOf("常設セールの疑い"),
+                    warnings = listOf(
+                        io.github.shizukutanaka.popcoon.ui.UiText.DynamicString("常設セールの疑い"),
+                    ),
                     score = 82,
                 ),
                 onClick = {},

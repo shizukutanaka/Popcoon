@@ -18,6 +18,17 @@
     <string name="detail_price">Price</string>
     <string name="detail_score_breakdown">Score breakdown</string>
     <string name="detail_warnings_title">Dark Pattern Warnings</string>
+
+    <!-- Dark pattern warning labels (localized display text for DarkPatternDetector.Warning) -->
+    <string name="dp_always_on_discount">Perpetual sale</string>
+    <string name="dp_inflated_list_price">Inflated reference price</string>
+    <string name="dp_pre_sale_markup">Price raised before sale</string>
+    <string name="dp_charm_pricing">Charm pricing</string>
+    <string name="dp_fake_scarcity">Urgency-inducing stock claim</string>
+    <string name="dp_countdown_manipulation">Urgency-inducing time claim</string>
+    <string name="dp_drip_pricing_high">Shipping/fees inflate cost (+%1$d%% effective)</string>
+    <string name="dp_drip_pricing_medium">Shipping raises effective cost (+%1$d%% effective)</string>
+
     <string name="detail_ai_advice">AI Advice</string>
     <string name="detail_confidence">Confidence</string>
     <string name="confidence_high">High</string>

@@ -217,7 +217,7 @@ private fun ResultsList(
 data class SearchRow(
     val product: Product,
     val verdict: BuyTimingScorer.Verdict?,
-    val warnings: List<String>,
+    val warnings: List<UiText>,
     val score: Int = 0,
     /** 同一商品の他モール価格 (名寄せ結果、最安値順、自身を除く) */
     val alternatives: List<Product> = emptyList(),

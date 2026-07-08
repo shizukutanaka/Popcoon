@@ -18,6 +18,17 @@
     <string name="detail_price">가격</string>
     <string name="detail_score_breakdown">점수 내역</string>
     <string name="detail_warnings_title">다크 패턴 경고</string>
+
+    <!-- 다크 패턴 경고 라벨 (DarkPatternDetector.Warning의 현지화된 표시 문구) -->
+    <string name="dp_always_on_discount">상시 할인</string>
+    <string name="dp_inflated_list_price">정가 과장</string>
+    <string name="dp_pre_sale_markup">세일 전 가격 인상</string>
+    <string name="dp_charm_pricing">단수 가격</string>
+    <string name="dp_fake_scarcity">재고를 부추기는 표현</string>
+    <string name="dp_countdown_manipulation">시간 제한을 부추기는 표현</string>
+    <string name="dp_drip_pricing_high">배송비・수수료가 비쌈 (실질 +%1$d%%)</string>
+    <string name="dp_drip_pricing_medium">배송비 포함 시 비쌈 (실질 +%1$d%%)</string>
+
     <string name="detail_ai_advice">AI 조언</string>
     <string name="detail_confidence">신뢰도</string>
     <string name="confidence_high">높음</string>

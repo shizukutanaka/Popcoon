@@ -14,6 +14,7 @@ import io.github.shizukutanaka.popcoon.feature.scorer.BuyTimingScorer
 import io.github.shizukutanaka.popcoon.feature.settings.IUserPreferences
 import io.github.shizukutanaka.popcoon.R
 import io.github.shizukutanaka.popcoon.ui.UiText
+import io.github.shizukutanaka.popcoon.ui.toLabelResource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.FlowPreview
@@ -201,8 +202,13 @@ class SearchViewModel @Inject constructor(
                     basePrice = product.realPrice,
                     totalPrice = product.totalPrice,
                 )
+                // .label は日本語固定文字列 (BuyTimingScorer 内部識別用) なので UI 表示には使わない。
+                // toLabelResource() で type/severity からロケール対応の文字列リソースへ変換する。
                 val warnings = (priceWarnings + textWarnings + listOfNotNull(dripWarning))
-                    .map { it.label }
+                    .map { w ->
+                        val (resId, args) = w.toLabelResource()
+                        UiText.StringResource(resId, *args.toTypedArray())
+                    }
 
                 SearchRow(
                     product = product,

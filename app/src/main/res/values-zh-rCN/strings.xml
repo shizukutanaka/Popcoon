@@ -18,6 +18,17 @@
     <string name="detail_price">价格</string>
     <string name="detail_score_breakdown">评分详情</string>
     <string name="detail_warnings_title">暗黑模式警告</string>
+
+    <!-- 暗黑模式警告标签 (DarkPatternDetector.Warning 的本地化显示文案) -->
+    <string name="dp_always_on_discount">长期促销</string>
+    <string name="dp_inflated_list_price">原价虚标</string>
+    <string name="dp_pre_sale_markup">促销前涨价</string>
+    <string name="dp_charm_pricing">尾数定价</string>
+    <string name="dp_fake_scarcity">库存紧张话术</string>
+    <string name="dp_countdown_manipulation">限时紧迫话术</string>
+    <string name="dp_drip_pricing_high">运费/手续费过高 (实际+%1$d%%)</string>
+    <string name="dp_drip_pricing_medium">含运费后偏高 (实际+%1$d%%)</string>
+
     <string name="detail_ai_advice">AI 建议</string>
     <string name="detail_confidence">可信度</string>
     <string name="confidence_high">高</string>
