@@ -103,6 +103,24 @@ android {
         // 「発見されず」サイレントにスキップされる (テストが 1 件も走らない)。
         unitTests.all { it.useJUnitPlatform() }
     }
+
+    sourceSets {
+        // MigrationTestHelper (androidTest/MigrationTest.kt) は各バージョンのスキーマ JSON を
+        // アプリの assets 経由で読む。schemas/ を明示的に追加しないと実行時に見つからない。
+        getByName("androidTest").assets.srcDirs("$projectDir/schemas")
+    }
+}
+
+// Room スキーマ JSON のエクスポート先。PopcoonDatabase の @Database(exportSchema = true) が
+// 出力先を持たないと KSP ビルド警告になり、androidTest/MigrationTest.kt (MigrationTestHelper)
+// が検証対象とする各バージョンの実スキーマ履歴が作れない (商用リリース監査で発見)。
+// schemas/*.json は Room の慣例どおりコミット対象 (Rails のマイグレーションファイルと同様、
+// 過去バージョンの実スキーマの記録そのものであり、ビルド成果物として捨ててよいものではない)。
+// このリポジトリは Android SDK が無くビルドできないため、この環境では schemas/ ディレクトリを
+// 生成できない — Android SDK のある環境 (Android Studio / CI) で最初のビルドを実行した時点で
+// 自動生成され、以後の CI に検証される。
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -179,6 +197,7 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.room.testing)
 }
 
 // ── Kover テストカバレッジ設定 ────────────────────────────────────────────
