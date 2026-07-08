@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ウィジェットピッカー用のプレビュー (API 31+, android:previewLayout)。
+  以前は popcoon_widget_info.xml に previewImage/previewLayout が一切なく、
+  ウィジェットピッカーに空白/汎用タイルが表示されディスカバラビリティを損なっていた
+  (商用リリース監査で発見)。
+
+  これは実ウィジェット (widget/PopcoonWidget.kt, Glance) の見た目を静的に近似した
+  通常の View レイアウトで、実データバインディングは行わない (ピッカー表示専用)。
+  実ウィジェットの配色 (PopcoonWidget.kt の bgColor/primaryColor/textColor/subtleColor)
+  と揃えている。API 31 未満の端末では previewImage が無いため汎用タイルのまま —
+  実画面のスクリーンショットが用意できるまでの暫定対応 (D3 のストア素材と同様の制約)。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0A1519"
+    android:padding="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Popcoon"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🎯"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:text="楽天 5と0のつく日 +1%"
+        android:textColor="#00C4CC"
+        android:textSize="10sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="ワイヤレスイヤホン ¥8,980"
+        android:textColor="#FFFFFF"
+        android:textSize="10sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="ノートPC ¥89,800"
+        android:textColor="#B0BEC5"
+        android:textSize="10sp" />
+</LinearLayout>

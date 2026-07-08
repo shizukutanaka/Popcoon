@@ -48,7 +48,13 @@ class PopcoonWidget : GlanceAppWidget() {
         val todayInfo = loadTodayInfo(context)
 
         provideContent {
-            WidgetContent(items = items, todayInfo = todayInfo)
+            // GlanceTheme は Android 12+ では動的カラー (Material You)、それ未満では
+            // デフォルトの M3 配色を提供する。以前は 4 色 (背景・強調・文字・控えめ) を
+            // 全て固定値でハードコードしており、ランチャーのライト/ダーク・動的カラーを
+            // 一切無視していた (商用リリース監査で発見)。
+            GlanceTheme {
+                WidgetContent(items = items, todayInfo = todayInfo)
+            }
         }
     }
 
@@ -121,10 +127,12 @@ internal object PopcoonWidgetLogic {
 
 @Composable
 private fun WidgetContent(items: List<WidgetItem>, todayInfo: TodayInfo) {
-    val bgColor = ColorProvider(Color(0xFF0A1519))
-    val primaryColor = ColorProvider(Color(0xFF00C4CC))
-    val textColor = ColorProvider(Color.White)
-    val subtleColor = ColorProvider(Color(0xFFB0BEC5))
+    // GlanceTheme.colors はランチャーのライト/ダーク・動的カラーに追従する
+    // (呼び出し元 provideGlance() の GlanceTheme { } ブロック内でのみ解決可能)。
+    val bgColor = GlanceTheme.colors.background
+    val primaryColor = GlanceTheme.colors.primary
+    val textColor = GlanceTheme.colors.onBackground
+    val subtleColor = GlanceTheme.colors.onSurfaceVariant
 
     Column(
         modifier = GlanceModifier
