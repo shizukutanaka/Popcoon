@@ -37,6 +37,20 @@ interface IProductRepository {
     suspend fun getPriceHistory(productKey: String): List<PriceRecord>
 }
 
+/**
+ * 3 プラットフォーム全てが失敗 (例外 or サーキットブレーカー OPEN) した場合に投げる。
+ *
+ * 以前は searchWithBreaker が全ての失敗を emptyList() に握りつぶしていたため、
+ * ネットワーク全断時でも SearchViewModel は「該当商品なし」(Empty) と区別が
+ * つかず、リトライ導線も出せなかった (商用リリース監査で発見)。
+ * IOException を継承することで SearchViewModel の既存の
+ * `e is java.io.IOException` 分岐 (ネットワークエラー用の案内文) にそのまま乗る。
+ *
+ * 「一部の情報源は成功したが 0 件だった」場合はこの例外を投げない —
+ * その場合は Empty (該当商品なし) が正しい表現のまま。
+ */
+class AllSourcesUnavailableException : java.io.IOException("All product sources failed or are circuit-open")
+
 open class ProductRepository @Inject constructor(
     private val amazon: AmazonPaApiClient,
     private val rakuten: RakutenClient,
@@ -53,6 +67,8 @@ open class ProductRepository @Inject constructor(
 
     /**
      * 3 EC 並列検索。1つが失敗しても他の結果を返す。
+     * 3つ全てが失敗した場合のみ [AllSourcesUnavailableException] を投げ、
+     * 呼び出し側 (SearchViewModel) がネットワーク全断とジャンル該当なしを区別できるようにする。
      * fire-and-forget で backend に価格を送信 (ユーザー体感を阻害しない)。
      */
     override suspend fun search(keyword: String, limit: Int = 10): List<Product> = coroutineScope {
@@ -66,8 +82,12 @@ open class ProductRepository @Inject constructor(
             searchWithBreaker("Yahoo", yahooBreaker) { yahoo.search(keyword, limit) }
         }
 
-        val results = listOf(amazonJob.await(), rakutenJob.await(), yahooJob.await())
-            .flatten()
+        val outcomes = listOf(amazonJob.await(), rakutenJob.await(), yahooJob.await())
+        val results = outcomes.flatMap { it.products }
+
+        if (results.isEmpty() && outcomes.all { it.failed }) {
+            throw AllSourcesUnavailableException()
+        }
 
         // 非同期で backend に価格履歴をまとめて投稿 (UI をブロックしない、1 コルーチン)
         backend.postPricesAsync(
@@ -115,25 +135,34 @@ open class ProductRepository @Inject constructor(
     /**
      * サーキットブレーカー越しに 1 プラットフォームを検索する共通処理。
      * OPEN 中は API を呼ばず即座に空リストを返す (タイムアウト待ちを回避)。
+     *
+     * `failed = true` は「この情報源から有効な回答を得られなかった」(例外 or
+     * ブレーカー OPEN) ことを示し、`search()` が「全滅かどうか」を判定するのに使う。
+     * API 呼び出し自体が成功して 0 件だった場合は `failed = false` のまま
+     * (それは正当な「該当なし」であり、全滅判定に含めるべきではない)。
      */
     private suspend fun searchWithBreaker(
         label: String,
         breaker: CircuitBreaker,
         call: suspend () -> List<Product>,
-    ): List<Product> {
+    ): SourceOutcome {
         val now = System.currentTimeMillis()
         if (!breaker.allowRequest(now)) {
             PopcoonLogger.w("ProductRepository", "$label はサーキットブレーカー OPEN 中 — スキップ")
-            return emptyList()
+            return SourceOutcome(emptyList(), failed = true)
         }
         return try {
-            call().also { breaker.recordSuccess() }
+            val products = call()
+            breaker.recordSuccess()
+            SourceOutcome(products, failed = false)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             breaker.recordFailure(System.currentTimeMillis())
             PopcoonLogger.w("ProductRepository", "$label 検索失敗", e)
-            emptyList()
+            SourceOutcome(emptyList(), failed = true)
         }
     }
+
+    private data class SourceOutcome(val products: List<Product>, val failed: Boolean)
 }

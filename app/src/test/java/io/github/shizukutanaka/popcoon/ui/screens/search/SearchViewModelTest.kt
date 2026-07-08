@@ -83,6 +83,29 @@ class SearchViewModelTest : StringSpec({
         }
     }
 
+    // ProductRepository.search() は 3 プラットフォーム全滅時のみ IOException
+    // (AllSourcesUnavailableException) を投げるよう変更された (以前は emptyList() に
+    // 握りつぶし、ネットワーク全断でも「該当商品なし」と誤表示していた)。
+    // この分岐 (IOException → Error) 自体は元から実装済みだったが、ProductRepository が
+    // 一度も例外を投げなかったため到達不能だった — その到達可能性をここで固定する。
+    "リポジトリが IOException を投げると Empty ではなく Error になる (全ソース障害)" {
+        runTest(testDispatcher) {
+            val vm = makeViewModel(repo = ThrowingRepository(java.io.IOException("all sources down")))
+            vm.onQueryChange("何か")
+            advanceTimeBy(500)
+            vm.state.value.shouldBeInstanceOf<SearchUiState.Error>()
+        }
+    }
+
+    "IOException 以外の例外も Error になる (ネットワーク以外の障害)" {
+        runTest(testDispatcher) {
+            val vm = makeViewModel(repo = ThrowingRepository(RuntimeException("unexpected")))
+            vm.onQueryChange("何か")
+            advanceTimeBy(500)
+            vm.state.value.shouldBeInstanceOf<SearchUiState.Error>()
+        }
+    }
+
     "連続入力は最後だけ反映 (distinctUntilChanged + debounce)" {
         runTest(testDispatcher) {
             val repo = CountingRepository()
@@ -204,6 +227,15 @@ private class FakeRepository(
     private val products: List<Product> = emptyList(),
 ) : io.github.shizukutanaka.popcoon.data.repository.IProductRepository {
     override suspend fun search(keyword: String, limit: Int): List<Product> = products
+    override suspend fun refresh(product: Product): Product? = null
+    override suspend fun getPriceHistory(productKey: String): List<PriceRecord> = emptyList()
+}
+
+/** search() が常に指定した例外を投げるリポジトリ。全ソース障害系のテスト用。 */
+private class ThrowingRepository(
+    private val exception: Throwable,
+) : io.github.shizukutanaka.popcoon.data.repository.IProductRepository {
+    override suspend fun search(keyword: String, limit: Int): List<Product> = throw exception
     override suspend fun refresh(product: Product): Product? = null
     override suspend fun getPriceHistory(productKey: String): List<PriceRecord> = emptyList()
 }
