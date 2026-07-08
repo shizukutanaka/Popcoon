@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!--
+      ダークモード用オーバーライド。以前は values/themes.xml の
+      android:Theme.Material.Light.NoActionBar (windowLightStatusBar=true 固定) しか無く、
+      Compose 層 (ui/theme/Theme.kt) は isSystemInDarkTheme() でダーク対応していたのに
+      起動ウィンドウ・ステータスバーだけがシステムのダーク設定を無視していた
+      (商用リリース監査で発見)。
+    -->
+    <style name="Theme.Popcoon" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- スプラッシュ背景もダーク時は暗めのブランドカラーにし、直後の暗いテーマへの遷移を滑らかにする。 -->
+    <style name="Theme.Popcoon.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/popcoon_brand_dark</item>
+        <item name="postSplashScreenTheme">@style/Theme.Popcoon</item>
+    </style>
+</resources>

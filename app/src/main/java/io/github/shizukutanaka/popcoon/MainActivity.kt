@@ -6,9 +6,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import io.github.shizukutanaka.popcoon.core.PopcoonLogger
 import io.github.shizukutanaka.popcoon.feature.crash.StartupTracker
 import io.github.shizukutanaka.popcoon.feature.share.UrlClassifier
+import io.github.shizukutanaka.popcoon.ui.AppRootState
+import io.github.shizukutanaka.popcoon.ui.AppRootViewModel
 import io.github.shizukutanaka.popcoon.ui.PopcoonApp
 import io.github.shizukutanaka.popcoon.worker.PriceSyncWorker
 import io.github.shizukutanaka.popcoon.worker.WeeklyDigestWorker
@@ -25,8 +29,17 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var startupTracker: StartupTracker
 
+    private val rootViewModel: AppRootViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        // installSplashScreen() は super.onCreate() より前に呼ぶ (SplashScreen API の規約)。
+        // 以前は AppRootState.Loading 中 (DataStore の onboarded フラグ読込を待つ間) に
+        // Compose が空の Surface を描画するだけで、起動直後が無地の空白フラッシュだった
+        // (商用リリース監査で発見)。ネイティブ SplashScreen をその読込完了までそのまま
+        // 表示し続けることで、フラッシュを解消する。
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+        splashScreen.setKeepOnScreenCondition { rootViewModel.state.value == AppRootState.Loading }
         enableEdgeToEdge()
         handleIntent(intent)
 

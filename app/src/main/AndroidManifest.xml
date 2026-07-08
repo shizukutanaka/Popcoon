@@ -39,7 +39,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.Popcoon"
+            android:theme="@style/Theme.Popcoon.Starting"
             android:windowSoftInputMode="adjustResize">
             <!-- App Shortcuts (ホーム画面長押し) -->
             <meta-data

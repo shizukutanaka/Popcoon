@@ -4,4 +4,17 @@
         <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
+
+    <!--
+      起動直後 (Activity 生成〜Compose の最初の描画) だけ表示される SplashScreen API 用テーマ。
+      以前は AppRootState.Loading 中 (DataStore の onboarded フラグ読込を待つ間) に
+      空の Surface を描画していただけで、実質的に「白い / 黒いだけの空白フラッシュ」だった
+      (商用リリース監査で発見)。windowSplashScreenAnimatedIcon は意図的に指定しない —
+      指定しない場合ランチャーアイコンが自動使用されるため、この環境では検証できない
+      アイコンサイズ・余白の調整ミスを避けられる。
+    -->
+    <style name="Theme.Popcoon.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/popcoon_brand</item>
+        <item name="postSplashScreenTheme">@style/Theme.Popcoon</item>
+    </style>
 </resources>

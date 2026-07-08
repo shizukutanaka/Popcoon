@@ -71,7 +71,10 @@ fun PopcoonApp(
             ) { s ->
                 when (s) {
                     AppRootState.Loading -> {
-                        // 起動直後は空画面 (スプラッシュ代わり)
+                        // この間はネイティブ SplashScreen (MainActivity.installSplashScreen +
+                        // setKeepOnScreenCondition) がまだ表示されたままなので、ここは
+                        // 実際には描画されない (Compose 初回コンポジションより先にスプラッシュが
+                        // 消えることはない)。空のままで問題ない。
                     }
                     AppRootState.Onboarding ->
                         OnboardingScreen(onComplete = viewModel::markOnboarded)
