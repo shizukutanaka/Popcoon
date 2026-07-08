@@ -84,8 +84,14 @@ fun PriceChart(
                 )
             }
         }
+        // filterByRange 内の Instant.now() をコンポジション実行パスで直接呼ぶと、
+        // 再コンポジションのたびにカットオフ時刻が (ミリ秒単位で) ずれ、records の中身が
+        // 変わっていなくても新しいフィルタ結果インスタンスが生成され、下流の
+        // PriceChartCanvas の remember(records) が無駄に再計算される (商用リリース監査で発見)。
+        // records/selectedRange が変わらない限り再計算しないよう remember でホイストする。
+        val filteredRecords = remember(records, selectedRange) { filterByRange(records, selectedRange) }
         PriceChartCanvas(
-            records = filterByRange(records, selectedRange),
+            records = filteredRecords,
             lineColor = lineColor,
             minMarkerColor = minMarkerColor,
         )

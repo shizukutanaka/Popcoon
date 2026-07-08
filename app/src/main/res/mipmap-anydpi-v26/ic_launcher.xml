@@ -2,4 +2,12 @@
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@color/popcoon_brand" />
     <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <!--
+      Android 13+ themed icons (monochrome). ic_launcher_foreground is already a single flat
+      fill color (#FFFFFFFF), so it can be reused as-is — the OS re-tints monochrome layers
+      itself, ignoring the drawable's own fill color. Missing this meant the launcher icon
+      fell back to a generic/untinted appearance on themed-icon-enabled launchers
+      (commercial-readiness audit finding).
+    -->
+    <monochrome android:drawable="@drawable/ic_launcher_foreground" />
 </adaptive-icon>

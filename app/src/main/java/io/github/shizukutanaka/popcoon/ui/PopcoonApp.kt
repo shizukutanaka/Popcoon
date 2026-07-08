@@ -45,7 +45,7 @@ internal enum class Tab(
     @androidx.annotation.StringRes val labelRes: Int,
     val icon: ImageVector,
 ) {
-    SEARCH("search", R.string.nav_search, AppIcons.Home),
+    SEARCH("search", R.string.nav_search, AppIcons.Search),
     WATCHLIST("watchlist", R.string.nav_watchlist, AppIcons.Save),
     SETTINGS("settings", R.string.nav_settings, AppIcons.Settings),
 }
