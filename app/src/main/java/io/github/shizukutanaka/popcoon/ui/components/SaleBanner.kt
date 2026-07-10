@@ -18,6 +18,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.shizukutanaka.popcoon.feature.calendar.SaleCalendar
 import io.github.shizukutanaka.popcoon.ui.localizedName
+import io.github.shizukutanaka.popcoon.ui.nameRes
 import io.github.shizukutanaka.popcoon.ui.theme.PopcoonTheme
 import java.time.LocalDate
 
@@ -82,7 +83,7 @@ private fun SaleChip(event: SaleCalendar.Event) {
         shape = RoundedCornerShape(CornerRadius.pill),
     ) {
         Text(
-            text = "$platformLabel${stringResource(event.nameRes)}",
+            text = "$platformLabel${stringResource(event.nameRes())}",
             modifier = Modifier.padding(horizontal = Spacing.ml, vertical = Spacing.sm),
             style = MaterialTheme.typography.labelMedium,
             color = fg,

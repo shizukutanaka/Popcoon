@@ -32,7 +32,9 @@ import io.github.shizukutanaka.popcoon.R
 import io.github.shizukutanaka.popcoon.data.model.Platform
 import io.github.shizukutanaka.popcoon.feature.calendar.SaleCalendar
 import io.github.shizukutanaka.popcoon.ui.a11y.a11yHeading
+import io.github.shizukutanaka.popcoon.ui.descRes
 import io.github.shizukutanaka.popcoon.ui.localizedName
+import io.github.shizukutanaka.popcoon.ui.nameRes
 import io.github.shizukutanaka.popcoon.ui.theme.AppIcons
 import io.github.shizukutanaka.popcoon.ui.theme.CornerRadius
 import io.github.shizukutanaka.popcoon.ui.theme.PopcoonTheme
@@ -136,7 +138,7 @@ private fun SaleEventCard(event: SaleCalendar.Event, today: LocalDate) {
     ) {
         Column(Modifier.padding(Spacing.lg)) {
             Text(
-                text = "${platformLabel(event.platform)}${stringResource(event.nameRes)}",
+                text = "${platformLabel(event.platform)}${stringResource(event.nameRes())}",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = tierColor(event.tier),
@@ -173,7 +175,7 @@ private fun SaleEventCard(event: SaleCalendar.Event, today: LocalDate) {
             }
             if (event.description.isNotBlank()) {
                 Text(
-                    text = stringResource(event.descRes),
+                    text = stringResource(event.descRes()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = Spacing.xs),

@@ -285,6 +285,40 @@
 
     <!-- ソートオプション -->
     <string name="score_breakdown">Score breakdown</string>
+
+    <!-- Buy-timing score breakdown signals (localized display for BuyTimingScorer.Signal) -->
+    <string name="buy_score_neutral_base">Neutral base</string>
+    <string name="buy_score_normalized">Score normalized</string>
+    <string name="buy_score_sale_imminent">Major sale imminent</string>
+    <string name="buy_score_sale_approaching">Major sale approaching</string>
+    <string name="buy_score_dow_cheap">Cheap day of week</string>
+    <string name="buy_score_dow_expensive">Expensive day of week</string>
+    <string name="buy_score_atl_stable_unknown">Stable price (can\'t judge low point)</string>
+    <string name="buy_score_atl_reached">All-time low reached</string>
+    <string name="buy_score_atl_near">Near all-time low</string>
+    <string name="buy_score_price_low_range">Near lowest range</string>
+    <string name="buy_score_price_high_range">Near highest range</string>
+    <string name="buy_score_price_mid_range">Mid price range</string>
+    <string name="buy_score_trend_unknown">Trend unknown</string>
+    <string name="buy_score_price_zero">Zero price</string>
+    <string name="buy_score_trend_up">Price rising (waiting is unfavorable)</string>
+    <string name="buy_score_trend_up_slight">Slight rise</string>
+    <string name="buy_score_trend_down">Price falling (waiting is favorable)</string>
+    <string name="buy_score_trend_down_slight">Slight fall</string>
+    <string name="buy_score_trend_flat">Price flat</string>
+    <string name="buy_score_no_discount">No discount</string>
+    <string name="buy_score_discount_pct">%1$d%% off list price</string>
+    <string name="buy_score_discount_pct_minor">%1$d%% off list price (minor)</string>
+    <string name="buy_score_avg_price_zero">Average price zero</string>
+    <string name="buy_score_volatility_very_stable">Very stable</string>
+    <string name="buy_score_volatility_stable">Stable price</string>
+    <string name="buy_score_volatility_high">High volatility</string>
+    <string name="buy_score_volatility_normal">Normal fluctuation</string>
+    <string name="buy_score_history_abundant">Abundant history</string>
+    <string name="buy_score_history_sufficient">Sufficient history</string>
+    <string name="buy_score_history_insufficient">Insufficient history</string>
+    <string name="buy_score_dark_pattern_detected">Dark pattern detected</string>
+
     <string name="premium_feature_export">Price history CSV export</string>
     <string name="confidence_unknown">Unknown</string>
     <string name="prediction_title">Price Forecast</string>

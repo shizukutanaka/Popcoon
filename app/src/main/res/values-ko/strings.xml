@@ -238,6 +238,40 @@
 
     <!-- ソートオプション -->
     <string name="score_breakdown">점수 내역</string>
+
+    <!-- 구매 시점 점수 내역 시그널 (BuyTimingScorer.Signal 현지화 표시용) -->
+    <string name="buy_score_neutral_base">중립 기준점</string>
+    <string name="buy_score_normalized">점수 정규화</string>
+    <string name="buy_score_sale_imminent">대형 세일 임박</string>
+    <string name="buy_score_sale_approaching">대형 세일 접근</string>
+    <string name="buy_score_dow_cheap">저렴한 요일</string>
+    <string name="buy_score_dow_expensive">비싼 요일</string>
+    <string name="buy_score_atl_stable_unknown">가격 안정 (최저가 판정 불가)</string>
+    <string name="buy_score_atl_reached">역대 최저가 도달</string>
+    <string name="buy_score_atl_near">역대 최저가권</string>
+    <string name="buy_score_price_low_range">최저가 근접</string>
+    <string name="buy_score_price_high_range">역대 최고가권</string>
+    <string name="buy_score_price_mid_range">중간 가격대</string>
+    <string name="buy_score_trend_unknown">추세 판정 불가</string>
+    <string name="buy_score_price_zero">가격 0</string>
+    <string name="buy_score_trend_up">가격 상승 중 (대기 불리)</string>
+    <string name="buy_score_trend_up_slight">소폭 상승</string>
+    <string name="buy_score_trend_down">가격 하락 중 (대기 유리)</string>
+    <string name="buy_score_trend_down_slight">소폭 하락</string>
+    <string name="buy_score_trend_flat">가격 보합</string>
+    <string name="buy_score_no_discount">할인 없음</string>
+    <string name="buy_score_discount_pct">정가 대비 %1$d%% 할인</string>
+    <string name="buy_score_discount_pct_minor">정가 대비 %1$d%% 할인 (소폭)</string>
+    <string name="buy_score_avg_price_zero">평균 가격 0</string>
+    <string name="buy_score_volatility_very_stable">매우 안정적</string>
+    <string name="buy_score_volatility_stable">가격 안정</string>
+    <string name="buy_score_volatility_high">변동성 큼</string>
+    <string name="buy_score_volatility_normal">일반적인 가격 변동</string>
+    <string name="buy_score_history_abundant">풍부한 이력</string>
+    <string name="buy_score_history_sufficient">충분한 이력</string>
+    <string name="buy_score_history_insufficient">이력 부족</string>
+    <string name="buy_score_dark_pattern_detected">다크 패턴 감지</string>
+
     <!-- Settings (extended) -->
     <string name="settings_title">설정</string>
     <string name="settings_privacy">개인정보</string>

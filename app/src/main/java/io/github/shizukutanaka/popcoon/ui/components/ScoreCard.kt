@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.shizukutanaka.popcoon.R
 import io.github.shizukutanaka.popcoon.feature.scorer.BuyTimingScorer
+import io.github.shizukutanaka.popcoon.ui.toLabelResource
 
 /**
  * 買い時スコアカード — 段階的開示。
@@ -113,12 +114,16 @@ fun ScoreCard(
                     signals
                         .filter { it.contribution != 0 && it.name.isNotEmpty() }
                         .forEach { sig ->
+                            // sig.name は日本語固定文字列 (BuyTimingScorerTest.kt / Python
+                            // オラクルが厳密比較する内部識別子) なので UI 表示には使わない。
+                            // toLabelResource() で kind からロケール対応の文字列リソースへ変換する。
+                            val (resId, args) = sig.toLabelResource()
                             Row(
                                 Modifier.fillMaxWidth().padding(vertical = Spacing.xxs),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
                                 Text(
-                                    sig.name,
+                                    stringResource(resId, *args.toTypedArray()),
                                     style = MaterialTheme.typography.bodySmall,
                                     modifier = Modifier.weight(1f),
                                 )

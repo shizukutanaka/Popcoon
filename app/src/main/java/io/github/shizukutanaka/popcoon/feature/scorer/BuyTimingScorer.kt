@@ -14,12 +14,46 @@ import kotlin.math.sqrt
  * Mutation testing: 10/10 killed (100%)。
  *
  * A5 配線（PORTING_SPEC.md A5）: today を渡すと曜日季節性シグナルを加算。
+ *
+ * このファイルは popcoon-tdd/kotlin_parity/run.sh が Android SDK 無しで直接コンパイルする
+ * 対象のため Android リソース (R) への依存を持ち込まない。スコア内訳の表示文言
+ * (Signal.name) はロケール非対応の日本語固定文字列のまま保持しつつ (BuyTimingScorerTest.kt /
+ * test_buy_timing_scorer.py が `.name` の内容へ厳密に依存しているため変更不可)、
+ * UI 表示用に `kind` という安定した enum 識別子を追加した — ロケール対応の文字列
+ * リソースへのマッピングは ui/BuyScoreSignalLabels.kt (Android 依存があってよい UI 層)
+ * が担当する (商用リリース監査で発見: スコア内訳が EN/KO/ZH ロケールに日本語のまま漏れていた)。
+ *
+ * SALE_IMMINENT/SALE_APPROACHING (具体的なセール名) と DARK_PATTERN_DETECTED
+ * (具体的な検出パターン名) は、埋め込まれる子要素 (SaleCalendar.Event.name /
+ * DarkPatternDetector.Warning.label) 自体もロケール解決が必要で、この pure function
+ * からは (Context/Composable が無いため) 解決できない。かつ、その詳細は既に
+ * SaleBanner / 警告バッジ等の専用 UI で別途ローカライズ済み表示されているため、
+ * スコア内訳ではあえて具体名を省略した簡略文言にする (表示の重複を避ける実利もある)。
  */
 object BuyTimingScorer {
 
     enum class Verdict { BUY_NOW, NEUTRAL, WAIT }
 
-    data class Signal(val name: String, val contribution: Int)
+    /** UI 層 (ui/BuyScoreSignalLabels.kt) が文字列リソースへマッピングする際の安定識別子。 */
+    enum class SignalKind {
+        NONE, // Signal("", 0) センチネル (表示されない、当ファイル外に漏れない)
+        NEUTRAL_BASE, SCORE_NORMALIZED,
+        SALE_IMMINENT, SALE_APPROACHING,
+        DOW_CHEAP, DOW_EXPENSIVE,
+        ATL_STABLE_UNKNOWN, ATL_REACHED, ATL_NEAR, PRICE_LOW_RANGE, PRICE_HIGH_RANGE, PRICE_MID_RANGE,
+        TREND_UNKNOWN, PRICE_ZERO, TREND_UP, TREND_UP_SLIGHT, TREND_DOWN, TREND_DOWN_SLIGHT, TREND_FLAT,
+        NO_DISCOUNT, DISCOUNT_PCT, DISCOUNT_PCT_MINOR,
+        AVG_PRICE_ZERO, VOLATILITY_VERY_STABLE, VOLATILITY_STABLE, VOLATILITY_HIGH, VOLATILITY_NORMAL,
+        HISTORY_ABUNDANT, HISTORY_SUFFICIENT, HISTORY_INSUFFICIENT,
+        DARK_PATTERN_DETECTED,
+    }
+
+    data class Signal(
+        val name: String,
+        val contribution: Int,
+        val kind: SignalKind = SignalKind.NONE,
+        val kindArgs: List<Any> = emptyList(),
+    )
 
     data class Score(
         val total: Int,
@@ -41,7 +75,7 @@ object BuyTimingScorer {
         if (history.size < MIN_HISTORY) return null
 
         val signals = mutableListOf<Signal>()
-        signals += Signal("中立スコア", BASE_SCORE)
+        signals += Signal("中立スコア", BASE_SCORE, SignalKind.NEUTRAL_BASE)
         signals += signalAtlProximity(current, history)
         signals += signalTrend(history)
         signals += signalDiscountFromList(current, listPrice)
@@ -63,7 +97,7 @@ object BuyTimingScorer {
 
         val rawSum = signals.sumOf { it.contribution }
         val total = rawSum.coerceIn(0, 100)
-        if (total != rawSum) signals += Signal("スコア正規化", total - rawSum)
+        if (total != rawSum) signals += Signal("スコア正規化", total - rawSum, SignalKind.SCORE_NORMALIZED)
 
         val verdict = when {
             total >= 70 -> Verdict.BUY_NOW
@@ -92,8 +126,8 @@ object BuyTimingScorer {
             ?: return Signal("", 0)
         val daysUntil = java.time.temporal.ChronoUnit.DAYS.between(today, next.startDate)
         return when {
-            daysUntil in 0..3 -> Signal("大型セール直前 (${next.name})", -12)
-            daysUntil in 4..7 -> Signal("大型セール接近 (${next.name})", -6)
+            daysUntil in 0..3 -> Signal("大型セール直前 (${next.name})", -12, SignalKind.SALE_IMMINENT)
+            daysUntil in 4..7 -> Signal("大型セール接近 (${next.name})", -6, SignalKind.SALE_APPROACHING)
             else -> Signal("", 0)
         }
     }
@@ -107,8 +141,8 @@ object BuyTimingScorer {
             r.recordedAt.atZone(TOKYO).dayOfWeek.ordinal to r.realPrice.toDouble()
         }
         val s = SeasonalDowSignal.signal(dowHistory, today.dayOfWeek.ordinal)
-        return if (s > 0) Signal("曜日買い時 (安い曜日)", s)
-               else if (s < 0) Signal("曜日割高 (高い曜日)", s)
+        return if (s > 0) Signal("曜日買い時 (安い曜日)", s, SignalKind.DOW_CHEAP)
+               else if (s < 0) Signal("曜日割高 (高い曜日)", s, SignalKind.DOW_EXPENSIVE)
                else Signal("", 0)
     }
 
@@ -116,63 +150,64 @@ object BuyTimingScorer {
         val prices = history.map { it.realPrice }
         val low = prices.min()
         val high = prices.max()
-        if (high == low) return Signal("価格安定 (ATL近接判定不可)", 0)
+        if (high == low) return Signal("価格安定 (ATL近接判定不可)", 0, SignalKind.ATL_STABLE_UNKNOWN)
         val position = (current - low).toDouble() / max(1, high - low)
         return when {
-            position <= 0 -> Signal("過去最安値到達", 30)
-            position <= 0.1 -> Signal("過去最安値圏", 22)
-            position <= 0.3 -> Signal("最安値近辺", 12)
-            position >= 0.9 -> Signal("過去最高値圏", -15)
-            else -> Signal("中間価格帯", 0)
+            position <= 0 -> Signal("過去最安値到達", 30, SignalKind.ATL_REACHED)
+            position <= 0.1 -> Signal("過去最安値圏", 22, SignalKind.ATL_NEAR)
+            position <= 0.3 -> Signal("最安値近辺", 12, SignalKind.PRICE_LOW_RANGE)
+            position >= 0.9 -> Signal("過去最高値圏", -15, SignalKind.PRICE_HIGH_RANGE)
+            else -> Signal("中間価格帯", 0, SignalKind.PRICE_MID_RANGE)
         }
     }
 
     private fun signalTrend(history: List<PriceRecord>): Signal {
         val pred = PricePredictionEngine.predict(history)
-            ?: return Signal("トレンド判定不可", 0)
+            ?: return Signal("トレンド判定不可", 0, SignalKind.TREND_UNKNOWN)
         val current = history.last().realPrice
-        if (current == 0L) return Signal("価格ゼロ", 0)
+        if (current == 0L) return Signal("価格ゼロ", 0, SignalKind.PRICE_ZERO)
         val futureRatio = (pred.predicted30d - current).toDouble() / current
         return when {
-            futureRatio > 0.05 -> Signal("価格上昇中 (待ちは不利)", 10)
-            futureRatio > 0.01 -> Signal("微上昇", 3)
-            futureRatio < -0.05 -> Signal("価格下降中 (待ちが有利)", -15)
-            futureRatio < -0.01 -> Signal("微下降", -5)
-            else -> Signal("価格横ばい", 0)
+            futureRatio > 0.05 -> Signal("価格上昇中 (待ちは不利)", 10, SignalKind.TREND_UP)
+            futureRatio > 0.01 -> Signal("微上昇", 3, SignalKind.TREND_UP_SLIGHT)
+            futureRatio < -0.05 -> Signal("価格下降中 (待ちが有利)", -15, SignalKind.TREND_DOWN)
+            futureRatio < -0.01 -> Signal("微下降", -5, SignalKind.TREND_DOWN_SLIGHT)
+            else -> Signal("価格横ばい", 0, SignalKind.TREND_FLAT)
         }
     }
 
     private fun signalDiscountFromList(current: Long, listPrice: Long): Signal {
-        if (listPrice <= 0 || listPrice <= current) return Signal("割引なし", 0)
+        if (listPrice <= 0 || listPrice <= current) return Signal("割引なし", 0, SignalKind.NO_DISCOUNT)
         val discountPct = (listPrice - current).toDouble() / listPrice * 100
+        val pct = discountPct.toInt()
         return when {
-            discountPct >= 40 -> Signal("定価比${discountPct.toInt()}%OFF", 15)
-            discountPct >= 25 -> Signal("定価比${discountPct.toInt()}%OFF", 10)
-            discountPct >= 10 -> Signal("定価比${discountPct.toInt()}%OFF", 5)
-            else -> Signal("定価比${discountPct.toInt()}%OFF (僅少)", 1)
+            discountPct >= 40 -> Signal("定価比${pct}%OFF", 15, SignalKind.DISCOUNT_PCT, listOf(pct))
+            discountPct >= 25 -> Signal("定価比${pct}%OFF", 10, SignalKind.DISCOUNT_PCT, listOf(pct))
+            discountPct >= 10 -> Signal("定価比${pct}%OFF", 5, SignalKind.DISCOUNT_PCT, listOf(pct))
+            else -> Signal("定価比${pct}%OFF (僅少)", 1, SignalKind.DISCOUNT_PCT_MINOR, listOf(pct))
         }
     }
 
     private fun signalVolatility(history: List<PriceRecord>): Signal {
         val prices = history.map { it.realPrice.toDouble() }
         val mean = prices.average()
-        if (mean == 0.0) return Signal("平均価格ゼロ", 0)
+        if (mean == 0.0) return Signal("平均価格ゼロ", 0, SignalKind.AVG_PRICE_ZERO)
         val variance = prices.map { (it - mean) * (it - mean) }.average()
         val cv = sqrt(variance) / mean
         return when {
-            cv < 0.02 -> Signal("極めて安定", 10)
-            cv < 0.05 -> Signal("価格安定", 5)
-            cv > 0.25 -> Signal("価格変動大", -5)
-            else -> Signal("通常の価格変動", 0)
+            cv < 0.02 -> Signal("極めて安定", 10, SignalKind.VOLATILITY_VERY_STABLE)
+            cv < 0.05 -> Signal("価格安定", 5, SignalKind.VOLATILITY_STABLE)
+            cv > 0.25 -> Signal("価格変動大", -5, SignalKind.VOLATILITY_HIGH)
+            else -> Signal("通常の価格変動", 0, SignalKind.VOLATILITY_NORMAL)
         }
     }
 
     private fun signalHistoryConfidence(history: List<PriceRecord>): Signal {
         val n = history.size
         return when {
-            n >= 90 -> Signal("豊富な履歴", 10)
-            n >= 30 -> Signal("十分な履歴", 5)
-            else -> Signal("履歴不足", 0)
+            n >= 90 -> Signal("豊富な履歴", 10, SignalKind.HISTORY_ABUNDANT)
+            n >= 30 -> Signal("十分な履歴", 5, SignalKind.HISTORY_SUFFICIENT)
+            else -> Signal("履歴不足", 0, SignalKind.HISTORY_INSUFFICIENT)
         }
     }
 
@@ -199,6 +234,10 @@ object BuyTimingScorer {
         }
         if (names.isEmpty()) return Signal("", 0)
         penalty = max(-20, penalty)
-        return Signal("ダークパターン検出 (${names.take(2).joinToString("/")})", penalty)
+        return Signal(
+            "ダークパターン検出 (${names.take(2).joinToString("/")})",
+            penalty,
+            SignalKind.DARK_PATTERN_DETECTED,
+        )
     }
 }

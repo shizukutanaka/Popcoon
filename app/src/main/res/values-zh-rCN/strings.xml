@@ -238,6 +238,40 @@
 
     <!-- ソートオプション -->
     <string name="score_breakdown">评分明细</string>
+
+    <!-- 买入时机评分明细信号 (BuyTimingScorer.Signal 本地化显示用) -->
+    <string name="buy_score_neutral_base">中立基准</string>
+    <string name="buy_score_normalized">分数归一化</string>
+    <string name="buy_score_sale_imminent">大促将至</string>
+    <string name="buy_score_sale_approaching">大促临近</string>
+    <string name="buy_score_dow_cheap">便宜的星期</string>
+    <string name="buy_score_dow_expensive">较贵的星期</string>
+    <string name="buy_score_atl_stable_unknown">价格稳定 (无法判定历史最低)</string>
+    <string name="buy_score_atl_reached">达到历史最低价</string>
+    <string name="buy_score_atl_near">接近历史最低价</string>
+    <string name="buy_score_price_low_range">接近最低价区间</string>
+    <string name="buy_score_price_high_range">接近历史最高价</string>
+    <string name="buy_score_price_mid_range">中间价位</string>
+    <string name="buy_score_trend_unknown">趋势无法判定</string>
+    <string name="buy_score_price_zero">价格为零</string>
+    <string name="buy_score_trend_up">价格上涨中 (等待不利)</string>
+    <string name="buy_score_trend_up_slight">小幅上涨</string>
+    <string name="buy_score_trend_down">价格下跌中 (等待有利)</string>
+    <string name="buy_score_trend_down_slight">小幅下跌</string>
+    <string name="buy_score_trend_flat">价格持平</string>
+    <string name="buy_score_no_discount">无折扣</string>
+    <string name="buy_score_discount_pct">较原价降%1$d%%</string>
+    <string name="buy_score_discount_pct_minor">较原价降%1$d%% (幅度较小)</string>
+    <string name="buy_score_avg_price_zero">平均价格为零</string>
+    <string name="buy_score_volatility_very_stable">极其稳定</string>
+    <string name="buy_score_volatility_stable">价格稳定</string>
+    <string name="buy_score_volatility_high">波动较大</string>
+    <string name="buy_score_volatility_normal">正常价格波动</string>
+    <string name="buy_score_history_abundant">历史数据丰富</string>
+    <string name="buy_score_history_sufficient">历史数据充足</string>
+    <string name="buy_score_history_insufficient">历史数据不足</string>
+    <string name="buy_score_dark_pattern_detected">检测到暗黑模式</string>
+
     <!-- Settings (extended) -->
     <string name="settings_title">设置</string>
     <string name="settings_privacy">隐私</string>

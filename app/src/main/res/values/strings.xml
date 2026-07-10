@@ -109,6 +109,40 @@
     <string name="score_wait">もう少し待つとよい</string>
     <string name="score_confidence">信頼度: %s</string>
     <string name="score_breakdown">スコア内訳</string>
+
+    <!-- 買い時スコア内訳シグナル (BuyTimingScorer.Signal のローカライズ済み表示用) -->
+    <string name="buy_score_neutral_base">中立スコア</string>
+    <string name="buy_score_normalized">スコア正規化</string>
+    <string name="buy_score_sale_imminent">大型セール直前</string>
+    <string name="buy_score_sale_approaching">大型セール接近</string>
+    <string name="buy_score_dow_cheap">曜日買い時 (安い曜日)</string>
+    <string name="buy_score_dow_expensive">曜日割高 (高い曜日)</string>
+    <string name="buy_score_atl_stable_unknown">価格安定 (ATL近接判定不可)</string>
+    <string name="buy_score_atl_reached">過去最安値到達</string>
+    <string name="buy_score_atl_near">過去最安値圏</string>
+    <string name="buy_score_price_low_range">最安値近辺</string>
+    <string name="buy_score_price_high_range">過去最高値圏</string>
+    <string name="buy_score_price_mid_range">中間価格帯</string>
+    <string name="buy_score_trend_unknown">トレンド判定不可</string>
+    <string name="buy_score_price_zero">価格ゼロ</string>
+    <string name="buy_score_trend_up">価格上昇中 (待ちは不利)</string>
+    <string name="buy_score_trend_up_slight">微上昇</string>
+    <string name="buy_score_trend_down">価格下降中 (待ちが有利)</string>
+    <string name="buy_score_trend_down_slight">微下降</string>
+    <string name="buy_score_trend_flat">価格横ばい</string>
+    <string name="buy_score_no_discount">割引なし</string>
+    <string name="buy_score_discount_pct">定価比%1$d%%OFF</string>
+    <string name="buy_score_discount_pct_minor">定価比%1$d%%OFF (僅少)</string>
+    <string name="buy_score_avg_price_zero">平均価格ゼロ</string>
+    <string name="buy_score_volatility_very_stable">極めて安定</string>
+    <string name="buy_score_volatility_stable">価格安定</string>
+    <string name="buy_score_volatility_high">価格変動大</string>
+    <string name="buy_score_volatility_normal">通常の価格変動</string>
+    <string name="buy_score_history_abundant">豊富な履歴</string>
+    <string name="buy_score_history_sufficient">十分な履歴</string>
+    <string name="buy_score_history_insufficient">履歴不足</string>
+    <string name="buy_score_dark_pattern_detected">ダークパターン検出</string>
+
     <string name="action_retry">再試行</string>
 
     <!-- ソートオプション -->

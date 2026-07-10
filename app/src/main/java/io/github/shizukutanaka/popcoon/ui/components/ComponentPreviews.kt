@@ -30,9 +30,11 @@ private fun ScoreCardBuyNowPreview() {
                 verdict = BuyTimingScorer.Verdict.BUY_NOW,
                 confidence = "高",
                 signals = listOf(
-                    BuyTimingScorer.Signal("過去最安近辺", 30),
-                    BuyTimingScorer.Signal("下降トレンド", 20),
-                    BuyTimingScorer.Signal("割引率10%以上", 15),
+                    BuyTimingScorer.Signal("過去最安近辺", 30, BuyTimingScorer.SignalKind.ATL_NEAR),
+                    BuyTimingScorer.Signal("下降トレンド", 20, BuyTimingScorer.SignalKind.TREND_DOWN),
+                    BuyTimingScorer.Signal(
+                        "割引率10%以上", 15, BuyTimingScorer.SignalKind.DISCOUNT_PCT, listOf(10),
+                    ),
                 ),
             )
         }
@@ -50,8 +52,8 @@ private fun ScoreCardWaitDarkPreview() {
                 verdict = BuyTimingScorer.Verdict.WAIT,
                 confidence = "中",
                 signals = listOf(
-                    BuyTimingScorer.Signal("上昇トレンド", -20),
-                    BuyTimingScorer.Signal("高ボラティリティ", -10),
+                    BuyTimingScorer.Signal("上昇トレンド", -20, BuyTimingScorer.SignalKind.TREND_UP),
+                    BuyTimingScorer.Signal("高ボラティリティ", -10, BuyTimingScorer.SignalKind.VOLATILITY_HIGH),
                 ),
             )
         }
