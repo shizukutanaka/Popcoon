@@ -7,7 +7,7 @@ package io.github.shizukutanaka.popcoon.feature.prediction
  *
  * Python 参照 (popcoon-tdd/proto_seasonal_decomp_forecast.py) と完全一致。
  * パリティは SeasonalDecompForecastTest（ゴールデンベクタ）で保証（PORTING_SPEC.md A1）。
- * PricePredictionEngine への統合は後続（本オブジェクトは独立ユーティリティ、既存挙動は不変）。
+ * PricePredictionEngine.predict() に統合済み (PricePredictionEngine.kt 内 `SeasonalDecompForecast.forecast(...)` 呼び出し)。
  */
 object SeasonalDecompForecast {
 

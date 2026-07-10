@@ -10,7 +10,7 @@ import kotlin.math.round
  * パリティは SeasonalDowSignalTest（ゴールデンベクタ）で保証（PORTING_SPEC.md A5）。
  * 丸めは `kotlin.math.round`（round-half-to-even）で Python `round()` と一致。
  *
- * BuyTimingScorer への加算は後続（本オブジェクトは独立ユーティリティ、既存挙動は不変）。
+ * BuyTimingScorer.score() で加算済み (BuyTimingScorer.kt 内 `SeasonalDowSignal.signal(...)` 呼び出し)。
  *
  * @param history (dow, price) のリスト。dow は 0=月 .. 6=日。
  */

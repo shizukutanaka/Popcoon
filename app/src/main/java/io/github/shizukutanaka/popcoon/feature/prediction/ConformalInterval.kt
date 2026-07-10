@@ -10,8 +10,8 @@ import kotlin.math.ceil
  * パリティは ConformalIntervalTest（ゴールデンベクタ）で保証する（PORTING_SPEC.md A6）。
  *
  * 理論: 交換可能なキャリブレーション残差に対し P(|Y - point| <= margin) >= 1 - alpha。
- * 現状 PricePredictionEngine.predictionMargin は RMSE ベース（被覆保証なし）。本オブジェクトは
- * その置換候補で、まずは独立ユーティリティとして追加（既存挙動は不変、配線は後続）。
+ * PricePredictionEngine.predict() に統合済み (PricePredictionEngine.kt 内
+ * `ConformalInterval.conformalMargin(...)` 呼び出し)、RMSE ベースの旧 margin を置換した。
  */
 object ConformalInterval {
 

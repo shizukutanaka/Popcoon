@@ -8,7 +8,7 @@ import io.github.shizukutanaka.popcoon.feature.points.PointSimulator
 
 /**
  * ウォッチリスト → CrossMallCartOptimizer への変換ブリッジ。
- * PointSimulator が前計算した実質単価を `options` に載せる想定（現在は totalPrice で代替）。
+ * PointSimulator が計算した実質単価 (sticker - points) を `options` に載せる (optimize() 内で実施)。
  *
  * Google Universal Cart / UCP を見越した先回り機能（UNIVERSAL_CART_SPEC.md）。
  * ProductMatcher で同一商品を束ね、複数モールの価格比較データが揃っている商品を最適化対象とする。
