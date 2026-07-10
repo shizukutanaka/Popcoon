@@ -53,10 +53,9 @@ Android 8.0+ (API 26+)
 
 【In-app purchases】
 Popcoon Premium ¥480/month or ¥3,800/year
-- Hide affiliate UI
-- Unlimited alerts (free tier: 5)
 - Price history CSV export
-- Detailed CO2 data
+
+Note: affiliate-link display can be toggled anytime in the free settings. There is no cap on alerts or CO2 data — both are available to every user.
 
 # Keywords (200 chars, comma-separated)
 

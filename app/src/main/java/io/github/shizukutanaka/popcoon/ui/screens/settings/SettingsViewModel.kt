@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -59,10 +60,32 @@ class SettingsViewModel @Inject constructor(
     )
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
 
-    // BillingManager は Activity 参照が必要なので遅延初期化
-    private var billing: BillingManager? = null
+    // BillingManager の Context 依存は BillingClient.newBuilder(context) のみで Activity 必須ではない
+    // (launchBillingFlow だけが Activity を個別引数で要求する) ため、ApplicationContext で
+    // ViewModel スコープに保持できる。以前は Activity ごとに launchPurchase() 内で遅延生成しており、
+    // (1) 起動時に既存購入を復元するタイミングが無く、(2) status を誰も購読していなかったため、
+    // 実際に課金してもアプリの isPremium が永遠に false のまま — という課金導線の断絶があった
+    // (機能過不足監査で発見、収益に直結するバグ)。
+    private val billing = BillingManager(context)
+
+    // BillingClient.startConnection() は接続済みの状態で再度呼ぶと誤用になる (SDK 側で警告/エラー)。
+    // アプリ起動時の自動接続と launchPurchase() が同じ接続試行を共有できるよう Deferred 化する
+    // (launchPurchase() 側で initialize() を再度呼ばないようにするため)。
+    private val billingReady = viewModelScope.async { billing.initialize() }
 
     init {
+        // アプリ起動時に Billing 接続 → 既存購入をクエリ (再インストール後の復元、書き込み失敗からの回復)。
+        // status の変化 (ACTIVE/INACTIVE) を DataStore へ反映する — これが無いと handlePurchase() が
+        // ACTIVE に更新するのは BillingManager 内の StateFlow だけで、誰にも伝わらなかった。
+        billing.status.onEach { status ->
+            when (status) {
+                BillingManager.PremiumStatus.ACTIVE -> prefs.setPremium(true)
+                BillingManager.PremiumStatus.INACTIVE -> prefs.setPremium(false)
+                // PENDING/UNKNOWN は判定保留 — 既存の DataStore 値 (前回確定した状態) を保持する。
+                BillingManager.PremiumStatus.PENDING, BillingManager.PremiumStatus.UNKNOWN -> Unit
+            }
+            _state.value = _state.value.copy(billingStatus = status)
+        }.launchIn(viewModelScope)
         combine(
             prefs.crashReportOptin,
             prefs.aiAdvisorOptin,
@@ -109,25 +132,27 @@ class SettingsViewModel @Inject constructor(
     /**
      * Activity からサブスク購入フローを起動する。
      * SettingsScreen で LocalContext から Activity を取得して呼ぶ。
+     *
+     * billing.initialize() はアプリ起動時に一度だけ (billingReady) 実行済みのものを待つ —
+     * ここで再度呼ぶと BillingClient の接続誤用になる。
      */
     fun launchPurchase(activity: Activity) {
         viewModelScope.launch {
-            val b = getOrInitBilling(activity)
-            val ok = b.initialize()
+            val ok = billingReady.await()
             if (!ok) {
                 _state.value = _state.value.copy(
                     billingStatus = BillingManager.PremiumStatus.UNKNOWN,
                 )
                 return@launch
             }
-            val offers = b.queryOffers()
+            val offers = billing.queryOffers()
             // 月額プランを優先
             val monthlyOffer = offers.firstOrNull {
                 it.productId.contains("monthly")
             } ?: offers.firstOrNull()
 
             if (monthlyOffer != null) {
-                b.launchPurchase(activity, monthlyOffer)
+                billing.launchPurchase(activity, monthlyOffer)
             }
         }
     }
@@ -264,12 +289,8 @@ class SettingsViewModel @Inject constructor(
     // (商用リリース監査で発見)。SettingsScreen から onLicenses コールバック経由で
     // 直接ナビゲートするため、ここに ViewModel メソッドは不要。
 
-    private fun getOrInitBilling(activity: Activity): BillingManager {
-        return billing ?: BillingManager(activity).also { billing = it }
-    }
-
     override fun onCleared() {
         super.onCleared()
-        billing?.dispose()
+        billing.dispose()
     }
 }

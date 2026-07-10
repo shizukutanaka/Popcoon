@@ -12,15 +12,15 @@ import kotlin.coroutines.resume
 /**
  * Popcoon Premium サブスクリプションマネージャ。
  *
- * Premium 特典:
- *  - アフィリエイト UI の非表示 (UX 向上)
- *  - 価格履歴のエクスポート (CSV)
- *  - アラート数 無制限 (無料は 5件まで)
- *  - 詳細 CO2 データ (IEA 電力源別)
- *  - 広告なし (将来広告を入れる場合)
+ * Premium 特典 (実際に isPremium でゲートされているものだけを列挙する)。
+ * 以前はここに「アフィリエイトUI非表示」「アラート無制限」「詳細CO2データ」も
+ * 列挙されていたが、いずれも実装のどこにも premium 分岐が存在しない架空の特典だった。
+ * store-listing/*.md にも同じ過大訴求があり、本コミットで両方修正した
+ * (機能過不足監査で発見 — 実際に課金しても premium 状態が反映されない別バグと合わせて発覚)。
+ *  - 価格履歴のエクスポート (CSV) — feature/export/PriceHistoryCsvExporter.kt,
+ *    SettingsScreen.kt の `if (state.isPremium)` 分岐でのみ表示される唯一の実特典。
  *
  * 価格帯 (研究結果に基づく): ¥480/月 または ¥3,800/年 (~33% 割引)
- * 業界標準の subscription ARPU = ad-only の 4.6 倍を狙う。
  */
 class BillingManager(private val context: Context) {
 
