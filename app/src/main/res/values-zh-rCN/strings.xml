@@ -290,6 +290,7 @@
     <string name="watchlist_backup">备份收藏</string>
     <string name="watchlist_backup_desc">在更换设备或重新安装前导出数据 (免费)</string>
     <string name="watchlist_backup_share_title">分享备份</string>
+    <string name="share_url_unrecognized">不支持此链接。请分享 Amazon、乐天或 Yahoo! 购物的商品页面。</string>
     <string name="watchlist_restore">恢复收藏</string>
     <string name="watchlist_restore_desc">从备份文件恢复 (现有收藏将被保留)</string>
     <plurals name="watchlist_restore_success">

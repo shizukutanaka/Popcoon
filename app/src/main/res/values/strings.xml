@@ -58,6 +58,7 @@
     <string name="watchlist_backup">ウォッチリストをバックアップ</string>
     <string name="watchlist_backup_desc">機種変更・再インストールに備えてデータを書き出す (無料)</string>
     <string name="watchlist_backup_share_title">バックアップを共有</string>
+    <string name="share_url_unrecognized">対応していないURLです。Amazon・楽天・Yahoo!ショッピングの商品ページを共有してください。</string>
     <string name="watchlist_restore">ウォッチリストを復元</string>
     <string name="watchlist_restore_desc">バックアップファイルから復元 (既存のお気に入りは保持されます)</string>
     <plurals name="watchlist_restore_success">

@@ -234,6 +234,7 @@
     <string name="watchlist_backup">Back up watchlist</string>
     <string name="watchlist_backup_desc">Export your data before switching devices or reinstalling (free)</string>
     <string name="watchlist_backup_share_title">Share backup</string>
+    <string name="share_url_unrecognized">This URL isn\'t supported. Please share a product page from Amazon, Rakuten, or Yahoo! Shopping.</string>
     <string name="watchlist_restore">Restore watchlist</string>
     <string name="watchlist_restore_desc">Restore from a backup file (existing favorites are kept)</string>
     <plurals name="watchlist_restore_success">

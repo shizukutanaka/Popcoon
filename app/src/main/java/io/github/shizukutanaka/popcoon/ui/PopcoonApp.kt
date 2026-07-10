@@ -101,6 +101,12 @@ private fun MainWithTabs(intentEvent: IntentEvent) {
     val tabRoutes = Tab.entries.map { it.route }.toSet()
     val showTabBar = currentRoute in tabRoutes
 
+    // 共有URLが (短縮URL解決後も) どのECサイトにも分類できなかった場合の通知。
+    // 以前は MainActivity.handleIntent() が無言で return するだけで、ユーザーは
+    // 「共有したのに何も起きない」状態のまま放置されていた (機能過不足監査で発見)。
+    val snackbarHostState = remember { SnackbarHostState() }
+    val shareUnrecognizedMessage = stringResource(R.string.share_url_unrecognized)
+
     // Intent 由来の遷移
     LaunchedEffect(intentEvent) {
         when (intentEvent) {
@@ -117,11 +123,14 @@ private fun MainWithTabs(intentEvent: IntentEvent) {
                 navController.navigate("barcode") { launchSingleTop = true }
             IntentEvent.OpenWatchlist ->
                 navController.navigateToTab(Tab.WATCHLIST)
+            IntentEvent.ShareUnrecognized ->
+                snackbarHostState.showSnackbar(shareUnrecognizedMessage)
             IntentEvent.None -> Unit
         }
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Column {
                 io.github.shizukutanaka.popcoon.ui.components.OfflineBanner()
