@@ -17,6 +17,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -73,17 +74,41 @@ class BuyingAdvisor @Inject constructor(
         score: BuyTimingScorer.Score,
         userContext: String = "",
     ): String {
-        // 1. キャッシュチェック
-        cache.get(product, score)?.let { return it }
+        // 1. キャッシュチェック (ロケールもキーに含める — 下記参照)
+        val locale = Locale.getDefault()
+        cache.get(product, score, locale)?.let { return it }
 
-        val systemPrompt = """
-            あなたは日本のショッピング・アシスタント「Popcoon」です。
-            100文字以内、簡潔な日本語で「今買うべきか」を助言してください。
-            - 明確な判断 (買い / 待ち / 様子見) を示す
-            - 理由を1つ挙げる
-            - 敬語は最小限
-            - 絵文字・装飾なし
-        """.trimIndent()
+        // 以前はこのプロンプトが常に「簡潔な日本語で」と指示しており、EN/KO/ZH ロケールの
+        // ユーザーにも AI アドバイスが常に日本語で返っていた (商用リリース監査で発見)。
+        // 日本語ユーザー向けの既存プロンプト (実運用でチューニング済み) は文言を一切変えず、
+        // それ以外のロケールでは出力言語だけを指定する別プロンプトを使う — 英語の指示文に
+        // 差し替えると Claude の応答の口調・文字数遵守が変わりうるため、主要ユーザー層である
+        // 日本語利用者への影響を避ける。
+        val systemPrompt = if (locale.language == "ja") {
+            """
+                あなたは日本のショッピング・アシスタント「Popcoon」です。
+                100文字以内、簡潔な日本語で「今買うべきか」を助言してください。
+                - 明確な判断 (買い / 待ち / 様子見) を示す
+                - 理由を1つ挙げる
+                - 敬語は最小限
+                - 絵文字・装飾なし
+            """.trimIndent()
+        } else {
+            val languageName = when (locale.language) {
+                "ko" -> "Korean"
+                "zh" -> "Chinese (Simplified)"
+                else -> "English"
+            }
+            """
+                You are "Popcoon", a Japanese e-commerce shopping assistant.
+                Respond in $languageName, under 100 characters, with concise advice on
+                whether to buy this item now.
+                - Give a clear verdict (buy now / wait / watch)
+                - State exactly one reason
+                - Minimal formality
+                - No emoji or decorative symbols
+            """.trimIndent()
+        }
 
         val userPrompt = buildString {
             append("商品: ${product.title}\n")
@@ -114,7 +139,7 @@ class BuyingAdvisor @Inject constructor(
         }
 
         // 2. 成功時のみキャッシュ保存
-        cache.put(product, score, advice)
+        cache.put(product, score, advice, locale)
         return advice
     }
 }
