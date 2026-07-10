@@ -45,10 +45,17 @@ fun ProductDetailScreen(
 
     // 10-second dwell = documented success event → increments ReviewPrompter counter.
     // LaunchedEffect is cancelled automatically on back-navigation, so premature exits are safe.
+    // ReviewPrompter's own docstring says "エラー直後には呼ばない" (never right after an error),
+    // but this previously fired unconditionally after 10s regardless of load outcome — a product
+    // that failed to load (DetailUiState.Error) still counted as a "success event" (機能過不足監査で発見).
+    // `state` is re-read live at the point of access below (delegate getter), so this reflects
+    // whatever the load actually resolved to by the time the dwell timer elapses.
     LaunchedEffect(productKey, "dwell") {
         val act = context as? Activity ?: return@LaunchedEffect
         delay(10_000L)
-        viewModel.requestReviewIfEligible(act)
+        if (state is DetailUiState.Loaded) {
+            viewModel.requestReviewIfEligible(act)
+        }
     }
 
     // Dark pattern detected → warning vibration. Documented in HapticFeedback.warning()
