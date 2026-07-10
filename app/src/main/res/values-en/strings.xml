@@ -228,6 +228,8 @@
     <string name="settings_data">Data</string>
     <string name="settings_export_csv">Export price history as CSV</string>
     <string name="settings_export_desc">Export all watchlist product history</string>
+    <string name="csv_export_header">Product Key,Title,Platform,Recorded At (JST),List Price (JPY),Real Price (JPY)</string>
+    <string name="csv_export_share_title">Popcoon Price History Data</string>
     <string name="csv_share_chooser_title">Share CSV</string>
     <string name="watchlist_backup">Back up watchlist</string>
     <string name="watchlist_backup_desc">Export your data before switching devices or reinstalling (free)</string>
@@ -256,6 +258,7 @@
     <string name="settings_privacy_policy">Privacy policy</string>
     <string name="settings_licenses">Open source licenses</string>
     <string name="licenses_intro">Popcoon uses the following open source software. Tap an item to view its full license text.</string>
+    <string name="license_android_sdk_text">Distributed under Google\'s Android Software Development Kit License Agreement. See https://developer.android.com/studio/terms for the full text.</string>
     <string name="settings_info">Info</string>
 
     <!-- Navigation -->

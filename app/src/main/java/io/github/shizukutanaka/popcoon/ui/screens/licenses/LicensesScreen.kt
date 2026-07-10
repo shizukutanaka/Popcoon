@@ -86,7 +86,7 @@ fun LicensesScreen(onBack: () -> Unit) {
             title = { Text(license.displayName) },
             text = {
                 Text(
-                    license.fullText,
+                    license.fullText ?: stringResource(R.string.license_android_sdk_text),
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                     modifier = Modifier
                         .heightIn(max = 400.dp)

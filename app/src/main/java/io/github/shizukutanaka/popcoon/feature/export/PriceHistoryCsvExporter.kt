@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
+import io.github.shizukutanaka.popcoon.R
 import io.github.shizukutanaka.popcoon.data.db.WatchlistDao
 import io.github.shizukutanaka.popcoon.data.repository.BackendClient
 import kotlinx.coroutines.CancellationException
@@ -50,7 +51,9 @@ class PriceHistoryCsvExporter @Inject constructor(
         if (watchlist.isEmpty()) return null
 
         val sb = StringBuilder()
-        sb.appendLine("商品キー,タイトル,プラットフォーム,記録日時(JST),表示価格(円),実売価格(円)")
+        // ヘッダー行はスプレッドシートアプリ (Excel/Numbers/Google Sheets) で開かれるため、
+        // 以前の日本語固定ヘッダーは EN/KO/ZH ロケールに漏れていた (商用リリース監査で発見)。
+        sb.appendLine(context.getString(R.string.csv_export_header))
 
         for (item in watchlist) {
             val history = runCatching {
@@ -97,7 +100,7 @@ class PriceHistoryCsvExporter @Inject constructor(
         return Intent(Intent.ACTION_SEND).apply {
             type = "text/csv"
             putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_SUBJECT, "Popcoon 価格履歴データ")
+            putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.csv_export_share_title))
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
     }

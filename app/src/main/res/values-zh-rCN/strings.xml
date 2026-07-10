@@ -284,6 +284,8 @@
     <string name="settings_data">数据</string>
     <string name="settings_export_csv">导出价格历史为CSV</string>
     <string name="settings_export_desc">导出所有收藏商品历史</string>
+    <string name="csv_export_header">商品密钥,标题,平台,记录时间(JST),标价(日元),实售价(日元)</string>
+    <string name="csv_export_share_title">Popcoon 价格历史数据</string>
     <string name="csv_share_chooser_title">分享CSV</string>
     <string name="watchlist_backup">备份收藏</string>
     <string name="watchlist_backup_desc">在更换设备或重新安装前导出数据 (免费)</string>
@@ -311,6 +313,7 @@
     <string name="settings_privacy_policy">隐私政策</string>
     <string name="settings_licenses">开源许可证</string>
     <string name="licenses_intro">Popcoon 使用以下开源软件。点按项目可查看完整许可证文本。</string>
+    <string name="license_android_sdk_text">根据 Google 的 Android SDK 使用条款分发。完整条款请参阅 https://developer.android.com/studio/terms。</string>
     <string name="settings_info">信息</string>
     <string name="premium_feature_export">价格历史CSV导出</string>
     <string name="confidence_unknown">未知</string>

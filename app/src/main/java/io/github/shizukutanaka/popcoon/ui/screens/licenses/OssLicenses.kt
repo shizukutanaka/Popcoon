@@ -10,14 +10,17 @@ package io.github.shizukutanaka.popcoon.ui.screens.licenses
  * 依存 (AGP, Kotlin コンパイラプラグイン, KSP, detekt 等) は APK に含まれない
  * ため対象外。依存追加/更新時はこのリストも合わせて更新すること。
  */
-enum class LicenseType(val displayName: String, val fullText: String) {
+/**
+ * @param fullText Apache-2.0/EPL-1.0 の全文 (原文の英語のまま、ロケール非依存 — OSS
+ *   ライセンスの慣例により翻訳しない)。ANDROID_SDK のみ null — この案内文はローカライズ
+ *   対象の日本語文だったため文字列リソース化し (商用リリース監査で発見)、
+ *   ui/screens/licenses/LicensesScreen.kt が stringResource(R.string.license_android_sdk_text)
+ *   で解決する。
+ */
+enum class LicenseType(val displayName: String, val fullText: String?) {
     APACHE_2_0("Apache License 2.0", ApacheLicenseText.FULL),
     EPL_1_0("Eclipse Public License 1.0", EplLicenseText.FULL),
-    ANDROID_SDK(
-        "Android Software Development Kit License Agreement",
-        "Google の Android SDK 利用規約に基づき配布されています。全文は " +
-            "https://developer.android.com/studio/terms を参照してください。",
-    ),
+    ANDROID_SDK("Android Software Development Kit License Agreement", null),
 }
 
 data class LicenseEntry(
