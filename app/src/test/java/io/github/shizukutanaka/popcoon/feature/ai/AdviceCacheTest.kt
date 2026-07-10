@@ -84,4 +84,22 @@ class AdviceCacheTest : StringSpec({
         }
         cache.size() shouldBe 100
     }
+
+    // 回帰: 旧実装は作成時刻ベースの FIFO で、直近アクセスされたエントリでも
+    // 最古なら追い出されていた。真の LRU なら「最近 get() された」エントリは生き残る
+    // (機能過不足監査で発見: ドキュメント上の "LRU" と実装が食い違っていた)。
+    "直近アクセスしたエントリは 100件超でも追い出されない (真の LRU 回帰)" {
+        val cache = AdviceCache()
+        val p0 = mkProduct("SKU0")
+        cache.put(p0, mkScore(), "advice0")
+        // SKU0 を明示的にアクセスして「最近使った」扱いにする
+        cache.get(p0, mkScore()).shouldNotBeNull()
+        // 残り100件を追加 (合計101件 → 1件追い出される)
+        repeat(100) { i ->
+            cache.put(mkProduct("SKU${i + 1}"), mkScore(), "advice${i + 1}")
+        }
+        cache.size() shouldBe 100
+        // FIFO なら SKU0 (最古の作成時刻) が追い出されるはずだが、LRU なら直近アクセス済みなので生存する
+        cache.get(p0, mkScore()) shouldBe "advice0"
+    }
 })

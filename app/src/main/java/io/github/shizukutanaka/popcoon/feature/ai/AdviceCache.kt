@@ -14,9 +14,12 @@ import javax.inject.Singleton
  *
  * 設計:
  *  - キー: productKey + score バケット (10刻み) で粒度調整
- *  - 値 + 取得時刻 (TTL 判定用)
- *  - LRU で最大 100 件保持 (メモリ上限)
- *  - スレッドセーフ (ConcurrentHashMap + synchronized)
+ *  - 値 + 作成時刻 (TTL 判定用、アクセスしても更新しない — LRU の「最近使った」とは別軸)
+ *  - LRU で最大 100 件保持 (メモリ上限、LinkedHashMap(accessOrder=true) + removeEldestEntry)。
+ *    旧実装は「作成時刻が最も古いエントリ」を削除しており、直近で何度も参照されている
+ *    エントリでもキャッシュから追い出され得る FIFO 相当の挙動だった (機能過不足監査で発見、
+ *    ドキュメント上の "LRU" という表記と実装が食い違っていた)。
+ *  - スレッドセーフ (synchronized)
  *
  * これにより:
  *  - 同じ商品を再度開く → 即時表示 (UX 改善)
@@ -31,9 +34,15 @@ class AdviceCache @Inject constructor() {
         val createdAt: Long = System.currentTimeMillis(),
     )
 
-    private val cache = HashMap<String, Entry>()
     private val maxSize = 100
     private val ttlMillis = 24L * 60 * 60 * 1000  // 24時間
+
+    // accessOrder=true: get() のたびに最近アクセスした順へ再配置される。removeEldestEntry で
+    // サイズ超過時に「最も長くアクセスされていない」エントリを自動的に追い出す (真の LRU)。
+    private val cache = object : LinkedHashMap<String, Entry>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Entry>?): Boolean =
+            size > maxSize
+    }
 
     /**
      * キャッシュキー: productKey + scoreBucket + 言語。
@@ -67,11 +76,7 @@ class AdviceCache @Inject constructor() {
         locale: Locale = Locale.getDefault(),
     ) {
         val key = keyOf(product, score, locale)
-        cache[key] = Entry(advice = advice)
-        if (cache.size > maxSize) {
-            val oldest = cache.entries.minByOrNull { it.value.createdAt } ?: return
-            cache.remove(oldest.key)
-        }
+        cache[key] = Entry(advice = advice)  // removeEldestEntry がサイズ超過時に自動追い出し
     }
 
     @Synchronized
