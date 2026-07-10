@@ -10,9 +10,12 @@ import io.github.shizukutanaka.popcoon.data.model.Platform
  * 景品表示法 8 条に基づく表示義務: アフィリエイトリンクであることを UI で明示する。
  * (「#ad」バッジ、設定画面での開示、プライバシーポリシーでの記述)
  *
- * 無効化:
- *  - ユーザーが Premium 購読したら injection を止める (UI で選択可能)
- *  - 設定で「アフィリエイトリンクを使わない」を ON にすると生 URL を返す
+ * 無効化: 設定画面の「アフィリエイトリンクに協力する」トグル (UserPreferences.affiliateOptin)
+ * が OFF のときのみ injection を止め生 URL を返す (ProductDetailScreen.kt で
+ * `optOut = !affiliateOptin` として渡す)。Premium 購読状態とは無関係 — 以前はここに
+ * 「Premium 購読で自動的に injection を止める」という記述があったが、実装のどこにも
+ * Premium 分岐は存在しない架空の挙動だった (機能過不足監査で発見、BillingManager.kt の
+ * 同種の過大表記と同じ根)。
  */
 object AffiliateUrlBuilder {
 
