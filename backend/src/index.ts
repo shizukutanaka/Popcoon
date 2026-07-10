@@ -187,13 +187,27 @@ async function handleRequest(req: Request, env: Env): Promise<Response> {
       return bad("recorded_at must be ISO-8601 UTC (e.g. 2026-01-01T00:00:00Z)");
     }
     if (body.product_key.length > 200) return bad("product_key too long");
+    // platform は無制限文字列だったため、無効なゴミ値を大量投入すれば無料枠の KV 容量
+    // (1GB) を消費できた。想定値は "amazon"/"rakuten"/"yahoo" 程度の短い識別子。
+    if (typeof body.platform !== "string" || body.platform.length > 50) {
+      return bad("platform must be a short string");
+    }
 
     const count = await appendPriceHistory(env, body);
     return json({ ok: true, count });
   }
 
-  // DELETE /v1/history?key=... — GDPR article 17 対応
+  // DELETE /v1/history?key=... — 管理用データ削除 (要 x-admin-key)。
+  // PriceRecord (product_key/platform/price/recorded_at) は個人を一切紐付けない
+  // 全ユーザー共有データのため、実際には GDPR Article 17 (個人データ削除権) の対象では
+  // ない。にもかかわらず以前は誰でも product_key さえ知っていれば (ASIN 等は商品ページから
+  // 公開情報として推測可能) 匿名で任意商品の共有価格履歴を消せる、認証なしのエンドポイント
+  // だった — 悪用すれば予測機能の基盤である crowd-sourced データセットを破壊できる
+  // (機能過不足監査で発見)。ADMIN_API_KEY は元々 Env/wrangler.toml に用意されていたが
+  // どこからも参照されていなかった。
   if (req.method === "DELETE" && url.pathname === "/v1/history") {
+    if (!env.ADMIN_API_KEY) return bad("admin operations unavailable", 503);
+    if (req.headers.get("x-admin-key") !== env.ADMIN_API_KEY) return bad("forbidden", 403);
     const key = url.searchParams.get("key");
     if (!key) return bad("missing key");
     await env.PRICE_HISTORY.delete(key);
@@ -206,6 +220,11 @@ async function handleRequest(req: Request, env: Env): Promise<Response> {
     if (!deviceToken) return bad("missing x-device-token");
     const body = await req.json().catch(() => null) as Alert | null;
     if (!body || !body.product_key || !body.condition) return bad("invalid payload");
+    if (body.product_key.length > 200) return bad("product_key too long");
+    if (body.condition.length > MAX_CONDITION_JSON_LENGTH) return bad("condition too long");
+    // 深いネスト・壊れた構造の条件ツリーは保存しない (以前は無検証で任意の文字列を保存していた)。
+    const parsedCondition = (() => { try { return JSON.parse(body.condition); } catch { return null; } })();
+    if (!isValidCondition(parsedCondition)) return bad("invalid condition tree");
 
     const alertId = crypto.randomUUID();
     const alert: Alert = {
@@ -220,11 +239,21 @@ async function handleRequest(req: Request, env: Env): Promise<Response> {
     return json({ alert_id: alertId });
   }
 
-  // DELETE /v1/alerts/:id
+  // DELETE /v1/alerts/:id — 所有デバイスのみ削除可能。
+  // 以前は alert_id (UUID) さえ知っていれば誰でも他人のアラートを削除できた
+  // (機能過不足監査で発見: UUID の推測は現実的ではないが、URL 共有やログ露出等で
+  // ID が漏れた場合に無認可の削除ができてしまう設計上の欠陥だった)。
   if (req.method === "DELETE" && url.pathname.startsWith("/v1/alerts/")) {
+    const deviceToken = req.headers.get("x-device-token");
+    if (!deviceToken) return bad("missing x-device-token");
     const alertId = url.pathname.split("/").pop();
     if (!alertId) return bad("missing alert_id");
-    await env.ALERTS.delete(`alert:${alertId}`);
+    const key = `alert:${alertId}`;
+    const raw = await env.ALERTS.get(key);
+    if (!raw) return json({ ok: true });  // 既に存在しない = 冪等に成功扱い
+    const existing = (() => { try { return JSON.parse(raw) as Alert; } catch { return null; } })();
+    if (existing?.device_token !== deviceToken) return bad("forbidden", 403);
+    await env.ALERTS.delete(key);
     return json({ ok: true });
   }
 
@@ -326,7 +355,19 @@ interface AlertCondition {
   children?: AlertCondition[];
 }
 
-function evaluateCondition(condition: AlertCondition, current: PriceRecord, history: PriceRecord[]): boolean {
+// 条件ツリーの最大ネスト深度。POST /v1/alerts での書き込み時バリデーション (isValidCondition)
+// と evaluateCondition の再帰打ち切りの両方で使う。書き込み時バリデーションだけでは
+// このガード導入以前に KV へ既に保存済みの不正なツリーを防げないため、評価時にも
+// 独立して深さを打ち切る (多層防御 — 機能過不足監査で発見: 深いネストで JS のコールスタックが
+// 枯渇すると evaluateAlerts の for ループ全体が例外で中断し、それ以降のアラートが
+// 二度と評価されなくなる恐れがあった)。
+const MAX_CONDITION_DEPTH = 10;
+
+function evaluateCondition(
+  condition: AlertCondition, current: PriceRecord, history: PriceRecord[], depth = 0,
+): boolean {
+  if (depth > MAX_CONDITION_DEPTH) return false;  // fail-closed: 深すぎるツリーは不発火扱い
+
   switch (condition.type) {
     case "price_below":
       return current.real_price <= (condition.value ?? 0);
@@ -350,18 +391,47 @@ function evaluateCondition(condition: AlertCondition, current: PriceRecord, hist
       return pct >= (condition.value ?? 0);
     }
 
-    case "and":
-      return (condition.children ?? []).every(c => evaluateCondition(c, current, history));
+    case "and": {
+      const children = Array.isArray(condition.children) ? condition.children : [];
+      return children.every(c => evaluateCondition(c, current, history, depth + 1));
+    }
 
-    case "or":
-      return (condition.children ?? []).some(c => evaluateCondition(c, current, history));
+    case "or": {
+      const children = Array.isArray(condition.children) ? condition.children : [];
+      return children.some(c => evaluateCondition(c, current, history, depth + 1));
+    }
 
-    case "not":
-      return !(evaluateCondition(condition.children?.[0] ?? { type: "price_below" }, current, history));
+    case "not": {
+      const child = Array.isArray(condition.children) ? condition.children[0] : undefined;
+      return !(evaluateCondition(child ?? { type: "price_below" }, current, history, depth + 1));
+    }
 
     default:
       return false;
   }
+}
+
+const MAX_CONDITION_JSON_LENGTH = 2000;
+const VALID_CONDITION_TYPES = new Set([
+  "price_below", "price_above", "atl", "discount_pct", "and", "or", "not",
+]);
+
+/**
+ * POST /v1/alerts 書き込み時のツリー構造バリデーション。壊れた/悪意ある条件を
+ * KV に保存させない (以前は body.condition を JSON として一切検証せず、任意の
+ * 文字列がそのまま保存されていた — 機能過不足監査で発見)。
+ */
+function isValidCondition(value: unknown, depth = 0): value is AlertCondition {
+  if (depth > MAX_CONDITION_DEPTH) return false;
+  if (typeof value !== "object" || value === null) return false;
+  const c = value as Record<string, unknown>;
+  if (typeof c.type !== "string" || !VALID_CONDITION_TYPES.has(c.type)) return false;
+  if (c.value !== undefined && typeof c.value !== "number") return false;
+  if (c.children !== undefined) {
+    if (!Array.isArray(c.children)) return false;
+    if (!c.children.every(child => isValidCondition(child, depth + 1))) return false;
+  }
+  return true;
 }
 
 // ── FCM 通知送信 ─────────────────────────────────────────────────────────────
@@ -399,63 +469,73 @@ async function evaluateAlerts(env: Env): Promise<void> {
   const keys = await listAllKeys(env.ALERTS, "alert:");
 
   for (const name of keys) {
-    const raw = await env.ALERTS.get(name);
-    if (!raw) continue;
-    let alert: Alert;
-    try { alert = JSON.parse(raw); } catch { continue; }
-    if (!alert.active) continue;
-
-    const history = await getPriceHistory(env, alert.product_key);
-    if (history.length === 0) continue;
-
-    const latest = history[0];
-
-    // 条件ツリーを評価
-    let condition: AlertCondition;
+    // 1 件のアラート処理で予期しない例外 (壊れたデータ、深すぎる条件ツリー、FCM 障害等) が
+    // 起きても for ループ全体を止めない。以前は無防備で、1 件の例外が evaluateAlerts() を
+    // 丸ごと中断させ、それ以降 (KV.list の反復順で後にある) 全アラートがそのタイマー実行で
+    // 一切評価されなくなっていた。cron は1時間毎に再実行されるとはいえ、同じ壊れたアラートが
+    // 毎回同じ位置で例外を起こせば恒久的にそれ以降のアラートが発火しなくなる
+    // (機能過不足監査で発見)。
     try {
-      condition = JSON.parse(alert.condition) as AlertCondition;
-    } catch {
-      // 旧形式 (単純な price_below) のフォールバック
-      const target = parseFloat(alert.condition);
-      if (!isNaN(target)) {
-        condition = { type: "price_below", value: target };
-      } else {
-        continue;
+      const raw = await env.ALERTS.get(name);
+      if (!raw) continue;
+      let alert: Alert;
+      try { alert = JSON.parse(raw); } catch { continue; }
+      if (!alert.active) continue;
+
+      const history = await getPriceHistory(env, alert.product_key);
+      if (history.length === 0) continue;
+
+      const latest = history[0];
+
+      // 条件ツリーを評価
+      let condition: AlertCondition;
+      try {
+        condition = JSON.parse(alert.condition) as AlertCondition;
+      } catch {
+        // 旧形式 (単純な price_below) のフォールバック
+        const target = parseFloat(alert.condition);
+        if (!isNaN(target)) {
+          condition = { type: "price_below", value: target };
+        } else {
+          continue;
+        }
       }
+
+      const triggered = evaluateCondition(condition, latest, history);
+      if (!triggered) continue;
+
+      // 通知タイトル / ボディを生成
+      const discountPct = latest.list_price > 0
+        ? Math.round((latest.list_price - latest.real_price) / latest.list_price * 100)
+        : 0;
+
+      const title = `価格変動: ${alert.product_key.split(":").pop()}`;
+      const body = discountPct > 0
+        ? `¥${latest.real_price.toLocaleString()} (${discountPct}% OFF)`
+        : `¥${latest.real_price.toLocaleString()}`;
+
+      // FCM 送信 (key が設定されている場合のみ)
+      if (fcmKey && alert.device_token) {
+        await sendFcmNotification(
+          fcmKey,
+          alert.device_token,
+          title,
+          body,
+          {
+            product_key: alert.product_key,
+            real_price: String(latest.real_price),
+            alert_id: alert.alert_id,
+          },
+        );
+      }
+
+      // 発火済みアラートを非アクティブ化 (one-shot)
+      // 継続監視が必要な場合はクライアントが再登録する
+      const updated: Alert = { ...alert, active: false };
+      await env.ALERTS.put(name, JSON.stringify(updated));
+    } catch (e) {
+      console.error(`evaluateAlerts: skipping ${name} after error`, e);
     }
-
-    const triggered = evaluateCondition(condition, latest, history);
-    if (!triggered) continue;
-
-    // 通知タイトル / ボディを生成
-    const discountPct = latest.list_price > 0
-      ? Math.round((latest.list_price - latest.real_price) / latest.list_price * 100)
-      : 0;
-
-    const title = `価格変動: ${alert.product_key.split(":").pop()}`;
-    const body = discountPct > 0
-      ? `¥${latest.real_price.toLocaleString()} (${discountPct}% OFF)`
-      : `¥${latest.real_price.toLocaleString()}`;
-
-    // FCM 送信 (key が設定されている場合のみ)
-    if (fcmKey && alert.device_token) {
-      await sendFcmNotification(
-        fcmKey,
-        alert.device_token,
-        title,
-        body,
-        {
-          product_key: alert.product_key,
-          real_price: String(latest.real_price),
-          alert_id: alert.alert_id,
-        },
-      );
-    }
-
-    // 発火済みアラートを非アクティブ化 (one-shot)
-    // 継続監視が必要な場合はクライアントが再登録する
-    const updated: Alert = { ...alert, active: false };
-    await env.ALERTS.put(name, JSON.stringify(updated));
   }
 }
 

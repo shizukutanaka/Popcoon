@@ -19,7 +19,10 @@ interface PriceRecord {
   list_price: number;
 }
 
-function evaluateCondition(c: AlertCondition, current: PriceRecord, history: PriceRecord[]): boolean {
+const MAX_CONDITION_DEPTH = 10;
+
+function evaluateCondition(c: AlertCondition, current: PriceRecord, history: PriceRecord[], depth = 0): boolean {
+  if (depth > MAX_CONDITION_DEPTH) return false;  // fail-closed: 深すぎるツリーは不発火扱い
   switch (c.type) {
     case "price_below":
       return current.real_price <= (c.value ?? 0);
@@ -36,15 +39,39 @@ function evaluateCondition(c: AlertCondition, current: PriceRecord, history: Pri
       const pct = (current.list_price - current.real_price) / current.list_price * 100;
       return pct >= (c.value ?? 0);
     }
-    case "and":
-      return (c.children ?? []).every(child => evaluateCondition(child, current, history));
-    case "or":
-      return (c.children ?? []).some(child => evaluateCondition(child, current, history));
-    case "not":
-      return !(evaluateCondition(c.children?.[0] ?? { type: "price_below" }, current, history));
+    case "and": {
+      const children = Array.isArray(c.children) ? c.children : [];
+      return children.every(child => evaluateCondition(child, current, history, depth + 1));
+    }
+    case "or": {
+      const children = Array.isArray(c.children) ? c.children : [];
+      return children.some(child => evaluateCondition(child, current, history, depth + 1));
+    }
+    case "not": {
+      const child = Array.isArray(c.children) ? c.children[0] : undefined;
+      return !(evaluateCondition(child ?? { type: "price_below" }, current, history, depth + 1));
+    }
     default:
       return false;
   }
+}
+
+const MAX_CONDITION_JSON_LENGTH = 2000;
+const VALID_CONDITION_TYPES = new Set([
+  "price_below", "price_above", "atl", "discount_pct", "and", "or", "not",
+]);
+
+function isValidCondition(value: unknown, depth = 0): value is AlertCondition {
+  if (depth > MAX_CONDITION_DEPTH) return false;
+  if (typeof value !== "object" || value === null) return false;
+  const c = value as Record<string, unknown>;
+  if (typeof c.type !== "string" || !VALID_CONDITION_TYPES.has(c.type)) return false;
+  if (c.value !== undefined && typeof c.value !== "number") return false;
+  if (c.children !== undefined) {
+    if (!Array.isArray(c.children)) return false;
+    if (!c.children.every(child => isValidCondition(child, depth + 1))) return false;
+  }
+  return true;
 }
 
 describe("AlertCondition evaluation", () => {
@@ -196,6 +223,87 @@ describe("AlertCondition evaluation", () => {
       // 800円 + 30% OFF + ATL でない → トリガーしない
       expect(evaluateCondition(c, { real_price: 850, list_price: 1300 }, history)).toBe(false);
     });
+  });
+
+  // 回帰: 深すぎる条件ツリーで JS のコールスタックが枯渇し、evaluateAlerts の
+  // for ループ全体が例外で中断して以降のアラートが二度と評価されなくなる恐れがあった
+  // (機能過不足監査で発見)。depth 打ち切りで fail-closed に倒す。
+  describe("深いネストの打ち切り (スタック枯渇防止)", () => {
+    function deepNot(depth: number): AlertCondition {
+      let c: AlertCondition = { type: "price_below", value: 0 };  // 常に true (real_price>=0)
+      for (let i = 0; i < depth; i++) c = { type: "not", children: [c] };
+      return c;
+    }
+
+    it("MAX_CONDITION_DEPTH 以内なら正常に評価される", () => {
+      // not を5回重ねる (奇数回で反転) — price_below:0 は real_price=100 で false
+      const c = deepNot(5);
+      expect(evaluateCondition(c, { real_price: 100, list_price: 200 }, [])).toBe(true);
+    });
+
+    it("MAX_CONDITION_DEPTH を超える深いネストでも例外を投げず終了する (not は反転するため値は不定)", () => {
+      // not は打ち切り時の false を反転するため、最終値はネスト段数の偶奇に依存する。
+      // ここで保証したいのは「クラッシュしない・有限時間で終わる」ことであり特定の真偽値ではない。
+      const c = deepNot(10_000);
+      expect(() => evaluateCondition(c, { real_price: 100, list_price: 200 }, [])).not.toThrow();
+    });
+
+    it("深い and ネストは打ち切り以降 fail-closed (false) で確定する (単調な合成なので反転しない)", () => {
+      let c: AlertCondition = { type: "price_below", value: 0 };  // real_price=100 では false
+      for (let i = 0; i < 10_000; i++) c = { type: "and", children: [{ type: "price_above", value: 0 }, c] };
+      expect(() => evaluateCondition(c, { real_price: 100, list_price: 200 }, [])).not.toThrow();
+      expect(evaluateCondition(c, { real_price: 100, list_price: 200 }, [])).toBe(false);
+    });
+
+    it("children が配列でない場合も例外を投げない (壊れたデータへの耐性)", () => {
+      const malformed = { type: "and", children: { not: "an array" } } as unknown as AlertCondition;
+      expect(() => evaluateCondition(malformed, { real_price: 100, list_price: 200 }, [])).not.toThrow();
+    });
+  });
+});
+
+// ── isValidCondition (POST /v1/alerts 書き込み時バリデーション) ────────────────
+// 以前は body.condition を一切検証せず任意の文字列をそのまま KV に保存していた。
+describe("isValidCondition", () => {
+  it("正当な単純条件を受理する", () => {
+    expect(isValidCondition({ type: "price_below", value: 1000 })).toBe(true);
+  });
+
+  it("正当なネストしたツリーを受理する", () => {
+    expect(isValidCondition({
+      type: "and",
+      children: [{ type: "atl" }, { type: "discount_pct", value: 30 }],
+    })).toBe(true);
+  });
+
+  it("未知の type を拒否する", () => {
+    expect(isValidCondition({ type: "delete_everything" })).toBe(false);
+  });
+
+  it("value が数値以外なら拒否する", () => {
+    expect(isValidCondition({ type: "price_below", value: "1000" })).toBe(false);
+  });
+
+  it("children が配列でなければ拒否する", () => {
+    expect(isValidCondition({ type: "and", children: { evil: true } })).toBe(false);
+  });
+
+  it("MAX_CONDITION_DEPTH を超えるツリーを拒否する", () => {
+    let c: AlertCondition = { type: "price_below", value: 0 };
+    for (let i = 0; i < MAX_CONDITION_DEPTH + 1; i++) c = { type: "not", children: [c] };
+    expect(isValidCondition(c)).toBe(false);
+  });
+
+  it("MAX_CONDITION_DEPTH ちょうどなら受理する", () => {
+    let c: AlertCondition = { type: "price_below", value: 0 };
+    for (let i = 0; i < MAX_CONDITION_DEPTH; i++) c = { type: "not", children: [c] };
+    expect(isValidCondition(c)).toBe(true);
+  });
+
+  it("null・プリミティブ・配列を拒否する", () => {
+    expect(isValidCondition(null)).toBe(false);
+    expect(isValidCondition("price_below")).toBe(false);
+    expect(isValidCondition(42)).toBe(false);
   });
 });
 
