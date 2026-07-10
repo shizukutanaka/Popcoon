@@ -32,7 +32,6 @@ Google Play Console の Data safety section と一致する内容。
 
 ### オプトインで送信するデータ (ユーザーが明示的に有効化した場合のみ)
 
-- FCM デバイストークン (価格アラート通知配信用)
 - AI アドバイス要求時の商品情報 (Claude API 宛)
 
 AI アドバイザーは Anthropic の API (`claude-sonnet-5`) に接続する。
@@ -52,13 +51,11 @@ AI アドバイザーは Anthropic の API (`claude-sonnet-5`) に接続する�
 
 - **Anthropic (Claude API)**: AI アドバイザー機能で商品情報のみ
 - **楽天 / Amazon / Yahoo**: 検索クエリ (ユーザーID紐付けなし)
-- **Firebase Cloud Messaging**: 通知配信のみ (メッセージ内容暗号化)
 
 ## データ保存期間
 
 - 価格履歴 (サーバー側): 365 日 (自動ローテーション)
 - 端末内データ: ユーザーが削除するまで
-- FCM トークン: 通知を無効化するまで
 
 ## ユーザーの権利
 

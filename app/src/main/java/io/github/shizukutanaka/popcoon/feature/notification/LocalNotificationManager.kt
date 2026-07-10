@@ -15,8 +15,12 @@ import javax.inject.Singleton
 /**
  * ローカル通知マネージャ。
  *
- * FCM が届かない場合のフォールバックとして、
- * Worker からローカル通知を直接発行する。
+ * Popcoon が現在発行する通知はこのクラス経由のローカル通知のみ (WorkManager の
+ * PriceSyncWorker / WeeklyDigestWorker から直接呼ばれる)。Android クライアントに
+ * Firebase SDK は組み込まれておらず、backend の FCM 送信ロジック (src/index.ts) は
+ * デバイストークンを受け取る手段が無いため到達不能 — 「FCM のフォールバック」ではなく
+ * 唯一の配信経路 (機能過不足監査で発見: 以前のコメントは FCM が実際に動いているかの
+ * ように誤読させた)。
  *
  * 設計:
  *  - タップすると該当商品詳細画面に遷移 (Deep Link 経由)

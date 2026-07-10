@@ -60,7 +60,7 @@
 #### バックエンド (Cloudflare Workers)
 - 価格履歴 API (365 日保持)
 - アラート条件評価 (AND/OR/NOT/price_below/price_above/atl/discount_pct ツリー)
-- FCM プッシュ通知配信
+- アラート条件評価 → FCM プッシュ送信ロジック (Android クライアント未接続のため現状未稼働。詳細は ARCHITECTURE.md 参照)
 - GDPR Article 17 削除エンドポイント
 - Rate limiting (IP 別 1分5回)
 - クラッシュレポート受信 (PII 二重チェック)

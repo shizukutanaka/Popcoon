@@ -23,7 +23,7 @@ Amazon / 楽天 / Yahoo! ショッピング横断の価格比較 Android アプ�
 - 3EC 横断比較 (Amazon・楽天・Yahoo!) を 1 タップで
 - バーコードスキャン (Google Code Scanner — CAMERA 権限不要)
 - 価格チャート (Compose Canvas 純描画)
-- 価格通知 (ローカル + FCM 二重)
+- 価格通知 (端末ローカル通知、WorkManager 日次同期でトリガー)
 - ウォッチリスト + ホーム画面ウィジェット
 - ポイント還元シミュレーター (楽天 SPU / Yahoo 5のつく日 / SoftBank / Amazon)
 - セールカレンダー (楽天スーパーセール / Prime Day / ブラックフライデー)
@@ -64,7 +64,6 @@ Python TDD 参照層 (5,216 行 / 273 tests / 100% mutation × 4 modules)
      └─ Backend (Cloudflare Workers)
          ├─ 価格履歴 KV (365 日)
          ├─ アラート評価 (AND/OR/NOT/price_below/atl/discount_pct ツリー)
-         ├─ FCM 通知配信
          ├─ GDPR Article 17 削除エンドポイント
          └─ Rate limiting (IP 別 1分5回)
 ```

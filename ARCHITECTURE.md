@@ -54,6 +54,13 @@
 └──────────────────────────────────────────────────────────────────┘
 ```
 
+**現状の注意点**: 上記の FCM push 経路は backend 単体としては実装済みだが、Android
+クライアントは Firebase SDK を組み込んでおらず (`google-services.json` 無し、
+`FirebaseMessagingService` 未実装)、`/v1/device` にデバイストークンを登録すること
+も一切ない。そのためこの経路は現状 backend 側だけで完結する死コードで、実際に届く
+通知は端末ローカル (`LocalNotificationManager`、WorkManager の日次/週次ジョブが
+起点) のみ。Firebase を組み込むまではこの節は将来計画として読むこと。
+
 ## データフロー
 
 1. ユーザーが検索キーワード入力

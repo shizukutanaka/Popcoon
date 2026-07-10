@@ -66,5 +66,9 @@ curl https://<デプロイ先>/v1/health
 ## アラート評価の cron
 
 `wrangler.toml` の `[triggers] crons = ["0 * * * *"]` により毎時 `scheduled()`
-(`src/index.ts`) が起動し、登録済みアラートを評価して条件成立時に FCM 通知を送る。
-`FCM_SERVER_KEY` 未設定の場合は通知送信をスキップする (エラーにはならない)。
+(`src/index.ts`) が起動し、登録済みアラートを評価して条件成立時に FCM 通知を送る
+ロジックが実装されている。ただし Android クライアントは Firebase SDK を組み込んで
+おらず `/v1/device` にデバイストークンを登録することが一切ないため、この経路は
+現状 backend 単体で完結する死コードであり、実際に通知は届かない (詳細は
+リポジトリルートの ARCHITECTURE.md 参照)。`FCM_SERVER_KEY` 未設定の場合は通知送信を
+スキップする (エラーにはならない) — Android 統合前は未設定のままで構わない。
