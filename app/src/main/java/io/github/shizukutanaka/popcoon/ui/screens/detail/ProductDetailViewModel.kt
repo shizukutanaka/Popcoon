@@ -95,12 +95,23 @@ class ProductDetailViewModel @Inject constructor(
                 return@launch
             }
             runCatching {
+                // 2. Product: ProductNavCache → なければ productKey からフォールバック構築
+                val cachedProduct = ProductNavCache.consume(productKey)
+
                 // 1. 価格履歴を backend から取得 (非同期)
                 val historyDeferred = async { repository.getPriceHistory(productKey) }
+                // 1b. 商品ページの JSON-LD (FallbackScraper) で原産国・JAN 等を補完 (非同期)。
+                //     ProductNavCache 由来の product は検索 API (Amazon PA-API/楽天/Yahoo) の
+                //     レスポンスそのままで、いずれも原産国を一切返さないため、これが無いと
+                //     EthicsCard は永久に表示されなかった (機能過不足監査で発見: refresh() は
+                //     このために実装済みだったが、呼び出し元がどこにも存在しなかった)。
+                //     失敗時・URL 不明時は refresh() 自身が元の product にフォールバックする。
+                val refreshDeferred = cachedProduct?.takeIf { it.url.isNotEmpty() }
+                    ?.let { p -> async { repository.refresh(p) } }
 
-                // 2. Product: ProductNavCache → なければ productKey からフォールバック構築
                 val history = historyDeferred.await()
-                val product = ProductNavCache.consume(productKey)
+                val product = refreshDeferred?.await()
+                    ?: cachedProduct
                     ?: buildProductFromKey(productKey, history)
 
                 // 3. EC 会員設定から UserContext 構築 (PointSimulatorCard 個人化に供給)
