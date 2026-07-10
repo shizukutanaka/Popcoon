@@ -82,6 +82,7 @@ class AmazonPaApiClient(
                 "Offers.Listings.SavingBasis",
                 "Offers.Listings.Availability.Message",
                 "Offers.Listings.Availability.Type",
+                "Offers.Listings.LoyaltyPoints.Points",
                 "Offers.Summaries.LowestPrice",
             ),
             searchIndex = "All",
@@ -168,6 +169,10 @@ private data class PaItem(
             platform = Platform.AMAZON,
             realPrice = price,
             listPrice = savingBasis,
+            // LoyaltyPoints.Points が無い商品 (対象外カテゴリ・ポイント無し等) は 0。
+            // 以前は resources にこのフィールドを一切要求しておらず、Amazon ポイントは
+            // 全商品で恒久的に 0 表示だった (機能過不足監査で発見)。
+            pointsBack = (listing?.loyaltyPoints?.points ?: 0).toLong(),
             url = detailPageUrl,
             imageUrl = images?.primary?.medium?.url,
             brand = itemInfo.byLineInfo?.brand?.displayValue,
@@ -221,6 +226,7 @@ private data class Listing(
     @kotlinx.serialization.SerialName("Price") val price: PriceInfo? = null,
     @kotlinx.serialization.SerialName("SavingBasis") val savingBasis: PriceInfo? = null,
     @kotlinx.serialization.SerialName("Availability") val availability: Availability? = null,
+    @kotlinx.serialization.SerialName("LoyaltyPoints") val loyaltyPoints: LoyaltyPoints? = null,
 )
 
 @Serializable
@@ -232,4 +238,12 @@ private data class Availability(
 @Serializable
 private data class PriceInfo(
     @kotlinx.serialization.SerialName("Amount") val amount: Double? = null,
+)
+
+// Amazon ポイント (JP マーケットプレイスのみ返る)。取得しなければ product.pointsBack が
+// 恒久的に 0 のまま「ポイント還元なし」と誤表示され、PointSimulator の楽天/Yahoo!との
+// 比較結果が歪んでいた (機能過不足監査で発見)。
+@Serializable
+private data class LoyaltyPoints(
+    @kotlinx.serialization.SerialName("Points") val points: Int? = null,
 )
