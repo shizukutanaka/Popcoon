@@ -102,6 +102,15 @@ fun CustomsSimulatorScreen(onBack: () -> Unit) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Spacing.ml),
         ) {
+            // 関税率はカテゴリ別の簡略化テーブル (実際は品目の HS コード・原産国の EPA 税率等で
+            // 変動する)、手数料は運送業者ごとに異なる定額近似であり、いずれも正式な通関計算ではない
+            // (機能過不足監査で発見: UI に精度限界の開示が無かった)。あくまで目安として提示する。
+            Text(
+                stringResource(R.string.customs_disclaimer),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
             NumberField(
                 value = foreign,
                 onValueChange = { foreign = it.filter(Char::isDigit) },

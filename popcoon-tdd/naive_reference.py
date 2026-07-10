@@ -75,7 +75,9 @@ def naive_simulate_customs(
     else:
         rate = DUTY_RATES.get(category, DUTY_RATES["その他"])
         duty = int(dutiable * rate)
-        ctax = int((dutiable + duty) * 0.10)
+        # 軽減税率8% (食品) / 標準10% (それ以外) — popcoon_core.simulate_customs と同一。
+        tax_rate = 0.08 if category == "食品" else 0.10
+        ctax = int((dutiable + duty) * tax_rate)
         fee = 200
 
     total = foreign_price_jpy + shipping_jpy + duty + ctax + fee

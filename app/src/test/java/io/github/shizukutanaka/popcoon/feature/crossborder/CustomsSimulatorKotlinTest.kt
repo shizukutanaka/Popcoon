@@ -43,8 +43,9 @@ class CustomsSimulatorKotlinTest : StringSpec({
     }
 
     // 食品/化粧品の NOT_RECOMMENDED は「中途半端な節約」帯でのみ発火する (Python オラクル準拠)。
-    // 入力 (20k+2k, 食品, 国内40k): dutiable=22,000>免税 → total=29,240、国内の 90% (36,000) 未満
-    // かつ免税掘り出し物でもない → NOT_RECOMMENDED。期待値は popcoon_core で検証済み。
+    // 入力 (20k+2k, 食品, 国内40k): dutiable=22,000>免税、消費税は食品の軽減税率8%適用、
+    // total=28,712、国内の 90% (36,000) 未満かつ免税掘り出し物でもない → NOT_RECOMMENDED。
+    // 期待値は popcoon_core で検証済み。
     "食品は中途半端な節約帯で NOT_RECOMMENDED (衛生・検疫リスク)" {
         val r = CustomsSimulator.simulate(20_000, 2_000, "食品", japanBestPrice = 40_000)
         r.verdict shouldBe CustomsSimulator.Verdict.NOT_RECOMMENDED

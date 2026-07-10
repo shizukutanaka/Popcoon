@@ -61,6 +61,7 @@
     <string name="customs_fee">手续费</string>
     <string name="customs_total">到岸总价</string>
     <string name="customs_exempt">免税</string>
+    <string name="customs_disclaimer">关税率和手续费为按类别估算的简化数值。实际金额因商品、原产国和承运商而异，以清关时的实际结果为准。</string>
     <string name="customs_category">类别</string>
     <string name="customs_japan_price">日本最低价 (可选)</string>
     <string name="customs_dutiable">完税价格</string>

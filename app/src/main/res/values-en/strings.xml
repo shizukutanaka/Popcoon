@@ -61,6 +61,7 @@
     <string name="customs_fee">Handling fee</string>
     <string name="customs_total">Landed cost</string>
     <string name="customs_exempt">Tax exempt</string>
+    <string name="customs_disclaimer">Duty rates and fees are simplified category-level estimates. Actual charges vary by item, country of origin, and carrier, and are finalized at customs clearance.</string>
     <string name="customs_category">Category</string>
     <string name="customs_japan_price">Domestic best price (optional)</string>
     <string name="customs_dutiable">Dutiable value</string>

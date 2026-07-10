@@ -260,10 +260,10 @@
     },
     {
       "expect": {
-        "consumption_tax": 2640,
+        "consumption_tax": 2112,
         "customs_duty": 4400,
         "is_tax_exempt": false,
-        "total_landed_cost": 29240,
+        "total_landed_cost": 28712,
         "verdict": "NOT_RECOMMENDED"
       },
       "input": {
@@ -275,10 +275,10 @@
     },
     {
       "expect": {
-        "consumption_tax": 5400,
+        "consumption_tax": 4320,
         "customs_duty": 9000,
         "is_tax_exempt": false,
-        "total_landed_cost": 59600,
+        "total_landed_cost": 58520,
         "verdict": "MORE_EXPENSIVE"
       },
       "input": {

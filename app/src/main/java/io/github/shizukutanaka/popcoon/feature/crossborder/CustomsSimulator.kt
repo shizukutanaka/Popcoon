@@ -37,6 +37,13 @@ object CustomsSimulator {
 
     private const val TAX_EXEMPT_THRESHOLD = 16_666L
 
+    // 消費税率: 標準10%、軽減税率8% (酒類・外食を除く飲食料品、2019年10月〜)。
+    // カテゴリ体系に酒類/外食の区別が無いため「食品」カテゴリ全体に軽減税率を適用する
+    // (酒類の混入は既知の簡略化 — UI 側で「概算」であることを開示する)。popcoon_core.py::
+    // simulate_customs / naive_reference.py::naive_simulate_customs と同一ロジック。
+    private const val STANDARD_TAX_RATE = 0.10
+    private const val REDUCED_TAX_RATE = 0.08
+
     fun simulate(
         foreignPriceJpy: Long,
         shippingJpy: Long,
@@ -53,8 +60,9 @@ object CustomsSimulator {
             Triple(0L, 0L, 0L)
         } else {
             val rate = DUTY_RATES[category] ?: DUTY_RATES.getOrDefault("その他", 0.05)
+            val taxRate = if (category == "食品") REDUCED_TAX_RATE else STANDARD_TAX_RATE
             val d = (dutiable * rate).toLong()
-            val t = ((dutiable + d) * 0.10).toLong()
+            val t = ((dutiable + d) * taxRate).toLong()
             Triple(d, t, 200L)
         }
 

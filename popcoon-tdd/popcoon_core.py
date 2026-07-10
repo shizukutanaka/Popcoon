@@ -195,6 +195,12 @@ DUTY_RATES = {
 
 TAX_EXEMPT_THRESHOLD = 16_666
 
+# 消費税率: 標準10%、軽減税率8% (酒類・外食を除く飲食料品、2019年10月〜)。
+# カテゴリ体系に酒類/外食の区別が無いため「食品」カテゴリ全体に軽減税率を適用する
+# (酒類の混入は既知の簡略化 — UI 側で「概算」であることを開示する)。
+STANDARD_TAX_RATE = 0.10
+REDUCED_TAX_RATE = 0.08
+
 
 def simulate_customs(
     foreign_price_jpy: int,
@@ -210,9 +216,10 @@ def simulate_customs(
     dutiable = foreign_price_jpy + shipping_jpy
     is_exempt = dutiable <= TAX_EXEMPT_THRESHOLD
     duty_rate = DUTY_RATES.get(category, DUTY_RATES["その他"])
+    tax_rate = REDUCED_TAX_RATE if category == "食品" else STANDARD_TAX_RATE
 
     duty = 0 if is_exempt else int(dutiable * duty_rate)
-    ctax = 0 if is_exempt else int((dutiable + duty) * 0.10)
+    ctax = 0 if is_exempt else int((dutiable + duty) * tax_rate)
     fee = 0 if is_exempt else 200
 
     total = foreign_price_jpy + shipping_jpy + duty + ctax + fee
