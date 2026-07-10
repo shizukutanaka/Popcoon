@@ -158,6 +158,46 @@ class ProductMatcherTest : StringSpec({
         ProductMatcher.isMatch(a, b) shouldBe false
     }
 
+    // ── 回帰: 異なる世代/容量の SKU を誤って同一商品と判定しない ─────────────────
+    // (機能過不足監査で発見: WH-1000XM4/XM5 は型番不一致でも共有マーケティング語
+    //  だけで Jaccard 類似度が閾値を超え誤統合していた。iPhone は型番抽出が
+    //  容量サフィックスを捉えず "IPHONE15" に丸められ、異なる容量が型番一致=
+    //  高信頼 (0.8+) と誤判定されていた。)
+    "異なる世代のヘッドホン (WH-1000XM4 vs XM5) は同一商品と判定しない" {
+        val a = product("A1", "ソニー ワイヤレスノイズキャンセリングヘッドホン WH-1000XM4 ブラック Bluetooth")
+        val b = product("R1", "SONY WH-1000XM5 ワイヤレスノイズキャンセリングヘッドホン ブラック Bluetooth")
+        ProductMatcher.isMatch(a, b) shouldBe false
+    }
+
+    "型番抽出は直後の容量表記を連結する (iPhone 15 128GB)" {
+        ProductMatcher.extractModelNumber("Apple iPhone 15 128GB") shouldBe "IPHONE15128GB"
+    }
+
+    "異なる容量の iPhone (128GB vs 256GB) は型番一致にならず同一商品と判定しない" {
+        val a = product("A1", "Apple iPhone 15 128GB ブルー SIMフリー")
+        val b = product("R1", "iPhone 15 128GB ブルー 新品未開封")
+        val c = product("Y1", "Apple iPhone 15 256GB ブルー SIMフリー")
+        // 同容量同士は高信頼マッチ (回帰の対照群)
+        ProductMatcher.similarity(a, b) shouldBeGreaterThanOrEqual 0.7
+        // 異容量は型番不一致による減点でマッチしない
+        ProductMatcher.isMatch(a, c) shouldBe false
+    }
+
+    "型番が判明していて食い違う場合はタイトル類似度のみの場合より低くなる (明示的な減点)" {
+        // 型番あり・不一致 (WH-1000XM4 vs XM5) のケースと、
+        // 同じ titleSim を生む型番なしケースを比較し、後者より前者が低いことを確認する。
+        val withModel = ProductMatcher.similarity(
+            product("A1", "ソニー WH-1000XM4 ヘッドホン Bluetooth ノイキャン"),
+            product("R1", "ソニー WH-1000XM5 ヘッドホン Bluetooth ノイキャン"),
+        )
+        // 型番部分だけ取り除いた同等のタイトル類似度 (型番なし = modelMismatch が発生しない)
+        val withoutModel = ProductMatcher.similarity(
+            product("A2", "ソニー ヘッドホン Bluetooth ノイキャン XXXX"),
+            product("R2", "ソニー ヘッドホン Bluetooth ノイキャン YYYY"),
+        )
+        withModel shouldBeLessThan withoutModel
+    }
+
     "空タイトルでも例外なし" {
         val a = product("A1", "")
         val b = product("R1", "")

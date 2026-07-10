@@ -42,6 +42,14 @@ object ProductMatcher {
         val modelA = extractModelNumber(a.title)
         val modelB = extractModelNumber(b.title)
         val modelMatch = modelA != null && modelA == modelB
+        // 両方から型番が取れたのに値が食い違う = 「別モデル/別世代」の確定情報
+        // (例: WH-1000XM4 vs WH-1000XM5、iPhone 15 128GB vs 256GB — extractModelNumber は
+        // 容量サフィックスも型番に連結するため異なる SKU として区別できる)。
+        // これは「型番が分からない」場合より遥かに強い負のシグナルなので、
+        // 単純にタイトル類似度 (ブランド名・カテゴリ語だけで簡単に閾値を超えてしまう) に
+        // フォールバックせず明示的に減点する (機能過不足監査で発見: 異なる世代のヘッドホンや
+        // 異なる容量の iPhone を「同一商品」と誤って統合し、具体的な節約額を提示していた)。
+        val modelMismatch = modelA != null && modelB != null && modelA != modelB
 
         // 3. 正規化タイトルの Jaccard 類似度
         val titleSim = jaccardSimilarity(
@@ -49,11 +57,10 @@ object ProductMatcher {
             normalizeTitle(b.title),
         )
 
-        // 型番一致は強いシグナル
-        return if (modelMatch) {
-            (0.7 + titleSim * 0.3).coerceAtMost(1.0)
-        } else {
-            titleSim
+        return when {
+            modelMatch -> (0.7 + titleSim * 0.3).coerceAtMost(1.0)
+            modelMismatch -> titleSim * 0.5
+            else -> titleSim
         }
     }
 
@@ -127,10 +134,21 @@ object ProductMatcher {
     /**
      * 型番抽出: 英字+数字の組み合わせ (例: WH-1000XM5, RTX4090)。製品の一意識別に最も有効。
      * NFKC 正規化で全角表記の型番 (ＷＦ－１０００ＸＭ４ / ＲＴＸ　４０９０) も拾う。
+     *
+     * 型番直後 (空白 0〜1 個を挟んでもよい) に容量表記 (128GB / 256GB / 1TB 等) が
+     * 続く場合は型番に連結する。MODEL_REGEX 単体では "iPhone 15 128GB" と
+     * "iPhone 15 256GB" が共に "IPHONE15" に丸められ同一型番と誤判定していた
+     * (機能過不足監査で発見)。同一シリーズでも容量違いは別 SKU (別価格) であり、
+     * 同一商品として名寄せしてはならない。
      */
     fun extractModelNumber(title: String): String? {
-        val match = MODEL_REGEX.find(nfkc(title).uppercase()) ?: return null
-        return match.value.replace("-", "").replace(" ", "")
+        val normalized = nfkc(title).uppercase()
+        val match = MODEL_REGEX.find(normalized) ?: return null
+        val base = match.value.replace("-", "").replace(" ", "")
+        val afterModel = normalized.substring(match.range.last + 1)
+        val capacity = CAPACITY_REGEX.find(afterModel)
+            ?.takeIf { it.range.first <= 1 }  // 型番の直後 (空白最大1個) のみ連結対象
+        return if (capacity != null) base + capacity.value.replace(" ", "") else base
     }
 
     /** Jaccard 類似度 = 積集合 / 和集合 */
@@ -143,6 +161,10 @@ object ProductMatcher {
 
     // 型番: 英字2文字以上 + 数字、またはハイフン区切り (WH-1000XM5, A2179, RTX-4090)
     private val MODEL_REGEX = Regex("[A-Z]{2,}[-\\s]?\\d{2,}[A-Z0-9-]*")
+
+    // 型番直後に続く容量表記 (128GB, 256GB, 1TB 等)。extractModelNumber() が型番に連結し、
+    // 同一シリーズの容量違い SKU (iPhone 15 128GB vs 256GB) を型番一致から除外する。
+    private val CAPACITY_REGEX = Regex("\\d+\\s?(?:GB|TB|MB)")
 
     // ノイズ語 (マッチに無関係な販促語)
     private val NOISE_REGEX = Regex(

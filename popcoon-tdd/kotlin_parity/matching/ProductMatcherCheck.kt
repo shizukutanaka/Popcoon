@@ -59,6 +59,24 @@ fun main() {
         ProductMatcher.normalizeTitle("ﾊﾞｯﾌｧﾛｰ ルーター")
             .intersect(ProductMatcher.normalizeTitle("バッファロー ルーター")).contains("バッファロー"))
 
+    // ── Regression: different generation/capacity SKUs must not be merged ──
+    // (commercial-readiness audit finding: WH-1000XM4 vs XM5 shared enough
+    // marketing tokens to exceed MATCH_THRESHOLD via plain Jaccard alone;
+    // iPhone 15 128GB vs 256GB both collapsed to model "IPHONE15", losing
+    // the capacity distinction entirely.)
+    val xm4 = prod("A9", Platform.AMAZON, "ソニー ワイヤレスノイズキャンセリングヘッドホン WH-1000XM4 ブラック Bluetooth")
+    val xm5 = prod("R9", Platform.RAKUTEN, "SONY WH-1000XM5 ワイヤレスノイズキャンセリングヘッドホン ブラック Bluetooth")
+    check("different generation (WH-1000XM4 vs XM5) NOT matched", false,
+        ProductMatcher.isMatch(xm4, xm5))
+
+    check("extractModelNumber concatenates adjacent capacity (iPhone 15 128GB)",
+        "IPHONE15128GB", model("Apple iPhone 15 128GB"))
+
+    val iphone128 = prod("A10", Platform.AMAZON, "Apple iPhone 15 128GB ブルー SIMフリー")
+    val iphone256 = prod("R10", Platform.RAKUTEN, "Apple iPhone 15 256GB ブルー SIMフリー")
+    check("different capacity (iPhone 15 128GB vs 256GB) NOT matched", false,
+        ProductMatcher.isMatch(iphone128, iphone256))
+
     if (fails == 0) {
         println("PRODUCT MATCHER: all assertions passed")
     } else {
