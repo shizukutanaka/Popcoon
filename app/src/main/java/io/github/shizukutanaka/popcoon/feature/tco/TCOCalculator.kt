@@ -106,6 +106,13 @@ object TCOCalculator {
                 "inkjet_printer"
             t.contains("レーザープリンター") || t.contains("レーザー複合機") ->
                 "laser_printer"
+            // RESIDUAL_RATE_DB (calculate() 内) には "smartphone" 用の残存価値式が
+            // 元々存在したが、ここに検出条件が無かったため実商品では一度も到達できない
+            // 死んだ分岐だった (機能過不足監査で発見)。5年で残存価値がほぼ0になる
+            // 他カテゴリと異なり、中古スマホ市場は現実的な残存価値を持つため意義が大きい。
+            t.contains("スマホ") || t.contains("スマートフォン") || t.contains("iphone") ||
+                t.contains("android") || t.contains("携帯電話") ->
+                "smartphone"
             t.contains("ノートpc") || t.contains("ノートパソコン") || t.contains("laptop") ->
                 "laptop"
             t.contains("冷蔵庫") || t.contains("refrigerator") ->

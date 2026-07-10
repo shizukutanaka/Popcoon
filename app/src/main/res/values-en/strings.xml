@@ -341,7 +341,8 @@
     <string name="tco_consumables">Consumables</string>
     <string name="tco_energy">Energy</string>
     <string name="tco_residual">Residual value</string>
-    <string name="tco_total">5-yr total</string>
+    <string name="tco_total">Total</string>
+    <string name="tco_years_chip">%1$d yr</string>
     <string name="tco_per_month">%1$s / month</string>
     <string name="prediction_margin_a11y">%1$s, margin plus or minus %2$s</string>
     <string name="price_a11y_yen">%1$s yen</string>

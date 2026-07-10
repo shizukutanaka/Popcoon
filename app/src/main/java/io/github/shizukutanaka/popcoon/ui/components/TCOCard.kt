@@ -7,9 +7,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -26,17 +32,28 @@ import io.github.shizukutanaka.popcoon.ui.theme.Spacing
  *
  * Popcoon 独自機能 (競合非搭載):
  *  プリンター・PC・冷蔵庫など、本体価格は安くても消耗品・電力で
- *  長期コストが膨らむ製品の「5年総コスト」を可視化する。
+ *  長期コストが膨らむ製品の「N年総コスト」を可視化する。
  *
  *  例: 1万円のインクジェットプリンターが、インク代で5年20万円に。
  *  これを購入前に提示し、ダークパターン的な「本体だけ安い」釣りを暴く。
+ *
+ * 保有年数を選べる (既定5年): TCOCalculator.calculate() の残存価値率は
+ * スマートフォン/ノートPC/プリンター全カテゴリとも年数5でちょうど (または既に) 0 に
+ * なるよう設計されており、years を常に5固定で呼んでいた旧実装では残存価値が
+ * 恒久的に非表示だった (機能過不足監査で発見)。2〜3年で見れば中古市場価値が
+ * 現実的に残るスマホ/ノートPCで、この機能が実際に意味を持つようにする。
  */
 @Composable
 fun TCOCard(
-    result: TCOCalculator.Result,
-    years: Int = 5,
+    purchasePrice: Long,
+    category: String,
     modifier: Modifier = Modifier,
 ) {
+    var years by rememberSaveable { mutableIntStateOf(5) }
+    val result = remember(purchasePrice, category, years) {
+        TCOCalculator.calculate(purchasePrice = purchasePrice, category = category, years = years)
+    }
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(CornerRadius.card),
@@ -47,6 +64,19 @@ fun TCOCard(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
+
+            Row(
+                Modifier.fillMaxWidth().padding(top = Spacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
+                YEAR_OPTIONS.forEach { y ->
+                    FilterChip(
+                        selected = years == y,
+                        onClick = { years = y },
+                        label = { Text(stringResource(R.string.tco_years_chip, y)) },
+                    )
+                }
+            }
 
             TcoRow(stringResource(R.string.tco_purchase), result.purchasePrice)
             if (result.consumablesTotal > 0) {
@@ -99,20 +129,22 @@ private fun TcoRow(label: String, amount: Long) {
     }
 }
 
+// 保有年数の選択肢。1〜3年は現実的な中古市場価値が残るスマホ/ノートPCで意味を持ち、
+// 5・7年は「使い倒す」長期保有シナリオ (残存価値がほぼ/完全に 0 になる想定)。
+private val YEAR_OPTIONS = listOf(1, 2, 3, 5, 7)
+
 @Preview(name = "TCOCard – インクジェット", showBackground = true)
 @Composable
 private fun TCOCardPreview() {
     PopcoonTheme {
-        TCOCard(
-            result = TCOCalculator.Result(
-                purchasePrice = 10000,
-                consumablesTotal = 180000,
-                energyTotal = 1200,
-                maintenance = 0,
-                residualValue = 0,
-                totalTco = 191200,
-                tcoPerMonth = 3186,
-            ),
-        )
+        TCOCard(purchasePrice = 10_000, category = "inkjet_printer")
+    }
+}
+
+@Preview(name = "TCOCard – スマートフォン", showBackground = true)
+@Composable
+private fun TCOCardSmartphonePreview() {
+    PopcoonTheme {
+        TCOCard(purchasePrice = 120_000, category = "smartphone")
     }
 }

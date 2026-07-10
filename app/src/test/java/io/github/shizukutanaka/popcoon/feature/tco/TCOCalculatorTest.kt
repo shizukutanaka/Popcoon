@@ -147,9 +147,30 @@ class TCOCalculatorTest : StringSpec({
         TCOCalculator.inferCategory("ワイヤレスイヤホン WH-1000XM5") shouldBe null
     }
 
+    // 回帰: RESIDUAL_RATE_DB には元々 "smartphone" の残存価値式が存在したが、
+    // inferCategory がスマホを一切検出しないため実商品では到達不能だった
+    // (機能過不足監査で発見)。
+    "スマートフォンを推定 (旧実装では未検出で残存価値が死んでいた)" {
+        TCOCalculator.inferCategory("Apple iPhone 15 128GB ブルー SIMフリー") shouldBe "smartphone"
+    }
+
     "inferCategory はどんな入力でも例外なし" {
         checkAll(Arb.string(0..100)) { s ->
             TCOCalculator.inferCategory(s)
         }
+    }
+
+    // 回帰: 5年固定だと smartphone/laptop の残存価値が常に 0 になり機能が死蔵していた。
+    // 短い保有年数なら現実的な残存価値が出ることを確認する。
+    "スマートフォンは2年保有なら残存価値が非0 (5年固定では常に0だった旧実装の回帰)" {
+        val r = TCOCalculator.calculate(120_000, "smartphone", years = 2)
+        // residualRate = max(0, 0.5 - 2*0.12) = 0.26 → residual = 120,000*0.26 = 31,200
+        r.residualValue shouldBe 31_200L
+    }
+
+    "ノートPCは3年保有なら残存価値が非0" {
+        val r = TCOCalculator.calculate(200_000, "laptop", years = 3)
+        // residualRate = max(0, 0.4 - 3*0.08) = 0.16 → residual = 200,000*0.16 = 32,000
+        r.residualValue shouldBe 32_000L
     }
 })

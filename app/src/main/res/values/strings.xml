@@ -362,7 +362,8 @@
     <string name="tco_consumables">消耗品</string>
     <string name="tco_energy">電気代</string>
     <string name="tco_residual">残価</string>
-    <string name="tco_total">5年総額</string>
+    <string name="tco_total">総額</string>
+    <string name="tco_years_chip">%1$d年</string>
     <string name="tco_per_month">月あたり %1$s</string>
     <string name="prediction_margin_a11y">%1$s 誤差プラスマイナス%2$s</string>
     <string name="price_a11y_yen">%1$s円</string>

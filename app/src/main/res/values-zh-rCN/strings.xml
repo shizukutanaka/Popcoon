@@ -334,7 +334,8 @@
     <string name="tco_consumables">耗材</string>
     <string name="tco_energy">电费</string>
     <string name="tco_residual">残值</string>
-    <string name="tco_total">5年总额</string>
+    <string name="tco_total">总额</string>
+    <string name="tco_years_chip">%1$d年</string>
     <string name="tco_per_month">每月 %1$s</string>
     <string name="prediction_margin_a11y">%1$s 误差正负%2$s</string>
     <string name="price_a11y_yen">%1$s日元</string>

@@ -334,7 +334,8 @@
     <string name="tco_consumables">소모품</string>
     <string name="tco_energy">전기료</string>
     <string name="tco_residual">잔존가치</string>
-    <string name="tco_total">5년 총액</string>
+    <string name="tco_total">총액</string>
+    <string name="tco_years_chip">%1$d년</string>
     <string name="tco_per_month">월 %1$s</string>
     <string name="prediction_margin_a11y">%1$s 오차 플러스마이너스%2$s</string>
     <string name="price_a11y_yen">%1$s엔</string>

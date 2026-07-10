@@ -254,8 +254,24 @@ private fun LoadedContent(
                                 io.github.shizukutanaka.popcoon.ui.components.ReviewTrustBadge(result = rt)
                             }
                         }
-                        s.tco?.let { tco ->
-                            io.github.shizukutanaka.popcoon.ui.components.TCOCard(result = tco)
+                        // TCOCard は保有年数を内部で選択させ都度再計算するため、ViewModel が
+                        // 既定の5年だけで計算した s.tco (存在確認にのみ使う) ではなく
+                        // purchasePrice/category を直接渡す (機能過不足監査で発見: 旧実装は
+                        // 常に5年固定で残存価値が恒久的に0表示になっていた)。
+                        s.tco?.let {
+                            val category = remember(s.product.title) {
+                                io.github.shizukutanaka.popcoon.feature.tco.TCOCalculator.inferCategory(s.product.title)
+                            }
+                            val purchasePrice = remember(s.product.key, s.userCtx) {
+                                io.github.shizukutanaka.popcoon.feature.points.PointSimulator
+                                    .simulate(s.product, s.userCtx).effectivePrice
+                            }
+                            if (category != null) {
+                                io.github.shizukutanaka.popcoon.ui.components.TCOCard(
+                                    purchasePrice = purchasePrice,
+                                    category = category,
+                                )
+                            }
                         }
                         s.ethics?.let { ethics ->
                             io.github.shizukutanaka.popcoon.ui.components.EthicsCard(
