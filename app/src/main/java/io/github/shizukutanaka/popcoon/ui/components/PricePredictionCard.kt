@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import io.github.shizukutanaka.popcoon.R
 import io.github.shizukutanaka.popcoon.core.CurrencyFormatter
+import io.github.shizukutanaka.popcoon.ui.a11y.priceA11yLabel
 import io.github.shizukutanaka.popcoon.feature.prediction.PricePredictionEngine
 import io.github.shizukutanaka.popcoon.ui.theme.CornerRadius
 import io.github.shizukutanaka.popcoon.ui.theme.PopcoonTheme
@@ -145,15 +146,15 @@ private fun PredictionRow(label: String, price: Long, margin: Long) {
     } else {
         CurrencyFormatter.yen(price)
     }
-    // スクリーンリーダー向け: 記号でなく語で読み上げ
+    // スクリーンリーダー向け: 記号でなく語で読み上げ (ロケール対応)
     val a11yText = if (margin > 0) {
         stringResource(
             R.string.prediction_margin_a11y,
-            "$label ${CurrencyFormatter.yenAccessible(price)}",
-            CurrencyFormatter.yenAccessible(margin),
+            "$label ${priceA11yLabel(price)}",
+            priceA11yLabel(margin),
         )
     } else {
-        "$label ${CurrencyFormatter.yenAccessible(price)}"
+        "$label ${priceA11yLabel(price)}"
     }
     Row(
         Modifier

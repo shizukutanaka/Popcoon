@@ -46,8 +46,22 @@ object PointSimulator {
         val breakdown: List<PointSource>,  // 内訳 (透明性)
     )
 
+    /** UI 層 (ui/PointSimulatorLabels.kt) が文字列リソースへマッピングする際の安定識別子。 */
+    enum class Kind {
+        RAKUTEN_SPU, RAKUTEN_5_0_DAY, RAKUTEN_DIAMOND,
+        YAHOO_PAYPAY_BASE, YAHOO_5_DAY, YAHOO_SUNDAY, YAHOO_PREMIUM, YAHOO_SOFTBANK,
+        AMAZON_POINTS,
+    }
+
+    /**
+     * @param name 内部識別用の固定日本語文字列。PointSimulatorTest.kt が
+     *   `.name.contains(...)` で判定に使うため保持する。
+     * @param kind UI 表示用ローカライズ文字列を引くための安定識別子
+     *   (ui/PointSimulatorLabels.kt の `PointSource.nameRes()` が使用)。
+     */
     data class PointSource(
         val name: String,
+        val kind: Kind,
         val amount: Long,
         val rateString: String,   // "1.0%" など表示用
     )
@@ -88,6 +102,7 @@ object PointSimulator {
         val spu = ctx.rakutenSpu.coerceIn(1, 15)
         out += PointSource(
             "楽天SPU",
+            Kind.RAKUTEN_SPU,
             (p.realPrice * (spu / 100.0)).toLong(),
             "$spu.0%",
         )
@@ -97,6 +112,7 @@ object PointSimulator {
         if (day == 5 || day == 10 || day == 15 || day == 20 || day == 25 || day == 30) {
             out += PointSource(
                 "5と0のつく日 +1%",
+                Kind.RAKUTEN_5_0_DAY,
                 (p.realPrice * 0.01).toLong(),
                 "1.0%",
             )
@@ -106,6 +122,7 @@ object PointSimulator {
         if (ctx.rakutenDiamondMember) {
             out += PointSource(
                 "ダイヤモンド会員 +1%",
+                Kind.RAKUTEN_DIAMOND,
                 (p.realPrice * 0.01).toLong(),
                 "1.0%",
             )
@@ -119,6 +136,7 @@ object PointSimulator {
         // 通常 PayPay 1%
         out += PointSource(
             "PayPay 基本",
+            Kind.YAHOO_PAYPAY_BASE,
             (p.realPrice * 0.01).toLong(),
             "1.0%",
         )
@@ -128,6 +146,7 @@ object PointSimulator {
         if (day == 5 || day == 15 || day == 25) {
             out += PointSource(
                 "5のつく日 +4%",
+                Kind.YAHOO_5_DAY,
                 (p.realPrice * 0.04).toLong(),
                 "4.0%",
             )
@@ -137,6 +156,7 @@ object PointSimulator {
         if (ctx.purchaseDate.dayOfWeek == DayOfWeek.SUNDAY) {
             out += PointSource(
                 "日曜日 +5%",
+                Kind.YAHOO_SUNDAY,
                 (p.realPrice * 0.05).toLong(),
                 "5.0%",
             )
@@ -145,6 +165,7 @@ object PointSimulator {
         if (ctx.yahooPremium) {
             out += PointSource(
                 "Yahoo!プレミアム +2%",
+                Kind.YAHOO_PREMIUM,
                 (p.realPrice * 0.02).toLong(),
                 "2.0%",
             )
@@ -153,6 +174,7 @@ object PointSimulator {
         if (ctx.paypaySoftbank) {
             out += PointSource(
                 "SoftBank/Y!mobile +5%",
+                Kind.YAHOO_SOFTBANK,
                 (p.realPrice * 0.05).toLong(),
                 "5.0%",
             )
@@ -169,6 +191,7 @@ object PointSimulator {
             val rate = p.pointsBack.toDouble() / p.realPrice * 100
             out += PointSource(
                 "Amazon ポイント",
+                Kind.AMAZON_POINTS,
                 p.pointsBack,
                 // Locale.US 固定: 既定ロケールに任せると独語等で「1,5%」になり、
                 // CurrencyFormatter (Locale.US) と小数点表記が不一致になる。

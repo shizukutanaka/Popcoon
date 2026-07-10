@@ -360,6 +360,7 @@
     <string name="tco_total">5年総額</string>
     <string name="tco_per_month">月あたり %1$s</string>
     <string name="prediction_margin_a11y">%1$s 誤差プラスマイナス%2$s</string>
+    <string name="price_a11y_yen">%1$s円</string>
     <string name="review_trust_no_data">レビュー評価なし</string>
     <string name="review_trust_few_reviews">レビュー数が少なく参考度低</string>
     <string name="review_trust_too_perfect">高評価が多すぎる (サクラ注意)</string>
@@ -420,6 +421,17 @@
     <string name="point_effective_price">ポイント還元後 実質価格</string>
     <string name="point_breakdown">内訳</string>
     <string name="point_effective_subtitle">定価 %1$s より %2$s 還元</string>
+
+    <!-- ポイント内訳 (PointSimulator.PointSource のローカライズ済み表示用) -->
+    <string name="points_rakuten_spu">楽天SPU</string>
+    <string name="points_rakuten_5_0_day">5と0のつく日 +1%</string>
+    <string name="points_rakuten_diamond">ダイヤモンド会員 +1%</string>
+    <string name="points_yahoo_paypay_base">PayPay 基本</string>
+    <string name="points_yahoo_5_day">5のつく日 +4%</string>
+    <string name="points_yahoo_sunday">日曜日 +5%</string>
+    <string name="points_yahoo_premium">Yahoo!プレミアム +2%</string>
+    <string name="points_yahoo_softbank">SoftBank/Y!mobile +5%</string>
+    <string name="points_amazon_points">Amazon ポイント</string>
 
     <!-- 通知 (PriceSyncWorker / LocalNotificationManager) -->
     <string name="notif_target_reached">目標価格に到達 (%1$s以下)</string>

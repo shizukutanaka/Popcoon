@@ -332,6 +332,7 @@
     <string name="tco_total">5년 총액</string>
     <string name="tco_per_month">월 %1$s</string>
     <string name="prediction_margin_a11y">%1$s 오차 플러스마이너스%2$s</string>
+    <string name="price_a11y_yen">%1$s엔</string>
     <string name="review_trust_no_data">평가 없음</string>
     <string name="review_trust_few_reviews">리뷰 수가 적어 신뢰도 낮음</string>
     <string name="review_trust_too_perfect">평점이 너무 높음 (주의)</string>
@@ -392,6 +393,17 @@
     <string name="point_effective_price">포인트 적용 후 실질 가격</string>
     <string name="point_breakdown">내역</string>
     <string name="point_effective_subtitle">정가 %1$s 에서 %2$s 적립</string>
+
+    <!-- 포인트 내역 (PointSimulator.PointSource 현지화 표시용) -->
+    <string name="points_rakuten_spu">라쿠텐 SPU</string>
+    <string name="points_rakuten_5_0_day">5와 0이 붙는 날 +1%</string>
+    <string name="points_rakuten_diamond">다이아몬드 회원 +1%</string>
+    <string name="points_yahoo_paypay_base">PayPay 기본</string>
+    <string name="points_yahoo_5_day">5가 붙는 날 +4%</string>
+    <string name="points_yahoo_sunday">일요일 +5%</string>
+    <string name="points_yahoo_premium">Yahoo! 프리미엄 +2%</string>
+    <string name="points_yahoo_softbank">SoftBank/Y!mobile +5%</string>
+    <string name="points_amazon_points">Amazon 포인트</string>
 
     <!-- 알림 (PriceSyncWorker / LocalNotificationManager) -->
     <string name="notif_target_reached">목표 가격 도달 (%1$s 이하)</string>

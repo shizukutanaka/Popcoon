@@ -17,6 +17,7 @@ import io.github.shizukutanaka.popcoon.data.model.Platform
 import io.github.shizukutanaka.popcoon.data.model.Product
 import io.github.shizukutanaka.popcoon.feature.points.PointSimulator
 import io.github.shizukutanaka.popcoon.ui.localizedName
+import io.github.shizukutanaka.popcoon.ui.nameRes
 import io.github.shizukutanaka.popcoon.ui.util.HapticFeedback
 
 /**
@@ -123,7 +124,10 @@ fun PointSimulatorCard(
                         Modifier.fillMaxWidth().padding(vertical = Spacing.xxs),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text(source.name, style = MaterialTheme.typography.bodySmall)
+                        // source.name は日本語固定文字列 (PointSimulatorTest.kt が
+                        // .name.contains(...) で厳密比較する内部識別子) なので UI 表示には
+                        // 使わない。nameRes() で kind からロケール対応の文字列リソースへ変換する。
+                        Text(stringResource(source.nameRes()), style = MaterialTheme.typography.bodySmall)
                         Text(
                             io.github.shizukutanaka.popcoon.core.CurrencyFormatter.pointsBack(source.amount, source.rateString),
                             style = MaterialTheme.typography.bodySmall,

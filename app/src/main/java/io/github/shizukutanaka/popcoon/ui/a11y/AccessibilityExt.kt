@@ -1,12 +1,14 @@
 package io.github.shizukutanaka.popcoon.ui.a11y
 
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import io.github.shizukutanaka.popcoon.core.CurrencyFormatter
+import io.github.shizukutanaka.popcoon.R
 import io.github.shizukutanaka.popcoon.ui.theme.TouchTarget
 
 /**
@@ -42,9 +44,19 @@ fun Modifier.a11yDescription(description: String): Modifier =
  */
 fun Modifier.a11yDecorative(): Modifier = this.clearAndSetSemantics {}
 
-/** 価格を読み上げ用に整形 (¥1,234 → 「1,234円」) */
+/**
+ * 価格を読み上げ用にロケール対応で整形する (例: JA「1,234円」、EN "1,234 yen")。
+ *
+ * 以前は CurrencyFormatter.yenAccessible() の「1,234円」をそのまま全ロケールの
+ * TalkBack 読み上げに使っており、検索結果一覧という最高トラフィック画面で
+ * EN/KO/ZH ユーザーにも日本語漢字「円」が読み上げられていた (商用リリース監査で発見)。
+ * CurrencyFormatter.yenAccessible() 自体は CurrencyFormatterTest.kt / kotlin_parity が
+ * 固定フォーマット ("1,234円") を前提にテストしているため変更できず、
+ * ここでロケール対応の読み上げ文言を別途組み立てる。
+ */
+@Composable
 fun priceA11yLabel(yenAmount: Long): String =
-    CurrencyFormatter.yenAccessible(yenAmount)
+    stringResource(R.string.price_a11y_yen, String.format(java.util.Locale.US, "%,d", yenAmount))
 
 /**
  * ダークパターン警告を文章化。

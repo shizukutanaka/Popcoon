@@ -332,6 +332,7 @@
     <string name="tco_total">5年总额</string>
     <string name="tco_per_month">每月 %1$s</string>
     <string name="prediction_margin_a11y">%1$s 误差正负%2$s</string>
+    <string name="price_a11y_yen">%1$s日元</string>
     <string name="review_trust_no_data">无评价</string>
     <string name="review_trust_few_reviews">评价过少参考度低</string>
     <string name="review_trust_too_perfect">评分过高(注意刷单)</string>
@@ -392,6 +393,17 @@
     <string name="point_effective_price">积分返还后实付价</string>
     <string name="point_breakdown">明细</string>
     <string name="point_effective_subtitle">原价 %1$s 返还 %2$s</string>
+
+    <!-- 积分明细 (PointSimulator.PointSource 本地化显示用) -->
+    <string name="points_rakuten_spu">乐天SPU</string>
+    <string name="points_rakuten_5_0_day">逢5和0日 +1%</string>
+    <string name="points_rakuten_diamond">钻石会员 +1%</string>
+    <string name="points_yahoo_paypay_base">PayPay基础</string>
+    <string name="points_yahoo_5_day">逢5日 +4%</string>
+    <string name="points_yahoo_sunday">星期日 +5%</string>
+    <string name="points_yahoo_premium">Yahoo!高级会员 +2%</string>
+    <string name="points_yahoo_softbank">SoftBank/Y!mobile +5%</string>
+    <string name="points_amazon_points">Amazon积分</string>
 
     <!-- 通知 (PriceSyncWorker / LocalNotificationManager) -->
     <string name="notif_target_reached">已达到目标价格 (≤ %1$s)</string>

@@ -339,6 +339,7 @@
     <string name="tco_total">5-yr total</string>
     <string name="tco_per_month">%1$s / month</string>
     <string name="prediction_margin_a11y">%1$s, margin plus or minus %2$s</string>
+    <string name="price_a11y_yen">%1$s yen</string>
     <string name="review_trust_no_data">No review rating</string>
     <string name="review_trust_few_reviews">Too few reviews to trust</string>
     <string name="review_trust_too_perfect">Suspiciously high rating</string>
@@ -400,6 +401,17 @@
     <string name="point_effective_price">Effective price after points</string>
     <string name="point_breakdown">Breakdown</string>
     <string name="point_effective_subtitle">%2$s back off list price %1$s</string>
+
+    <!-- Point breakdown (localized display for PointSimulator.PointSource) -->
+    <string name="points_rakuten_spu">Rakuten SPU</string>
+    <string name="points_rakuten_5_0_day">Day of 5/0 +1%</string>
+    <string name="points_rakuten_diamond">Diamond member +1%</string>
+    <string name="points_yahoo_paypay_base">PayPay base</string>
+    <string name="points_yahoo_5_day">Day of 5 +4%</string>
+    <string name="points_yahoo_sunday">Sunday +5%</string>
+    <string name="points_yahoo_premium">Yahoo! Premium +2%</string>
+    <string name="points_yahoo_softbank">SoftBank/Y!mobile +5%</string>
+    <string name="points_amazon_points">Amazon points</string>
 
     <!-- Notifications (PriceSyncWorker / LocalNotificationManager) -->
     <string name="notif_target_reached">Target price reached (≤ %1$s)</string>
