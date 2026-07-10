@@ -9,6 +9,11 @@ GitHub Actions CI ワークフローです。
 `workflows` 権限が無く、`.github/workflows/` 配下のファイルを push できません
 （GitHub のセキュリティ制約）。そのため、ここにテンプレートとして配置しています。
 
+商用リリース品質化の作業セッション（2026-07-10）でも `bash ci/enable.sh && git push` を
+再度試行し、同一の拒否（"refusing to allow a GitHub App to create or update workflow
+... without `workflows` permission"）を再確認済み。制約は継続しています — 引き続き
+人間の push 権限での有効化が必要です。
+
 ## 有効化の手順（1 コマンド）
 
 リポジトリ管理者が以下を実行してください（ローカルで 1 回だけ）:
@@ -26,7 +31,7 @@ bash ci/enable.sh && git push
 
 | ジョブ | 内容 |
 |--------|------|
-| **android** | JDK 17 + Android SDK + Gradle キャッシュ。`detekt`（静的解析）→ `lintDebug` → `testDebugUnitTest`（kotest 200+ テスト）→ `assembleDebug`。失敗時はテスト/lint/detekt レポートを artifact として保存。 |
+| **android** | JDK 17 + Android SDK + Gradle キャッシュ。`detekt`（静的解析）→ `lintDebug` → `testDebugUnitTest`（kotest 200+ テスト）→ `assembleDebug` → `assembleRelease`（使い捨てキーストアで署名、R8 圧縮・リソース shrink・kotlinx.serialization/Room/Hilt/Ktor の ProGuard ルールを実パイプラインで検証。生成 APK は誰も鍵を持たないため配布不可）。失敗時はテスト/lint/detekt レポートを artifact として保存。 |
 | **python-oracle** | `popcoon-tdd` の pytest スイート（差分テストの正本、300 テスト）。ベンチマークは CI のノイズになるため無効化。 |
 | **parity** | Android SDK 不要。Gradle 同梱の kotlin-compiler-embeddable で純関数（customs/eco/dark-pattern/predict/buy-timing と各 EC マッパー）をコンパイル・実行し Python オラクルと照合（`popcoon-tdd/kotlin_parity/run_all.sh`）。 |
 | **backend** | Cloudflare Worker の vitest（アラート評価・PII 検査・KV ページネーション・入力検証）。 |

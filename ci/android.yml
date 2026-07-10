@@ -50,6 +50,29 @@ jobs:
       - name: Assemble Debug
         run: ./gradlew assembleDebug --stacktrace
 
+      # release ビルド (isMinifyEnabled=true, isShrinkResources=true) は一度も CI で
+      # 検証されておらず、kotlinx.serialization/Room/Hilt/Ktor の R8 圧縮起因の破壊が
+      # 未検出のまま出荷されるリスクがあった (商用リリース監査で発見)。実配布用の
+      # 秘密鍵は要らない — CI 実行のたびに使い捨てのキーストアを生成し、
+      # signingConfig を満たして assembleRelease のパイプライン全体
+      # (圧縮・リソース shrink・署名・パッケージング) を最後まで走らせるだけで、
+      # 生成される APK は誰も鍵を持たないため配布には使えない。
+      - name: Generate throwaway keystore for release-build CI verification
+        run: |
+          keytool -genkeypair -v -keystore /tmp/ci-release.jks \
+            -alias ci -keyalg RSA -keysize 2048 -validity 1 \
+            -storepass ci-only-not-for-distribution \
+            -keypass ci-only-not-for-distribution \
+            -dname "CN=CI, OU=CI, O=Popcoon, L=CI, S=CI, C=JP"
+
+      - name: Assemble Release (R8/shrink verification — not for distribution)
+        env:
+          KEYSTORE_PATH: /tmp/ci-release.jks
+          KEYSTORE_PASSWORD: ci-only-not-for-distribution
+          KEY_ALIAS: ci
+          KEY_PASSWORD: ci-only-not-for-distribution
+        run: ./gradlew assembleRelease --stacktrace
+
       - name: Upload test & lint reports
         if: always()
         uses: actions/upload-artifact@v4
