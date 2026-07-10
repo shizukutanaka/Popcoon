@@ -353,6 +353,7 @@
     <string name="ethics_co2_estimate">예상 CO2 약 %1$s kg</string>
     <string name="ethics_origin">원산지 %1$s</string>
     <string name="ethics_green_alt">국산·인근 생산 대체품이라면 CO2를 줄일 수 있습니다</string>
+    <string name="ethics_disclaimer">종합 점수 일부 (공급망 투명성・순환경제성) 는 제품별 데이터가 없어 업계 평균 잠정값을 사용합니다</string>
 
     <!-- 세일 캘린더 (SaleCalendar 화면) -->
     <string name="sale_calendar_title">세일 캘린더</string>

@@ -381,6 +381,7 @@
     <string name="ethics_co2_estimate">推定CO2 約%1$s kg</string>
     <string name="ethics_origin">原産国 %1$s</string>
     <string name="ethics_green_alt">国産・近隣産の代替品ならCO2を削減できます</string>
+    <string name="ethics_disclaimer">総合スコアの一部 (サプライチェーン透明性・循環経済性) は商品ごとのデータが無いため業界平均の暫定値を使用しています</string>
 
     <!-- セールカレンダー (SaleCalendar 閲覧画面) -->
     <string name="sale_calendar_title">セールカレンダー</string>

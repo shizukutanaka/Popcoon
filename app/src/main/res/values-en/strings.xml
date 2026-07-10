@@ -360,6 +360,7 @@
     <string name="ethics_co2_estimate">Est. CO2 ~%1$s kg</string>
     <string name="ethics_origin">Origin: %1$s</string>
     <string name="ethics_green_alt">A domestic or nearby-made alternative could cut CO2</string>
+    <string name="ethics_disclaimer">Part of the overall score (supply-chain transparency, circularity) uses provisional industry-average values, since per-product data isn\'t available</string>
 
     <!-- Sale calendar (SaleCalendar browse screen) -->
     <string name="sale_calendar_title">Sale Calendar</string>

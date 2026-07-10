@@ -353,6 +353,7 @@
     <string name="ethics_co2_estimate">预计CO2 约%1$s kg</string>
     <string name="ethics_origin">原产国 %1$s</string>
     <string name="ethics_green_alt">选择国产或就近生产的替代品可减少CO2</string>
+    <string name="ethics_disclaimer">综合评分的一部分 (供应链透明度・循环经济性) 因缺乏单品数据，使用的是行业平均的暂定值</string>
 
     <!-- 促销日历 (SaleCalendar 浏览页面) -->
     <string name="sale_calendar_title">促销日历</string>

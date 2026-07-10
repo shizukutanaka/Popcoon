@@ -91,6 +91,17 @@ fun EthicsCard(
                     modifier = Modifier.padding(top = Spacing.sm),
                 )
             }
+            // overall はサプライチェーン透明性(20%)・循環経済性(15%)を含む合計35%ぶんが
+            // 商品ごとの実データではなく業界平均の暫定値 (EcoEthicsScorer.
+            // SUPPLY_CHAIN_SCORE_DEFAULT / CIRCULAR_ECONOMY_SCORE_DEFAULT) で構成される。
+            // co2Score/laborScore の内訳バーだけを見せて総合スコアが完全に商品固有であるかの
+            // ように誤解させていた (機能過不足監査で発見)。
+            Text(
+                text = stringResource(R.string.ethics_disclaimer),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.sm),
+            )
         }
     }
 }
