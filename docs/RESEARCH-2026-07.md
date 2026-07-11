@@ -29,8 +29,8 @@
 - オンデバイス予測モデル: TTM (IBM Granite, ~1M params, ~4MB) が唯一 <50MB 現実解だが非決定的でスパース系列での優位は不確実。
 
 **改善候補**
-- ⏸️ **split-conformal → Conformal PID** — セール期の分布シフトに対するカバレッジ改善。最有力だが oracle 新規作成 (proto_conformal_pid.py) + Kotlin 移植 + parity が必要。次スプリント最優先。
-- ⏸️ **価格アラートのデバウンス** — 「7日移動中央値から X% 以上下」かつ「N記録継続」で誤検知削減。中程度・要 oracle。
+- ✅ **split-conformal → Conformal PID (P項のみ)** — 実装済 (`ConformalInterval.adaptiveConformalMargin`、`PricePredictionEngine.predict()` に配線、Python oracle 7件追加 + parity 7件追加、404/104 green)。積分項 (I) は飽和関数のチューニングリスクがあるため見送り、P項単独で分布シフト追従の主要な利得を確認 (shift/shrink/shock の3ケースで順序依存の反応を実証)。
+- ⏸️ **価格アラートのデバウンス** — 「7日移動中央値から X% 以上下」かつ「N記録継続」で誤検知削減。中程度・要 oracle。次候補。
 - ⏸️ **Holt + damped-trend ETS + seasonal-naive の中央値アンサンブル** — <30点系列で頑健。
 - ⏸️ **TTM オンデバイス** — 見送り (非決定的・効果不確実)。
 
@@ -95,6 +95,7 @@
 | 楽天 SPU 上限 15→18 | fix | run_points parity + oracle 394 |
 | 税制の将来変更注記 | docs | run.sh parity 93 |
 | HIDDEN_SUBSCRIPTION ダークパターン検出 | feat | run.sh parity 97 + oracle 397 |
+| Conformal PID (適応予測区間) | feat | run.sh parity 104 + oracle 404 |
 
 ## 恒久的な環境制約
 
