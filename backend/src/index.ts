@@ -321,7 +321,12 @@ async function handleRequest(req: Request, env: Env): Promise<Response> {
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-5",
+          // 100文字程度の買い物助言には Haiku で十分。Sonnet の約 1/3 のコスト
+          // ($1/$5 per MTok) で、無料枠運用のプロキシとして運用費を大幅に抑える
+          // (2026-07 リサーチ: claude-haiku-4-5 が現行の推奨低コストモデル)。
+          // プロンプトキャッシュは使わない — Haiku 4.5 の最小キャッシュ長は 4096 トークンで、
+          // 本 system プロンプト (数百トークン) はそれに満たず無効になるため。
+          model: "claude-haiku-4-5",
           max_tokens: 200,
           system: body.system,
           messages: [{ role: "user", content: body.userPrompt }],
