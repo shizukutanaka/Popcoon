@@ -18,6 +18,7 @@ SCARCITY = "SCARCITY"
 SOCIAL_PROOF = "SOCIAL_PROOF"
 MISDIRECTION = "MISDIRECTION"
 FORCED_ACTION = "FORCED_ACTION"
+HIDDEN_SUBSCRIPTION = "HIDDEN_SUBSCRIPTION"
 
 _URGENCY_PATTERNS = [
     r"残り\s*\d+\s*(?:時間|分|秒)",
@@ -42,6 +43,15 @@ _MISDIRECTION_PATTERNS = [
 _CONFIRMSHAMING_PATTERNS = [
     r"いいえ.*(?:節約|お得|割引).*(?:したくない|不要|結構|いりません)",
     r"(?i)no,?\s+i\s+(?:don't|do not)\s+want\s+to\s+save",
+]
+# 隠れ定期購入 (subscription trap)。継続を強制/自動化する語に限定 (中立表記は拾わない)。
+_HIDDEN_SUBSCRIPTION_PATTERNS = [
+    r"定期(?:購入|便|コース|縛り)",
+    r"\d+\s*回(?:以上)?[^。\n]{0,6}(?:継続|受け取り|購入)が(?:条件|必須|必要)",
+    r"自動(?:更新|継続|課金)",
+    r"(?i)auto[-\s]?renew(?:s|al|ing)?",
+    r"(?i)automatically\s+renews?",
+    r"(?i)recurring\s+(?:billing|charge|payment|subscription)",
 ]
 
 
@@ -100,6 +110,10 @@ def detect_dark_patterns(text: str, stock_count: Optional[int] = None) -> List[d
     ev = _first_match(t, _CONFIRMSHAMING_PATTERNS)
     if ev:
         warnings.append({"category": FORCED_ACTION, "evidence": ev, "severity": "HIGH"})
+
+    ev = _first_match(t, _HIDDEN_SUBSCRIPTION_PATTERNS)
+    if ev:
+        warnings.append({"category": HIDDEN_SUBSCRIPTION, "evidence": ev, "severity": "HIGH"})
 
     warnings.sort(key=lambda w: w["category"])
     return warnings

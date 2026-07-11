@@ -1,11 +1,14 @@
 package io.github.shizukutanaka.popcoon.feature.darkpattern
 
 /**
- * UIテキスト系ダークパターン検出（URGENCY / SCARCITY / SOCIAL_PROOF / MISDIRECTION / FORCED_ACTION）。
+ * UIテキスト系ダークパターン検出
+ * （URGENCY / SCARCITY / SOCIAL_PROOF / MISDIRECTION / FORCED_ACTION / HIDDEN_SUBSCRIPTION）。
  * 価格・数値系は既存 DarkPatternDetector が担当。
  *
  * 学術根拠: Mathur CSCW2019 / AidUI ICSE'23 / arXiv:2211.06543。
  * Amazon FTC 和解（$2.5B）のIliad Flow などの事例を踏まえたルール設計。
+ * HIDDEN_SUBSCRIPTION (隠れ定期購入) は消費者庁 2025-04 実態調査でも最頻出級の類型で、
+ * 特商法 2027 改正で解約妨害の明文禁止が検討されている領域 (2026-07 リサーチ)。
  * オンデバイス処理・送信なし（I5 方針）。
  *
  * Python 参照 (popcoon-tdd/proto_darkpattern_signals.py) と完全一致。
@@ -13,8 +16,8 @@ package io.github.shizukutanaka.popcoon.feature.darkpattern
  */
 object DarkPatternTextDetector {
 
-    /** 5カテゴリを Python 名（＝アルファベット順）で定義。ordinal がソートキーになる。 */
-    enum class Category { FORCED_ACTION, MISDIRECTION, SCARCITY, SOCIAL_PROOF, URGENCY }
+    /** カテゴリを Python 名（＝アルファベット順）で定義。ordinal がソートキーになる。 */
+    enum class Category { FORCED_ACTION, HIDDEN_SUBSCRIPTION, MISDIRECTION, SCARCITY, SOCIAL_PROOF, URGENCY }
 
     enum class Severity { LOW, MEDIUM, HIGH }
 
@@ -57,6 +60,18 @@ object DarkPatternTextDetector {
         Regex("(?U)no,?\\s+i\\s+(?:don't|do not)\\s+want\\s+to\\s+save", RegexOption.IGNORE_CASE),
     )
 
+    // 隠れ定期購入 (subscription trap): 一見単発購入に見えて実は継続課金/最低回数縛り。
+    // 消費者庁調査でも最頻出、FTC Amazon Prime 和解の中核類型。誤検出を避けるため
+    // 「継続を強制/自動化する」語に限定 (単なる「定期便あり」の中立表記は拾わない)。
+    private val HIDDEN_SUBSCRIPTION = listOf(
+        Regex("定期(?:購入|便|コース|縛り)"),
+        Regex("(?U)\\d+\\s*回(?:以上)?[^。\\n]{0,6}(?:継続|受け取り|購入)が(?:条件|必須|必要)"),
+        Regex("自動(?:更新|継続|課金)"),
+        Regex("(?U)auto[-\\s]?renew(?:s|al|ing)?", RegexOption.IGNORE_CASE),
+        Regex("(?U)automatically\\s+renews?", RegexOption.IGNORE_CASE),
+        Regex("(?U)recurring\\s+(?:billing|charge|payment|subscription)", RegexOption.IGNORE_CASE),
+    )
+
     // ── 公開 API ────────────────────────────────────────────────────────────
 
     /**
@@ -86,6 +101,10 @@ object DarkPatternTextDetector {
 
         firstMatch(text, CONFIRMSHAMING)?.let { ev ->
             warnings += Signal(Category.FORCED_ACTION, ev, Severity.HIGH)
+        }
+
+        firstMatch(text, HIDDEN_SUBSCRIPTION)?.let { ev ->
+            warnings += Signal(Category.HIDDEN_SUBSCRIPTION, ev, Severity.HIGH)
         }
 
         return warnings.sortedBy { it.category }

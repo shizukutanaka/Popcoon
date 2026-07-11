@@ -115,6 +115,24 @@ class DarkPatternTextDetectorTest : StringSpec({
             it.severity == DarkPatternTextDetector.Severity.HIGH } shouldBe true
     }
 
+    "HIDDEN_SUBSCRIPTION: 隠れ定期購入は HIGH" {
+        val w = DarkPatternTextDetector.detect("定期購入コースへ自動で切替")
+        w.any { it.category == DarkPatternTextDetector.Category.HIDDEN_SUBSCRIPTION &&
+            it.severity == DarkPatternTextDetector.Severity.HIGH } shouldBe true
+    }
+
+    "HIDDEN_SUBSCRIPTION: 自動更新・英語 auto-renew も検出" {
+        cats("ご注文は自動更新されます") shouldContain
+            DarkPatternTextDetector.Category.HIDDEN_SUBSCRIPTION
+        cats("This subscription automatically renews monthly") shouldContain
+            DarkPatternTextDetector.Category.HIDDEN_SUBSCRIPTION
+    }
+
+    "HIDDEN_SUBSCRIPTION: 中立な単発商品は誤検出しない" {
+        cats("高品質なワイヤレスイヤホン 送料無料") shouldNotContain
+            DarkPatternTextDetector.Category.HIDDEN_SUBSCRIPTION
+    }
+
     "英語パターン: SCARCITY + URGENCY + SOCIAL_PROOF" {
         val c = cats("Only 1 left, hurry! 5 people are viewing this")
         DarkPatternTextDetector.Category.SCARCITY in c shouldBe true

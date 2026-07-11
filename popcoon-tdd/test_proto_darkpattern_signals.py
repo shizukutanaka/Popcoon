@@ -82,3 +82,23 @@ def test_output_sorted_and_one_per_category():
 def test_deterministic():
     text = "本日限り！残り3点。8人がカートに入れました"
     assert detect_dark_patterns(text) == detect_dark_patterns(text)
+
+
+def test_hidden_subscription_detected_high():
+    # 消費者庁 2025-04 実態調査でも最頻出級。継続を強制/自動化する語で HIGH。
+    for text in ["定期購入コースへ自動で切替", "ご注文は自動更新されます",
+                 "This subscription automatically renews monthly",
+                 "3回以上の継続が条件"]:
+        out = detect_dark_patterns(text)
+        assert any(w["category"] == "HIDDEN_SUBSCRIPTION" and w["severity"] == "HIGH"
+                   for w in out), text
+
+
+def test_hidden_subscription_no_false_positive_on_neutral_product():
+    assert "HIDDEN_SUBSCRIPTION" not in _cats("高品質なワイヤレスイヤホン 送料無料")
+
+
+def test_hidden_subscription_sort_order():
+    # HIDDEN_SUBSCRIPTION は FORCED_ACTION と MISDIRECTION の間 (アルファベット順)。
+    cats = [w["category"] for w in detect_dark_patterns("本日限り 定期購入コース")]
+    assert cats == ["HIDDEN_SUBSCRIPTION", "URGENCY"]

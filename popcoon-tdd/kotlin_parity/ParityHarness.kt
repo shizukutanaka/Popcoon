@@ -204,6 +204,10 @@ fun main() {
         TX("3 people are viewing", null),
         TX("デフォルトでチェック", null),
         TX("本日限り 残り3点 5人が購入", null),   // 複数カテゴリ → ソート
+        TX("定期購入コース", null),           // HIDDEN_SUBSCRIPTION (隠れ定期購入)
+        TX("自動更新されます", null),          // HIDDEN_SUBSCRIPTION (自動継続)
+        TX("Subscription automatically renews", null),  // HIDDEN_SUBSCRIPTION (英語)
+        TX("本日限り 定期購入コース", null),   // URGENCY + HIDDEN_SUBSCRIPTION → ソート順検査
         TX("", 2),                          // 空テキスト + stock=2
         TX("普通の商品説明です", 2),         // テキスト無 + stock=2 → SCARCITY
         TX("送料無料の良い商品", null),       // 何も無し
