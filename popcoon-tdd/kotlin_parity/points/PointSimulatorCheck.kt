@@ -60,12 +60,13 @@ fun main() {
     }
 
     // ── Rakuten: spu out-of-range display now matches credited rate ─────────
+    // 上限は 2026-07 SPU 改定で 15 → 18 に (プログラム上限 18.5倍 の整数近似)。
     PointSimulator.simulate(
         prod(Platform.RAKUTEN, 10000),
         PointSimulator.UserContext(rakutenSpu = 20, purchaseDate = date("2024-01-07")),
     ).let {
-        check("rak spu20 credited 15%", 1500L, it.pointsBack)
-        check("rak spu20 display coerced", "15.0%", it.breakdown.first().rateString)
+        check("rak spu20 credited 18%", 1800L, it.pointsBack)
+        check("rak spu20 display coerced", "18.0%", it.breakdown.first().rateString)
     }
     PointSimulator.simulate(
         prod(Platform.RAKUTEN, 10000),

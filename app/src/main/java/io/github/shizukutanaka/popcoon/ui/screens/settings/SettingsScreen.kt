@@ -78,7 +78,7 @@ fun SettingsScreen(
 
             // ── EC 会員設定 (ポイント還元ランキング個人化) ──────
             SectionCard(stringResource(R.string.settings_ec_membership)) {
-                // 楽天 SPU: Slider 1–15
+                // 楽天 SPU: Slider 1–18 (2026-07 改定でプログラム上限 18.5倍)
                 Column(Modifier.padding(horizontal = Spacing.ml, vertical = Spacing.sm)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -102,8 +102,8 @@ fun SettingsScreen(
                     Slider(
                         value = state.rakutenSpu.toFloat(),
                         onValueChange = { viewModel.setRakutenSpu(it.toInt()) },
-                        valueRange = 1f..15f,
-                        steps = 13,
+                        valueRange = 1f..18f,
+                        steps = 16,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }

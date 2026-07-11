@@ -98,8 +98,11 @@ object PointSimulator {
     ) {
         // SPU 基本 (1倍 = 1%)。表示率は実際に付与する coerce 後の値に揃える
         // (透明性: 生の rakutenSpu を表示すると amount と矛盾していた。
-        //  spu=0 → 1% 付与なのに "0.0%" 表示、spu=20 → 15% 付与なのに "20.0%" 表示)。
-        val spu = ctx.rakutenSpu.coerceIn(1, 15)
+        //  spu=0 → 1% 付与なのに "0.0%" 表示、spu=21 → 18% 付与なのに "21.0%" 表示)。
+        // 上限 18: 2026-07-01 の SPU 改定でプログラム上限が 18.5倍 (=最大 +17.5% ボーナス
+        // + 基本1%) に引き上げられた。本フィールドは整数%モデルのため 18 で近似する
+        // (半端な 0.5% 分は切り捨て — サービス毎のポイント上限もあり実際の付与はこれ以下)。
+        val spu = ctx.rakutenSpu.coerceIn(1, 18)
         out += PointSource(
             "楽天SPU",
             Kind.RAKUTEN_SPU,
