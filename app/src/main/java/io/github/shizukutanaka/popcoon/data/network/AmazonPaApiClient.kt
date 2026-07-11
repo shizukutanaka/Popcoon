@@ -22,16 +22,25 @@ import java.time.Instant
 /**
  * Amazon Product Advertising API 5.0 client for Japan marketplace.
  *
- * 要件:
- *  - Associate タグ (PartnerTag) 必須
- *  - AWS SigV4 署名
- *  - Marketplace: www.amazon.co.jp
- *  - region: us-west-2
- *  - host: webservices-fe.amazon.co.jp
+ * ⚠️ 重要 (2026-07 リサーチで判明): **PA-API 5.0 は 2026-04-30 に廃止予告され
+ * 2026-05-15 に停止済み**。後継は Creators API (OAuth2 ベアラ認証、新資格情報、
+ * 成果要件 10件/30日、Offers V1 は 2026-01-31 廃止)。このクライアントは旧 SigV4 +
+ * webservices-fe エンドポイントを叩き続けるため、**本番では常時 4xx/5xx で失敗する**。
  *
- * 制限:
- *  - Initial quota: 1 req/sec (8,640/日)
- *  - シェア率に応じて増加
+ * 現状の緩和策 (コード変更不要・確認済み):
+ *  - ProductRepository.searchWithBreaker がこの失敗をサーキットブレーカーで捕捉し、
+ *    OPEN の間 Amazon ソースをスキップする (SourceOutcome.failed=true)。
+ *  - 全滅でなければ Rakuten/Yahoo の結果で検索は成立する (部分成功パス)。
+ *  - 商品詳細では FallbackScraper (JSON-LD) が Amazon 商品ページの実質的なデータ源になる。
+ *
+ * 移行 TODO (本環境では OAuth2 資格情報・成果実績が無く実施不可、要人手):
+ *  - Creators API (OAuth2) クライアントへ置換。SETUP/README の PA-API 手順も更新済み。
+ *  - 成果要件 (10件/30日) 未達なら Amazon ライブ価格は無効化し FallbackScraper に一本化する判断も可。
+ *
+ * 旧 PA-API 5.0 要件 (参考・非稼働):
+ *  - Associate タグ (PartnerTag) 必須 / AWS SigV4 署名
+ *  - Marketplace: www.amazon.co.jp / region: us-west-2 / host: webservices-fe.amazon.co.jp
+ *  - Initial quota: 1 req/sec (8,640/日)、シェア率に応じて増加
  */
 class AmazonPaApiClient(
     private val accessKey: String = BuildConfig.AMAZON_ACCESS_KEY,

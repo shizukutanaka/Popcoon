@@ -33,10 +33,15 @@
 │          │              │              │        │                 │
 │  ┌───────▼──┐  ┌────────▼───┐  ┌──────▼─┐  ┌───▼────────┐        │
 │  │ Amazon   │  │  Rakuten   │  │  Yahoo │  │  Fallback  │        │
-│  │ PA-API   │  │  Ichiba    │  │ Shop V3│  │  Scraper   │        │
+│  │ PA-API*  │  │  Ichiba    │  │ Shop V3│  │  Scraper   │        │
 │  └──────────┘  └────────────┘  └────────┘  └────────────┘        │
 │                                                                    │
 └──────────────────────────────────────────────────────────────────┘
+
+* Amazon PA-API 5.0 は 2026-05-15 に廃止済み (後継 Creators API / OAuth2)。
+  現状 Amazon ソースは常時失敗し、サーキットブレーカー OPEN のまま Fallback
+  Scraper (JSON-LD) が Amazon 商品の実質データ源になる。Creators API への
+  移行は OAuth2 資格情報と成果実績 (10件/30日) を要するため未実施 (TODO)。
                                 │
                                 │ HTTPS
                                 ▼

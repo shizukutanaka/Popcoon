@@ -5,8 +5,11 @@
 # ── Android SDK (Android Studio が自動設定) ──────────────────────────────────
 sdk.dir=/path/to/Android/Sdk
 
-# ── Amazon Product Advertising API 5.0 ───────────────────────────────────────
-# https://affiliate.amazon.co.jp/ で取得
+# ── Amazon Product Advertising API 5.0 (⚠️ 2026-05-15 廃止済み) ───────────────
+# PA-API 5.0 は停止済み。後継は Creators API (OAuth2 ベアラ認証、成果要件 10件/30日)。
+# 下記の SigV4 用キーは現行 AmazonPaApiClient では常時失敗する — Creators API への
+# 移行が必要 (未実施)。移行までは Amazon の実データは FallbackScraper (JSON-LD) が担う。
+# 旧キー取得元: https://affiliate.amazon.co.jp/
 AMAZON_ACCESS_KEY=
 AMAZON_SECRET_KEY=
 AMAZON_PARTNER_TAG=

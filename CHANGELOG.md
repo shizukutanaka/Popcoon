@@ -16,7 +16,8 @@
 - セールカレンダー (楽天スーパーセール / Prime Day / ブラックフライデー 等)
 
 #### EC API 統合
-- Amazon PA-API 5.0 (AWS SigV4 純 Kotlin 実装)
+- Amazon PA-API 5.0 (AWS SigV4 純 Kotlin 実装) ※ 2026-05-15 廃止済み。後継 Creators
+  API (OAuth2) への移行は未実施 — 現状は FallbackScraper が Amazon の実質データ源
 - 楽天 Ichiba API
 - Yahoo! ショッピング API v3
 - FallbackScraper (JSON-LD 倫理的スクレイプ)
