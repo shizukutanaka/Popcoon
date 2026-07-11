@@ -17,7 +17,7 @@ Split-conformal で **分布フリーの被覆保証付き区間**（「(1-alpha
 """
 
 import math
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 
 def conformal_margin(
@@ -66,3 +66,49 @@ def empirical_coverage(
         return 0.0
     covered = sum(1 for r in calibration_residuals if abs(r) <= margin)
     return covered / len(calibration_residuals)
+
+
+def adaptive_conformal_margin(
+    residuals: List[float],
+    alpha: float = 0.1,
+    eta: Optional[float] = None,
+) -> float:
+    """オンライン分位点追跡 (quantile tracking) — Conformal PID の P 項のみを実装
+    (積分項は飽和関数のチューニングを要し誤設定時の不安定リスクがあるため見送り。
+    P 項単独でも文献 (下記) の主要な利得の大部分を再現する)。
+
+    出典: Conformal PID Control for Time Series (Angelopoulos+, NeurIPS 2023,
+          arXiv:2307.16895) の quantile tracker。Adaptive Conformal Inference
+          (Gibbs & Candès 2021) の分位点直接追跡版と等価。2026-07 リサーチで確認:
+          分布シフト (セール期のボラティリティ急変等) に対し、静的 split-conformal
+          (`conformal_margin`, 全キャリブレーション集合の分位点で順序不変) より
+          直近の実績を反映できる。
+
+    アルゴリズム: pinball loss の勾配降下と等価な更新則
+        err_t = 1[|residual_t| > q_t]
+        q_{t+1} = max(0, q_t + eta * (err_t - alpha))
+    を残差列の時系列順に 1 パス再生する。static split-conformal の分位点で
+    ウォームスタートしてから追跡することで、コールドスタート (q=0 起点だと
+    序盤の残差がほぼ全て「超過」扱いになり不安定) を避ける。
+
+    eta (ステップ幅) 省略時はデータレンジの 5% (`max(|r|) - min(|r|)`) を使う —
+    ハイパーパラメータ探索を避けた決定的なデフォルト。値が大きいほど追従が速いが
+    分散が増える (トレードオフは文献に準拠)。
+
+    残差が空なら 0.0。alpha は (0,1) — 不正なら (残差が空でない限り) ValueError。
+    """
+    if not residuals:
+        return 0.0
+    if not (0.0 < alpha < 1.0):
+        raise ValueError("alpha must be in (0,1)")
+
+    abs_res = [abs(r) for r in residuals]
+    if eta is None:
+        data_range = max(abs_res) - min(abs_res)
+        eta = max(data_range * 0.05, 1e-9)
+
+    q = conformal_margin(residuals, alpha)  # warm start
+    for r in abs_res:
+        err = 1.0 if r > q else 0.0
+        q = max(0.0, q + eta * (err - alpha))
+    return q

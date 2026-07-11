@@ -15,7 +15,7 @@ from popcoon_core import (
     detect_dark_patterns, predict_price,
 )
 from buy_timing_scorer import score_buy_timing
-from proto_conformal_interval import conformal_margin
+from proto_conformal_interval import adaptive_conformal_margin, conformal_margin
 from proto_seasonal_decomp_forecast import seasonal_decompose_forecast
 from proto_cross_mall_cart import optimize_basket
 from proto_darkpattern_signals import detect_dark_patterns as detect_text_patterns
@@ -136,6 +136,13 @@ for line in sys.stdin:
         got = p[3]
         exp = f"{conformal_margin(residuals, alpha):.10f}"
         check(got == exp, f"conformal (n={len(residuals)},alpha={alpha})", got, exp)
+
+    elif kind == "ADAPTIVE_CONFORMAL":
+        residuals = [float(x) for x in p[1].split(";") if x != ""]
+        alpha = float(p[2])
+        got = p[3]
+        exp = f"{adaptive_conformal_margin(residuals, alpha):.10f}"
+        check(got == exp, f"adaptive_conformal (n={len(residuals)},alpha={alpha})", got, exp)
 
     elif kind == "SEASONAL":
         prices = [float(x) for x in p[1].split(";") if x != ""]

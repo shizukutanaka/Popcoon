@@ -126,6 +126,22 @@ fun main() {
         println("CONFORMAL\t${c.residuals.joinToString(";")}\t${c.alpha}\t${"%.10f".format(m)}")
     }
 
+    // ── ADAPTIVE_CONFORMAL: quantile-tracking (Conformal PID P項) margin ────────
+    // 静的分位点との違いを検査する順序依存ケースを含む。proto_conformal_interval と照合。
+    val adaptiveConformal = listOf(
+        CC((1..10).map { it.toDouble() }, 0.1),
+        CC(listOf(7.5), 0.1),                                        // 単一残差
+        CC(emptyList(), 0.1),                                        // 空 → 0.0
+        CC(List(20) { 2.0 } + List(10) { 50.0 }, 0.1),               // shift: 直近が高ボラ化
+        CC(List(20) { 50.0 } + List(10) { 2.0 }, 0.1),               // shrink: 直近が沈静化
+        CC(List(29) { 1.0 } + listOf(1000.0), 0.1),                  // shock: 直近1件だけ急変動
+        CC(listOf(-30.0, -20.0, -10.0, -5.0, -2.0, 0.0, 2.0, 5.0, 10.0, 20.0, 30.0), 0.3),
+    )
+    for (c in adaptiveConformal) {
+        val m = ConformalInterval.adaptiveConformalMargin(c.residuals, c.alpha)
+        println("ADAPTIVE_CONFORMAL\t${c.residuals.joinToString(";")}\t${c.alpha}\t${"%.10f".format(m)}")
+    }
+
     // ── SEASONAL: trend+seasonal 分解予測 (中心移動平均 + 最小二乗線形) ──────────
     // 価格列・horizon・period → 予測列。proto_seasonal_decomp_forecast と照合。
     data class SC(val prices: List<Double>, val horizon: Int, val period: Int)

@@ -48,10 +48,13 @@ object PricePredictionEngine {
         val pred7 = max(0L, (level + trend * 7).toLong())
         val pred30 = max(0L, (level + trend * 30).toLong())
 
-        // A6: Conformal 予測区間（PORTING_SPEC.md A6, arXiv:2505.08158）
+        // A6: Conformal 予測区間（PORTING_SPEC.md A6, arXiv:2505.08158）。
+        // 静的 split-conformal ではなく適応 (quantile tracking, Conformal PID の P項,
+        // arXiv:2307.16895) を使う — 2026-07 リサーチで確認: セール期のボラティリティ
+        // 急変等の分布シフトに対し、順序不変な静的分位点より直近の実績を反映できる。
         val residuals = holtResiduals(cleaned)
         val margin = if (residuals.isNotEmpty())
-            ConformalInterval.conformalMargin(residuals).toLong()
+            ConformalInterval.adaptiveConformalMargin(residuals).toLong()
         else 0L
 
         // A1: 季節分解予測（PORTING_SPEC.md A1, arXiv:2403.14587）
