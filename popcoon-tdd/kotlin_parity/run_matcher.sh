@@ -9,7 +9,7 @@ ROOT="$(cd "$HERE/../.." && pwd)"
 SRC="$ROOT/app/src/main/java/io/github/shizukutanaka/popcoon"
 OUT="$(mktemp -d)"; trap 'rm -rf "$OUT"' EXIT
 
-KC="$(find "$HOME/.gradle" -name 'kotlin-compiler-embeddable-*.jar' 2>/dev/null | head -1 || true)"
+KC="$(find "$HOME/.gradle" ${GRADLE_HOME:+"$GRADLE_HOME/lib"} /opt/gradle-*/lib /usr/share/gradle*/lib -name 'kotlin-compiler-embeddable-*.jar' 2>/dev/null | head -1 || true)"
 if [[ -z "$KC" ]]; then
   echo "ERROR: kotlin-compiler-embeddable not found; run './gradlew --version' once." >&2; exit 2
 fi

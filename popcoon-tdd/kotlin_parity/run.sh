@@ -16,7 +16,7 @@ OUT="$(mktemp -d)"
 trap 'rm -rf "$OUT"' EXIT
 
 # Locate the Kotlin compiler bundled with the Gradle wrapper distribution.
-KC="$(find "$HOME/.gradle" -name 'kotlin-compiler-embeddable-*.jar' 2>/dev/null | head -1 || true)"
+KC="$(find "$HOME/.gradle" ${GRADLE_HOME:+"$GRADLE_HOME/lib"} /opt/gradle-*/lib /usr/share/gradle*/lib -name 'kotlin-compiler-embeddable-*.jar' 2>/dev/null | head -1 || true)"
 if [[ -z "$KC" ]]; then
   echo "ERROR: kotlin-compiler-embeddable jar not found under ~/.gradle." >&2
   echo "       Run './gradlew --version' once to populate the wrapper distribution." >&2

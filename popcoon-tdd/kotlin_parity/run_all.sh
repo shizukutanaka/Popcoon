@@ -8,8 +8,12 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Ensure the bundled Kotlin compiler exists (populated by the Gradle wrapper).
-if ! find "$HOME/.gradle" -name 'kotlin-compiler-embeddable-*.jar' 2>/dev/null | grep -q .; then
+# Ensure a bundled Kotlin compiler is reachable. Search the Gradle wrapper cache
+# first, then a system Gradle install (GRADLE_HOME, /opt/gradle-*, /usr/share/gradle*)
+# — the latter lets this run on CI images / dev boxes where a full Gradle is present
+# but the wrapper can't reach services.gradle.org to self-populate.
+if ! find "$HOME/.gradle" ${GRADLE_HOME:+"$GRADLE_HOME/lib"} /opt/gradle-*/lib /usr/share/gradle*/lib \
+       -name 'kotlin-compiler-embeddable-*.jar' 2>/dev/null | grep -q .; then
   echo "Populating Gradle wrapper distribution (for bundled kotlinc)…"
   (cd "$HERE/../.." && ./gradlew --version >/dev/null 2>&1) || true
 fi
