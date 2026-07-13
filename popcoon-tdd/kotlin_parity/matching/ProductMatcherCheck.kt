@@ -77,6 +77,33 @@ fun main() {
     check("different capacity (iPhone 15 128GB vs 256GB) NOT matched", false,
         ProductMatcher.isMatch(iphone128, iphone256))
 
+    // ── 属性不一致ペナルティ (WDC corner-case precision、2026-07 リサーチ) ──
+    // 個数属性: 型番一致 (SB2000) でも 2個 vs 4個 は別 SKU。
+    // base = 0.7 + (4/6)*0.3 = 0.9、個数ペナルティ 0.5 → 0.45 < 0.6。
+    val filter2 = prod("A11", Platform.AMAZON, "アイリスオーヤマ SB-2000 加湿フィルター 2個")
+    val filter4 = prod("R11", Platform.RAKUTEN, "アイリスオーヤマ SB-2000 加湿フィルター 4個")
+    check("same model different quantity (2個 vs 4個) NOT matched", false,
+        ProductMatcher.isMatch(filter2, filter4))
+    check("same model same quantity IS matched", true,
+        ProductMatcher.isMatch(filter2, prod("Y11", Platform.YAHOO, "アイリスオーヤマ SB-2000 加湿フィルター 2個")))
+
+    // 色属性: 型番一致 (IPHONE15128GB) でも ブルー vs レッド は別 SKU。
+    // base = 0.7 + (5/7)*0.3 = 0.914...、色ペナルティ 0.6 → 0.549 < 0.6。
+    val iphoneRed = prod("Y10", Platform.YAHOO, "Apple iPhone 15 128GB レッド SIMフリー")
+    check("same model different color (ブルー vs レッド) NOT matched", false,
+        ProductMatcher.isMatch(iphone128, iphoneRed))
+
+    // 属性抽出の単体確認
+    check("extractQuantity 24本", 24, ProductMatcher.extractQuantity("コカコーラ 500ml 24本"))
+    check("extractQuantity ambiguous -> null", null,
+        ProductMatcher.extractQuantity("2個セット 合計4個"))
+    check("extractColor katakana", "BLUE",
+        ProductMatcher.extractColor("Apple iPhone 15 128GB ブルー SIMフリー"))
+    check("extractColor ブルーレイ is not a color", null,
+        ProductMatcher.extractColor("ソニー ブルーレイレコーダー 2TB"))
+    check("extractColor multi-color listing -> null", null,
+        ProductMatcher.extractColor("iPhone ケース ブラック ホワイト 選択可"))
+
     if (fails == 0) {
         println("PRODUCT MATCHER: all assertions passed")
     } else {

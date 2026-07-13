@@ -203,4 +203,47 @@ class ProductMatcherTest : StringSpec({
         val b = product("R1", "")
         ProductMatcher.similarity(a, b) // 例外が出なければOK
     }
+
+    // ── 属性不一致ペナルティ (WDC ベンチマークの corner-case precision 知見、2026-07) ──
+    // 個数・色の食い違いは型番一致でも別 SKU (別価格)。型番一致の 0.7 底上げだけでは
+    // 閾値 0.6 を下回れないため、乗算ペナルティ (個数 0.5 / 色 0.6) で確実に落とす。
+    "同一型番でも個数違い (2個 vs 4個) は同一商品と判定しない" {
+        val a = product("A1", "アイリスオーヤマ SB-2000 加湿フィルター 2個")
+        val b = product("R1", "アイリスオーヤマ SB-2000 加湿フィルター 4個")
+        ProductMatcher.isMatch(a, b) shouldBe false
+        // 対照群: 同数量なら高信頼マッチ
+        val c = product("Y1", "アイリスオーヤマ SB-2000 加湿フィルター 2個")
+        ProductMatcher.isMatch(a, c) shouldBe true
+    }
+
+    "同一型番でも色違い (ブルー vs レッド) は同一商品と判定しない" {
+        val a = product("A1", "Apple iPhone 15 128GB ブルー SIMフリー")
+        val b = product("R1", "Apple iPhone 15 128GB レッド SIMフリー")
+        ProductMatcher.isMatch(a, b) shouldBe false
+    }
+
+    "色抽出: ブルーレイは色ではない (複合カタカナ語の誤爆防止)" {
+        ProductMatcher.extractColor("ソニー ブルーレイレコーダー 2TB") shouldBe null
+    }
+
+    "色抽出: カラバリ一覧タイトル (複数色) は曖昧なので null" {
+        ProductMatcher.extractColor("iPhone ケース ブラック ホワイト 選択可") shouldBe null
+    }
+
+    "色抽出: 日英表記を同一視 (ブラック == BLACK)" {
+        ProductMatcher.extractColor("ソニー ヘッドホン ブラック") shouldBe
+            ProductMatcher.extractColor("SONY Headphones BLACK")
+    }
+
+    "個数抽出: 複数の異なる数量は曖昧なので null" {
+        ProductMatcher.extractQuantity("2個セット 合計4個") shouldBe null
+        ProductMatcher.extractQuantity("コカコーラ 500ml 24本") shouldBe 24
+    }
+
+    "属性が片方しか取れない場合はペナルティなし (保守的中立)" {
+        // 黒 (漢字1文字) は誤爆リスクのため抽出対象外 → null → ペナルティなしで高信頼マッチ維持
+        val a = product("A1", "ソニー WH-1000XM5 ブラック")
+        val b = product("R1", "SONY WH-1000XM5 黒")
+        ProductMatcher.isMatch(a, b) shouldBe true
+    }
 })

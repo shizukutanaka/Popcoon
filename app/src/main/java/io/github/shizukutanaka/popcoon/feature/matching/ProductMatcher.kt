@@ -57,11 +57,27 @@ object ProductMatcher {
             normalizeTitle(b.title),
         )
 
-        return when {
+        val base = when {
             modelMatch -> (0.7 + titleSim * 0.3).coerceAtMost(1.0)
             modelMismatch -> titleSim * 0.5
             else -> titleSim
         }
+
+        // 4. 属性不一致ペナルティ (WDC Products ベンチマークの知見: 名寄せの precision は
+        // 「ほぼ同一だが別 SKU」のコーナーケースで最も落ちる — 2026-07 リサーチ)。
+        // 個数 (2個 vs 4個) や色 (ブルー vs レッド) の食い違いは、型番が一致していても
+        // 別 SKU (別価格) の強いシグナル。型番一致の 0.7 底上げだけでは閾値 0.6 を
+        // 下回らないため、乗算ペナルティで確実に落とす (0.9 × 0.5 = 0.45 < 0.6)。
+        // 両者から属性が取れて食い違う場合のみ減点 (どちらかが不明なら中立 — 保守的)。
+        var penalty = 1.0
+        val qtyA = extractQuantity(a.title)
+        val qtyB = extractQuantity(b.title)
+        if (qtyA != null && qtyB != null && qtyA != qtyB) penalty *= 0.5
+        val colorA = extractColor(a.title)
+        val colorB = extractColor(b.title)
+        if (colorA != null && colorB != null && colorA != colorB) penalty *= 0.6
+
+        return base * penalty
     }
 
     /** 同一商品とみなせるか */
@@ -159,6 +175,53 @@ object ProductMatcher {
         return intersection.toDouble() / union
     }
 
+    /**
+     * 個数属性の抽出: 「24本」「3個セット」等の数量+助数詞。
+     * 複数の異なる数量が出る (「2個セット 合計4個」等) 場合は曖昧なので null (中立)。
+     * NFKC 正規化で全角数字にも対応。
+     */
+    internal fun extractQuantity(title: String): Int? {
+        val normalized = nfkc(title)
+        val counts = QUANTITY_REGEX.findAll(normalized)
+            .map { it.groupValues[1].toInt() }
+            .toSet()
+        return counts.singleOrNull()
+    }
+
+    /**
+     * 色属性の抽出 → 正準色名 (BLACK/WHITE/...)。日英表記を同一視する。
+     * 複数の異なる色が出る (カラバリ一覧タイトル) 場合は曖昧なので null (中立)。
+     * カタカナ色名は前後がカタカナだと不採用 (「ブルーレイ」の ブルー 等の誤抽出防止)。
+     * 漢字1文字の色 (黒/金/銀) は「黒糖」「金曜」等の複合語誤爆が多いため対象外 —
+     * 取れない側は null = 中立になるだけで安全側に倒れる。
+     */
+    internal fun extractColor(title: String): String? {
+        val normalized = nfkc(title).uppercase()
+        val colors = COLOR_REGEX.findAll(normalized)
+            .map { canonicalColor(it.value) }
+            .toSet()
+        return colors.singleOrNull()
+    }
+
+    private fun canonicalColor(matched: String): String = when (matched) {
+        "ブラック" -> "BLACK"
+        "ホワイト" -> "WHITE"
+        "ネイビーブルー", "ネイビー" -> "NAVY"
+        "スカイブルー", "ライトブルー", "ブルー" -> "BLUE"
+        "レッド" -> "RED"
+        "グリーン" -> "GREEN"
+        "イエロー" -> "YELLOW"
+        "ピンク" -> "PINK"
+        "パープル" -> "PURPLE"
+        "オレンジ" -> "ORANGE"
+        "ブラウン" -> "BROWN"
+        "ベージュ" -> "BEIGE"
+        "シルバー" -> "SILVER"
+        "ゴールド" -> "GOLD"
+        "グレー", "グレイ", "GREY" -> "GRAY"
+        else -> matched  // 英語表記 (BLACK 等) はそのまま正準名
+    }
+
     // 型番: 英字2文字以上 + 数字、またはハイフン区切り (WH-1000XM5, A2179, RTX-4090)
     private val MODEL_REGEX = Regex("[A-Z]{2,}[-\\s]?\\d{2,}[A-Z0-9-]*")
 
@@ -178,4 +241,16 @@ object ProductMatcher {
     // (?U): 全角スペース (U+3000) でも分割する。ASCII \s だと全角タイトルが分割されず
     // 巨大な 1 トークンになり Jaccard 類似度が崩れていた。
     private val WHITESPACE_REGEX = Regex("(?U)\\s+")
+
+    // 個数属性: 数字 + 助数詞 (+任意の セット/入り/パック)。「500ml」等の単位は対象外。
+    private val QUANTITY_REGEX =
+        Regex("(\\d+)\\s*(?:個|本|枚|袋|包|錠|巻|組|足|着|缶|箱)(?:入り?|セット|パック)?")
+
+    // 色属性: 長い語を先に (ネイビーブルー を ブルー より優先)。カタカナ色名は前後が
+    // カタカナだと不採用 (ブルーレイ/マットブラック系の複合語誤爆防止)。英語は単語境界。
+    private val COLOR_REGEX = Regex(
+        "(?<![ァ-ヶー])(?:ネイビーブルー|スカイブルー|ライトブルー|ブラック|ホワイト|シルバー|ゴールド|" +
+            "パープル|オレンジ|グリーン|イエロー|ブラウン|ベージュ|ネイビー|グレー|グレイ|ブルー|レッド|ピンク)(?![ァ-ヶー])|" +
+            "\\b(?:BLACK|WHITE|SILVER|GOLD|PURPLE|ORANGE|GREEN|YELLOW|BROWN|BEIGE|NAVY|GRAY|GREY|BLUE|RED|PINK)\\b",
+    )
 }
