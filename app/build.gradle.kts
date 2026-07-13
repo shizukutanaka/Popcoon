@@ -25,12 +25,16 @@ composeCompiler {
 
 android {
     namespace = "io.github.shizukutanaka.popcoon"
-    compileSdk = 35
+    // API 36 (Android 16): 2026-08-31 以降、新規/更新の Play 提出は targetSdk 36 必須。
+    // AGP 8.10 の最大対応 API は 36 のため AGP バンプ不要。挙動変更の監査済み:
+    // predictive back (Manifest で opt-in 明示)・edge-to-edge (enableEdgeToEdge 済み)・
+    // 画面回転制限なし (screenOrientation 指定ゼロ)。
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "io.github.shizukutanaka.popcoon"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
 

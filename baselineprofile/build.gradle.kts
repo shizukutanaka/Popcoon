@@ -6,11 +6,11 @@ plugins {
 
 android {
     namespace = "io.github.shizukutanaka.popcoon.baselineprofile"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 28
-        targetSdk = 35
+        targetSdk = 36
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

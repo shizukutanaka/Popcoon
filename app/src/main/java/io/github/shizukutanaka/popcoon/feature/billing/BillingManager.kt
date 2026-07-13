@@ -21,6 +21,12 @@ import kotlin.coroutines.resume
  *    SettingsScreen.kt の `if (state.isPremium)` 分岐でのみ表示される唯一の実特典。
  *
  * 価格帯 (研究結果に基づく): ¥480/月 または ¥3,800/年 (~33% 割引)
+ *
+ * Play Billing Library 8.3.0 (2026-08-31 以降のストア提出は 8+ 必須)。
+ * PBL 7→8 の本クラスへの影響: queryProductDetailsAsync のコールバックが
+ * QueryProductDetailsResult (取得できなかった商品リスト付き) を受け取る形に変更。
+ * ⚠️ 本環境では Android ビルドが実行できないため、この移行は CI / Android Studio での
+ * コンパイル確認が必須 (ci/README.md 参照)。
  */
 class BillingManager(private val context: Context) {
 
@@ -47,6 +53,10 @@ class BillingManager(private val context: Context) {
         .enablePendingPurchases(
             PendingPurchasesParams.newBuilder().enableOneTimeProducts().build()
         )
+        // PBL 8 新機能: サービス切断時にライブラリ側で自動再接続する。従来は
+        // onBillingServiceDisconnected で false を返し、呼び出し側 (SettingsViewModel の
+        // billingReady Deferred) が失敗として扱うだけで再接続手段が無かった。
+        .enableAutoServiceReconnection()
         .build()
 
     suspend fun initialize(): Boolean = suspendCancellableCoroutine { cont ->
@@ -76,10 +86,13 @@ class BillingManager(private val context: Context) {
             )).build()
 
         return suspendCancellableCoroutine { cont ->
-            billingClient.queryProductDetailsAsync(params) { result, details ->
+            // PBL 8: コールバックの第2引数が List<ProductDetails> から
+            // QueryProductDetailsResult に変更された (取得できなかった商品は
+            // unfetchedProductList に分離される — 未公開/対象外オファーの診断用)。
+            billingClient.queryProductDetailsAsync(params) { result, detailsResult ->
                 if (!cont.isActive) return@queryProductDetailsAsync
                 if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                    cont.resume(details)
+                    cont.resume(detailsResult.productDetailsList)
                 } else {
                     cont.resume(emptyList())
                 }

@@ -27,6 +27,21 @@ bash ci/enable.sh && git push
 （自動化エージェントの GitHub App トークンには `workflows` 権限が無く、`.github/workflows/`
 配下への push がリモートから拒否されることを実証済みです。人間の push 権限が必要です。）
 
+## ⚠️ 未ビルド検証の変更 (CI 有効化後に最初に確認すべきもの)
+
+2026-07 の改善セッションで、**Android ビルドを実行できない環境から**以下の
+期限付き移行をコードレベルで適用済みです。CI を有効化した最初の実行 (または
+Android Studio での手元ビルド) で必ずコンパイル・テストを確認してください:
+
+- **Play Billing Library 7.1.1 → 8.3.0** (`gradle/libs.versions.toml`,
+  `BillingManager.kt`)。2026-08-31 以降は 8+ 必須。`queryProductDetailsAsync` の
+  コールバック署名変更 (`QueryProductDetailsResult`) と `enableAutoServiceReconnection()`
+  を適用済み。
+- **compileSdk / targetSdk 35 → 36** (`app/build.gradle.kts`,
+  `baselineprofile/build.gradle.kts`)。同じく 2026-08-31 期限。predictive back の
+  opt-in (`enableOnBackInvokedCallback`) を Manifest に明示済み。AGP 8.10 は
+  API 36 対応のため AGP バンプ不要。
+
 ## このワークフローが検証する内容
 
 | ジョブ | 内容 |
