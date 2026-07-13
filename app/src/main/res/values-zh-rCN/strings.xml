@@ -384,7 +384,9 @@
     <string name="sale_rakuten_5_0_day_name">乐天 逢5和0日 +1%</string>
     <string name="sale_rakuten_5_0_day_desc">需报名，使用乐天卡+1%</string>
     <string name="sale_yahoo_sunday_name">Yahoo! 星期日 +5%</string>
-    <string name="sale_yahoo_sunday_desc">PayPay积分+5%，需报名</string>
+    <string name="sale_yahoo_sunday_desc">仅限 LYP Premium/软银会员，单笔订单满5,000日元 (限时PayPay积分)</string>
+    <string name="sale_yahoo_kansha_day_name">雅虎购物感谢日 +4〜5%</string>
+    <string name="sale_yahoo_kansha_day_desc">有会员等级条件 (白银+4%/黄金+5%)，以限时PayPay积分发放</string>
     <string name="sale_rakuten_super_spring_name">乐天超级促销 (春季)</string>
     <string name="sale_rakuten_super_summer_name">乐天超级促销 (夏季)</string>
     <string name="sale_rakuten_super_autumn_name">乐天超级促销 (秋季)</string>

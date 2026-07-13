@@ -15,6 +15,7 @@ fun SaleCalendar.Event.nameRes(): Int = when (kind) {
     SaleCalendar.Kind.YAHOO_5_DAY -> R.string.sale_yahoo_5_day_name
     SaleCalendar.Kind.RAKUTEN_5_0_DAY -> R.string.sale_rakuten_5_0_day_name
     SaleCalendar.Kind.YAHOO_SUNDAY -> R.string.sale_yahoo_sunday_name
+    SaleCalendar.Kind.YAHOO_KANSHA_DAY -> R.string.sale_yahoo_kansha_day_name
     SaleCalendar.Kind.RAKUTEN_SUPER_SPRING -> R.string.sale_rakuten_super_spring_name
     SaleCalendar.Kind.RAKUTEN_SUPER_SUMMER -> R.string.sale_rakuten_super_summer_name
     SaleCalendar.Kind.RAKUTEN_SUPER_AUTUMN -> R.string.sale_rakuten_super_autumn_name
@@ -29,6 +30,7 @@ fun SaleCalendar.Event.descRes(): Int = when (kind) {
     SaleCalendar.Kind.YAHOO_5_DAY -> R.string.sale_yahoo_5_day_desc
     SaleCalendar.Kind.RAKUTEN_5_0_DAY -> R.string.sale_rakuten_5_0_day_desc
     SaleCalendar.Kind.YAHOO_SUNDAY -> R.string.sale_yahoo_sunday_desc
+    SaleCalendar.Kind.YAHOO_KANSHA_DAY -> R.string.sale_yahoo_kansha_day_desc
     SaleCalendar.Kind.RAKUTEN_SUPER_SPRING,
     SaleCalendar.Kind.RAKUTEN_SUPER_SUMMER,
     SaleCalendar.Kind.RAKUTEN_SUPER_AUTUMN,

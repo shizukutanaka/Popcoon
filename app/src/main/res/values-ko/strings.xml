@@ -384,7 +384,9 @@
     <string name="sale_rakuten_5_0_day_name">라쿠텐 5와 0이 붙는 날 +1%</string>
     <string name="sale_rakuten_5_0_day_desc">응모 필수, 라쿠텐 카드 이용 시 +1%</string>
     <string name="sale_yahoo_sunday_name">Yahoo! 일요일 +5%</string>
-    <string name="sale_yahoo_sunday_desc">PayPay 포인트 +5%, 응모 필요</string>
+    <string name="sale_yahoo_sunday_desc">LYP 프리미엄/소프트뱅크 회원 한정, 1주문 5,000엔 이상 (기간 한정 PayPay 포인트)</string>
+    <string name="sale_yahoo_kansha_day_name">야후쇼핑 감사데이 +4〜5%</string>
+    <string name="sale_yahoo_kansha_day_desc">회원 등급 조건 있음 (실버 +4%/골드 +5%), 기간 한정 PayPay 포인트로 지급</string>
     <string name="sale_rakuten_super_spring_name">라쿠텐 슈퍼세일 (봄)</string>
     <string name="sale_rakuten_super_summer_name">라쿠텐 슈퍼세일 (여름)</string>
     <string name="sale_rakuten_super_autumn_name">라쿠텐 슈퍼세일 (가을)</string>

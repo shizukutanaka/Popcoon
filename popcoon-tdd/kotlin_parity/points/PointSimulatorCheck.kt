@@ -85,11 +85,30 @@ fun main() {
     }
 
     // ── Yahoo: Sunday(Jan 7) + premium + softbank. 1% + 5%(日曜) + 2% + 5% ──
+    // 日曜+5% は「プレミアムな日曜日」: LYPプレミアム/SoftBank 会員限定 + 5,000円以上。
+    // このケースは両条件を満たす (premium=true, 5000>=5000)。
     PointSimulator.simulate(
         prod(Platform.YAHOO, 5000),
         PointSimulator.UserContext(yahooPremium = true, paypaySoftbank = true, purchaseDate = date("2024-01-07")),
     ).let {
         check("yahoo sunday stack pointsBack", 50L + 250 + 100 + 250, it.pointsBack)
+    }
+
+    // ── Yahoo: 日曜でも非会員なら +5% は付かない (2026 プレミアムな日曜日の会員条件) ──
+    PointSimulator.simulate(
+        prod(Platform.YAHOO, 10000),
+        PointSimulator.UserContext(purchaseDate = date("2024-01-07")),
+    ).let {
+        check("yahoo sunday non-member no bonus", 100L, it.pointsBack)  // base 1% のみ
+    }
+
+    // ── Yahoo: 会員でも 5,000 円未満なら日曜 +5% は付かない (最低注文額条件) ──
+    PointSimulator.simulate(
+        prod(Platform.YAHOO, 4999),
+        PointSimulator.UserContext(paypaySoftbank = true, purchaseDate = date("2024-01-07")),
+    ).let {
+        // base 1% (49) + SoftBank 5% (249)。日曜ボーナスは注文額未達で不適用。
+        check("yahoo sunday below-minimum no bonus", 49L + 249, it.pointsBack)
     }
 
     // ── Amazon: per-product pointsBack, rate displayed ─────────────────────

@@ -133,6 +133,9 @@ object PointSimulator {
     }
 
     // ── Yahoo!ショッピング / PayPay ───────────────────────────────────────
+    // 注: 2025-02 以降、キャンペーン由来のポイント (5のつく日・日曜特典等) は
+    // 「PayPayポイント (期間限定)」で付与され約30日〜月末で失効する (2026-07 リサーチ)。
+    // 本シミュレーターは金額換算のみ行い失効リスクは扱わない — UI 側の注記で開示する。
     private fun applyYahooPoints(
         p: Product, ctx: UserContext, out: MutableList<PointSource>,
     ) {
@@ -155,8 +158,16 @@ object PointSimulator {
             )
         }
 
-        // 日曜 +5%
-        if (ctx.purchaseDate.dayOfWeek == DayOfWeek.SUNDAY) {
+        // プレミアムな日曜日 +5% (2026-07 リサーチで確認: 旧ソフトバンク日曜特典は
+        // 2022-10 終了。現行は LYPプレミアム会員 or SoftBank/Y!mobile ユーザー限定で、
+        // 1注文 5,000 円以上が条件)。従来は無条件で +5% しており、条件を満たさない
+        // ユーザーに過大なポイント額を提示していた。realPrice を注文額の近似として使う。
+        // なお 11日/22日の「ヤフショ感謝デー」(会員ランク シルバー+4%/ゴールド+5%) は
+        // UserContext にランク次元が無いため未実装 — SaleCalendar 側で情報表示のみ行う。
+        if (ctx.purchaseDate.dayOfWeek == DayOfWeek.SUNDAY &&
+            (ctx.yahooPremium || ctx.paypaySoftbank) &&
+            p.realPrice >= 5000
+        ) {
             out += PointSource(
                 "日曜日 +5%",
                 Kind.YAHOO_SUNDAY,

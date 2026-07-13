@@ -42,6 +42,21 @@ class SaleCalendarTest : StringSpec({
         sales.shouldExist { it.name.contains("日曜日") }
     }
 
+    // 2025-10 にゾロ目の日 (11/22) が「ヤフショ感謝デー」に置き換わった (2026-07 リサーチ)。
+    "11日・22日はヤフショ感謝デーが発火" {
+        for (day in listOf(11, 22)) {
+            val d = LocalDate.of(2026, 5, day)
+            val sales = SaleCalendar.activeSales(d, Platform.YAHOO)
+            sales.shouldExist { it.kind == SaleCalendar.Kind.YAHOO_KANSHA_DAY }
+        }
+    }
+
+    "12日は感謝デーが発火しない" {
+        val d = LocalDate.of(2026, 5, 12)
+        SaleCalendar.activeSales(d, Platform.YAHOO)
+            .shouldNotExist { it.kind == SaleCalendar.Kind.YAHOO_KANSHA_DAY }
+    }
+
     "次の楽天スーパーセール検索" {
         val ref = LocalDate.of(2026, 4, 1)
         val next = SaleCalendar.nextMajorSale(ref, Platform.RAKUTEN)

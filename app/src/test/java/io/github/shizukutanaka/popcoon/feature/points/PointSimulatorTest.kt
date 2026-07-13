@@ -57,6 +57,28 @@ class PointSimulatorTest : StringSpec({
         r.pointsBack shouldBe 1100L
     }
 
+    // ── 回帰: プレミアムな日曜日の適用条件 (2026-07 リサーチ) ─────────────────
+    // 旧ソフトバンク日曜特典は 2022-10 終了。現行の「プレミアムな日曜日」+5% は
+    // LYPプレミアム/SoftBank 会員限定かつ 1注文 5,000 円以上。従来は無条件適用で
+    // 非会員・少額注文にも +5% を提示していた (過大なポイント試算)。
+    "日曜+5% は非会員には付かない (プレミアムな日曜日の会員条件)" {
+        val ctx = PointSimulator.UserContext(
+            purchaseDate = LocalDate.of(2026, 4, 12),  // 日曜、会員特典なし
+        )
+        val r = PointSimulator.simulate(product(Platform.YAHOO, 10_000), ctx)
+        r.pointsBack shouldBe 100L  // base 1% のみ
+    }
+
+    "日曜+5% は 5,000 円未満の注文には付かない (最低注文額条件)" {
+        val ctx = PointSimulator.UserContext(
+            paypaySoftbank = true,
+            purchaseDate = LocalDate.of(2026, 4, 12),  // 日曜
+        )
+        val r = PointSimulator.simulate(product(Platform.YAHOO, 4_999), ctx)
+        // base 1% (49) + SoftBank 5% (249)。日曜ボーナスは注文額未達で不適用。
+        r.pointsBack shouldBe 298L
+    }
+
     "Amazon 固定ポイント還元のみ" {
         val ctx = PointSimulator.UserContext()
         val r = PointSimulator.simulate(

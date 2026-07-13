@@ -392,7 +392,9 @@
     <string name="sale_rakuten_5_0_day_name">Rakuten Day of 5/0 +1%</string>
     <string name="sale_rakuten_5_0_day_desc">Entry required; +1% with Rakuten Card</string>
     <string name="sale_yahoo_sunday_name">Yahoo! Sunday +5%</string>
-    <string name="sale_yahoo_sunday_desc">+5% PayPay points, entry required</string>
+    <string name="sale_yahoo_sunday_desc">LYP Premium / SoftBank members only, ¥5,000+ per order (time-limited PayPay points)</string>
+    <string name="sale_yahoo_kansha_day_name">Yahoo! Appreciation Day +4–5%</string>
+    <string name="sale_yahoo_kansha_day_desc">Member-rank conditions apply (Silver +4% / Gold +5%), paid as time-limited PayPay points</string>
     <string name="sale_rakuten_super_spring_name">Rakuten Super Sale (Spring)</string>
     <string name="sale_rakuten_super_summer_name">Rakuten Super Sale (Summer)</string>
     <string name="sale_rakuten_super_autumn_name">Rakuten Super Sale (Autumn)</string>

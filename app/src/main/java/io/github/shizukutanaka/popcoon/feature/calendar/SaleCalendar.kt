@@ -29,7 +29,7 @@ object SaleCalendar {
 
     /** UI 層 (ui/SaleCalendarLabels.kt) が文字列リソースへマッピングする際の安定識別子。 */
     enum class Kind {
-        YAHOO_5_DAY, RAKUTEN_5_0_DAY, YAHOO_SUNDAY,
+        YAHOO_5_DAY, RAKUTEN_5_0_DAY, YAHOO_SUNDAY, YAHOO_KANSHA_DAY,
         RAKUTEN_SUPER_SPRING, RAKUTEN_SUPER_SUMMER, RAKUTEN_SUPER_AUTUMN, RAKUTEN_SUPER_WINTER,
         AMAZON_PRIME_DAY, AMAZON_BLACK_FRIDAY, AMAZON_CYBER_MONDAY, YAHOO_PAYPAY_MATSURI,
     }
@@ -121,7 +121,8 @@ object SaleCalendar {
             )
         }
 
-        // 日曜日の Yahoo!プレミアム特典
+        // プレミアムな日曜日 (2026-07 リサーチで条件を確認: LYPプレミアム/ソフトバンク
+        // 会員限定 + 1注文 5,000 円以上。旧ソフトバンク日曜特典は 2022-10 終了)
         if (d.dayOfWeek == DayOfWeek.SUNDAY) {
             events += Event(
                 name = "Yahoo! 日曜日 +5%",
@@ -129,7 +130,20 @@ object SaleCalendar {
                 platform = Platform.YAHOO,
                 startDate = d, endDate = d,
                 tier = Tier.RECURRING,
-                description = "PayPay ポイント+5%、要エントリー",
+                description = "LYPプレミアム/ソフトバンク会員限定、1注文5,000円以上",
+            )
+        }
+
+        // ヤフショ感謝デー (2025-10 にゾロ目の日を置き換えて開始。11日・22日、
+        // 会員ランク条件あり: シルバー+4%/ゴールド+5%。2026-07 リサーチで確認)
+        if (day == 11 || day == 22) {
+            events += Event(
+                name = "ヤフショ感謝デー +4〜5%",
+                kind = Kind.YAHOO_KANSHA_DAY,
+                platform = Platform.YAHOO,
+                startDate = d, endDate = d,
+                tier = Tier.RECURRING,
+                description = "会員ランク条件あり (シルバー+4%/ゴールド+5%)、獲得は期間限定PayPayポイント",
             )
         }
 

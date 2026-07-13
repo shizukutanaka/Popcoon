@@ -416,7 +416,9 @@
     <string name="sale_rakuten_5_0_day_name">楽天 5と0のつく日 +1%</string>
     <string name="sale_rakuten_5_0_day_desc">エントリー必須、楽天カード利用で +1%</string>
     <string name="sale_yahoo_sunday_name">Yahoo! 日曜日 +5%</string>
-    <string name="sale_yahoo_sunday_desc">PayPay ポイント+5%、要エントリー</string>
+    <string name="sale_yahoo_sunday_desc">LYPプレミアム/ソフトバンク会員限定、1注文5,000円以上 (期間限定PayPayポイント)</string>
+    <string name="sale_yahoo_kansha_day_name">ヤフショ感謝デー +4〜5%</string>
+    <string name="sale_yahoo_kansha_day_desc">会員ランク条件あり (シルバー+4%/ゴールド+5%)、獲得は期間限定PayPayポイント</string>
     <string name="sale_rakuten_super_spring_name">楽天スーパーセール (春)</string>
     <string name="sale_rakuten_super_summer_name">楽天スーパーセール (夏)</string>
     <string name="sale_rakuten_super_autumn_name">楽天スーパーセール (秋)</string>
