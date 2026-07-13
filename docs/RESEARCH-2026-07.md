@@ -46,7 +46,7 @@
 
 **改善候補**
 - ✅ **HIDDEN_SUBSCRIPTION (隠れ定期購入) カテゴリ追加** — 実装済 (Kotlin+Python+parity+両テスト、97 parity / 397 oracle green)。特商法 2027 改正・FTC 和解の中核類型に先回り。
-- ⏸️ **警告文を消費者庁32類型・景表法/特商法の用語に対応付け** — 低労力・規制準拠言語。次候補。
+- ✅ **警告のカテゴリ名・深刻度のローカライズ表示** — 実装済 (`ui/DarkPatternTextLabels.kt`)。カテゴリ名が一切表示されず severity は英語 enum 生値だった実バグを修正。CAA 32類型の正式名は調査で全量を確認できなかったため、不正確な規制引用を避け一般的な日本語記述に留めた。
 - ⏸️ **ec-darkpattern (Apache-2.0) からの日本語ルール拡充** — ライセンス表記を OssLicenses に追加要。
 - ⏸️ **ReviewTrustScorer v2** (二峰性係数・レビュー急増検知) — pure Kotlin、要 oracle。
 
@@ -60,9 +60,9 @@
 - Compose: 安定 BOM 2026.06.01、material3 1.4.0 (M3 Expressive 初安定)、Navigation 3 安定、strong skipping 既定。Kotlin 2.3.x + KSP2、AGP 8.x 最新 (AGP 9 は要移行計画)。
 
 **改善候補**
-- ⏸️ **targetSdk/compileSdk 35→36 + 挙動変更対応** — 期限あり最優先だが本環境で Android ビルド不可。コード移行 + CI 検証必須の形で別途。
-- ⏸️ **Play Billing 7.1.1 → 8 移行** — 同上、破壊的変更あり。
-- ⏸️ Compose BOM / Kotlin / material3 Expressive のバンプ。
+- ✅ **targetSdk/compileSdk 35→36 + 挙動変更対応** — コード移行済 (predictive back opt-in 明示、edge-to-edge/回転制限は監査済み問題なし、AGP 8.10 は API 36 対応でバンプ不要)。**CI/Android Studio でのビルド検証が必須** (ci/README.md に明記)。
+- ✅ **Play Billing 7.1.1 → 8.3.0 移行** — コード移行済 (QueryProductDetailsResult 署名変更、enableAutoServiceReconnection 採用)。同上、ビルド検証必須。
+- ⏸️ Compose BOM / Kotlin / material3 Expressive のバンプ — ビルド検証不能環境での大規模バンプはリスク過大、CI 有効化後に別途。
 - ✅ (関連) Amazon PA-API 5.0 廃止をドキュメントに反映済み (下記5参照)。
 
 ## 5. 日本EC API / Cloudflare / Anthropic
@@ -79,9 +79,9 @@
 - ✅ **Amazon PA-API 5.0 廃止をドキュメント反映** — 実装済 (docstring/ARCHITECTURE/CHANGELOG/local.properties)。Creators API 移行は OAuth2 資格情報が必要で本環境では不可、TODO 明記。
 - ✅ **楽天 SPU 上限 15→18** — 実装済 (PointSimulator + parity + 設定UI + 4ロケール注記、parity green)。
 - ✅ **`/v1/advice` を Sonnet → Haiku 4.5** — 実装済 (tsc+vitest green)。
-- ⏸️ **Yahoo 感謝デー (11/22) 追加・期間限定PayPay 失効注記** — ランク条件のため新設定次元が必要。UserContext にランクを足す設計判断を要し次スプリント。
-- ⏸️ **KV rate-limit → ネイティブ ratelimit binding** — backend、wrangler ランタイム無しでは実行検証不可のため慎重に。
-- ⏸️ **価格履歴 append を per-product Durable Object 化** — レース根絶の正攻法だが変更大・デプロイ検証不可。設計文書化のみ推奨。
+- ✅ **Yahoo 2026 ルール反映** — 実装済: 日曜+5% を「プレミアムな日曜日」条件 (LYPプレミアム/SoftBank 会員 + 5,000円以上、いずれも既存 UserContext フィールド) でゲート、感謝デー (11/22) をカレンダーに追加、期間限定PayPay 失効を注記。感謝デーのシミュレーションはランク次元が必要なため意図的に見送り (docstring 記載)。
+- ✅ **KV rate-limit → ネイティブ ratelimit binding** — 実装済: binding があれば使用・無ければ KV フォールバックの漸進移行 (tsc + vitest 50/50)。
+- ✅ **価格履歴 lost-update の DO 移行設計を文書化** — backend/README.md に per-product Durable Object 移行手順を記録 (実装は wrangler 検証不能のため見送り、理由も記録)。
 
 ---
 
@@ -96,6 +96,11 @@
 | 税制の将来変更注記 | docs | run.sh parity 93 |
 | HIDDEN_SUBSCRIPTION ダークパターン検出 | feat | run.sh parity 97 + oracle 397 |
 | Conformal PID (適応予測区間) | feat | run.sh parity 104 + oracle 404 |
+| ダークパターン警告のカテゴリ/深刻度ローカライズ | fix | 4ロケール390キー一致 + parity 104 |
+| Play Billing 8.3.0 + target API 36 移行 | feat | コード移行のみ — CI ビルド検証必須 |
+| Yahoo 2026 ルール (プレミアムな日曜日/感謝デー) | fix | run_points + run.sh parity + oracle 404 |
+| ネイティブ rate-limit binding (KV フォールバック付き) | feat | tsc + vitest 50/50 |
+| ProductMatcher 属性不一致ペナルティ (個数/色) | feat | run_matcher 8件追加 全green |
 
 ## 恒久的な環境制約
 
