@@ -41,6 +41,14 @@ Android Studio での手元ビルド) で必ずコンパイル・テストを確
   `baselineprofile/build.gradle.kts`)。同じく 2026-08-31 期限。predictive back の
   opt-in (`enableOnBackInvokedCallback`) を Manifest に明示済み。AGP 8.10 は
   API 36 対応のため AGP バンプ不要。
+- **未対応・要確認: 16 KB ページサイズ対応** (2025-11-01 以降、target API 35+ の
+  新規/更新は Play Console が強制)。純 Kotlin コードは対象外だが、ML Kit
+  (`mlkit-barcode-scanning`/`play-services-mlkit-barcode-scanning`) や CameraX の
+  推移的依存にネイティブ `.so` が含まれる場合、それらのライブラリ側が 16 KB 整列を
+  していないと `assembleRelease`/Play Console アップロードでブロックされる。
+  本環境では依存関係ツリー (`./gradlew :app:dependencies`) も APK 内 `.so` の
+  実地確認もできないため未検証 — CI 初回実行時に Play Console のアップロード結果
+  (または `zipalign -c -P 16`) で確認すること。
 
 ## このワークフローが検証する内容
 
