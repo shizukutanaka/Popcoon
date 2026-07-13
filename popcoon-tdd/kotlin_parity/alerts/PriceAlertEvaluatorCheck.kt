@@ -108,6 +108,73 @@ fun main() {
         p++
     }
 
-    if (fails == 0) println("PRICE ALERT EVALUATOR: all assertions passed (edge-trigger + property)")
+    // ── PriceAlertDebouncer: 1同期サイクル遅延確認 ─────────────────────────────
+    // 瞬間的なスクレイピングエラーによる誤通知を防ぐレイヤー (evaluate() 自体は不変)。
+    run {
+        // 初回観測: 通知に値する下落 (20%) を検知しても即座には発火せず保留する。
+        val r1 = PriceAlertDebouncer.resolve(
+            previousPrice = 5000, latestPrice = 4000, targetPrice = null,
+            minDropPercent = 3, pendingPrice = null,
+        )
+        check("debounce: 初回の値下がりは保留 (NONE)", r1.alert.kind == Kind.NONE)
+        check("debounce: previousPrice は据え置き (保留中は動かさない)", r1.resolvedPrice == 5000L)
+        check("debounce: pendingPrice に観測値を保存", r1.newPendingPrice == 4000L)
+    }
+    run {
+        // 2回目: 保留値と同じ価格が再現 → 確認され発火。基準は保留開始前の previousPrice。
+        val r2 = PriceAlertDebouncer.resolve(
+            previousPrice = 5000, latestPrice = 4000, targetPrice = null,
+            minDropPercent = 3, pendingPrice = 4000,
+        )
+        check("debounce: 再現で確認され PRICE_DROP 発火", r2.alert.kind == Kind.PRICE_DROP)
+        check("debounce: dropPercent は元の基準で計算 (20%)", r2.alert.dropPercent == 20)
+        check("debounce: resolvedPrice は確認された新価格", r2.resolvedPrice == 4000L)
+        check("debounce: 発火後は pendingPrice をクリア", r2.newPendingPrice == null)
+    }
+    run {
+        // 2回目に別の価格が再現 (再現失敗) → 発火せず、新しい観測として再保留。
+        val r3 = PriceAlertDebouncer.resolve(
+            previousPrice = 5000, latestPrice = 3000, targetPrice = null,
+            minDropPercent = 3, pendingPrice = 4000,
+        )
+        check("debounce: 不一致は発火しない (NONE)", r3.alert.kind == Kind.NONE)
+        check("debounce: previousPrice は据え置き", r3.resolvedPrice == 5000L)
+        check("debounce: 新しい観測値で保留し直す", r3.newPendingPrice == 3000L)
+    }
+    run {
+        // 通知に値しない変化 (値上がり) は保留せず即座に基準を更新。
+        val r4 = PriceAlertDebouncer.resolve(
+            previousPrice = 4000, latestPrice = 4500, targetPrice = null,
+            minDropPercent = 3, pendingPrice = null,
+        )
+        check("debounce: 値上がりは保留せず即座反映", r4.alert.kind == Kind.NONE)
+        check("debounce: resolvedPrice は新価格に更新", r4.resolvedPrice == 4500L)
+        check("debounce: pendingPrice は付かない", r4.newPendingPrice == null)
+    }
+    run {
+        // 目標到達も同じデバウンス経路を通る (エッジトリガ意味論は evaluate() 側で不変)。
+        val r5 = PriceAlertDebouncer.resolve(
+            previousPrice = 5000, latestPrice = 3800, targetPrice = 4000,
+            minDropPercent = 10, pendingPrice = null,
+        )
+        check("debounce: 目標到達も初回は保留", r5.alert.kind == Kind.NONE)
+        val r6 = PriceAlertDebouncer.resolve(
+            previousPrice = 5000, latestPrice = 3800, targetPrice = 4000,
+            minDropPercent = 10, pendingPrice = 3800,
+        )
+        check("debounce: 目標到達は再現確認後に TARGET_REACHED", r6.alert.kind == Kind.TARGET_REACHED)
+    }
+    run {
+        // 異常値 (0以下) は保留状態を一切変更しない。
+        val r7 = PriceAlertDebouncer.resolve(
+            previousPrice = 5000, latestPrice = 0, targetPrice = null,
+            minDropPercent = 3, pendingPrice = 4000,
+        )
+        check("debounce: 異常値は previousPrice を保全", r7.resolvedPrice == 5000L)
+        check("debounce: 異常値は pendingPrice も保全", r7.newPendingPrice == 4000L)
+        check("debounce: 異常値は発火しない", r7.alert.kind == Kind.NONE)
+    }
+
+    if (fails == 0) println("PRICE ALERT EVALUATOR: all assertions passed (edge-trigger + property + debounce)")
     else { println("PRICE ALERT EVALUATOR: $fails assertion(s) FAILED"); kotlin.system.exitProcess(1) }
 }

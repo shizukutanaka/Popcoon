@@ -9,7 +9,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * PopcoonDatabase の MIGRATION_1_2 〜 MIGRATION_5_6 を実データで検証する。
+ * PopcoonDatabase の MIGRATION_1_2 〜 MIGRATION_6_7 を実データで検証する。
  *
  * これまで exportSchema = true でありながら room.schemaLocation が未設定で、
  * スキーマ JSON が生成されず、マイグレーション自体が一度も実行検証されていなかった
@@ -159,9 +159,35 @@ class MigrationTest {
         }
     }
 
-    /** v1 → v6 の全チェーンを一度に検証 (単体ステップだけでなく累積適用でも壊れないことを確認)。 */
     @Test
-    fun migrateAll_1To6_fullChain() {
+    fun migrate6To7_pendingPriceColumnAddedAsNull_existingRowsSurvive() {
+        helper.createDatabase(testDbName, 1).apply {
+            createV1Schema(this)
+            execSQL(
+                "INSERT INTO watchlist (productKey, sku, title, platform, realPrice, listPrice, url, imageUrl, addedAt) " +
+                    "VALUES ('amazon:B5', 'B5', 'テスト商品5', 'amazon', 4500, 5000, 'https://example.com', NULL, 0)",
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(
+            testDbName, 7, true,
+            PopcoonDatabase.MIGRATION_1_2, PopcoonDatabase.MIGRATION_2_3,
+            PopcoonDatabase.MIGRATION_3_4, PopcoonDatabase.MIGRATION_4_5,
+            PopcoonDatabase.MIGRATION_5_6, PopcoonDatabase.MIGRATION_6_7,
+        )
+        val cursor = db.query("SELECT pendingPrice FROM watchlist WHERE productKey = 'amazon:B5'")
+        cursor.use {
+            assert(it.moveToFirst())
+            assert(it.isNull(it.getColumnIndexOrThrow("pendingPrice"))) {
+                "既存行は pendingPrice = NULL (確認待ちなし) になるべき"
+            }
+        }
+    }
+
+    /** v1 → v7 の全チェーンを一度に検証 (単体ステップだけでなく累積適用でも壊れないことを確認)。 */
+    @Test
+    fun migrateAll_1To7_fullChain() {
         helper.createDatabase(testDbName, 1).apply {
             createV1Schema(this)
             execSQL(
@@ -172,14 +198,14 @@ class MigrationTest {
         }
 
         val db = helper.runMigrationsAndValidate(
-            testDbName, 6, true,
+            testDbName, 7, true,
             PopcoonDatabase.MIGRATION_1_2, PopcoonDatabase.MIGRATION_2_3,
             PopcoonDatabase.MIGRATION_3_4, PopcoonDatabase.MIGRATION_4_5,
-            PopcoonDatabase.MIGRATION_5_6,
+            PopcoonDatabase.MIGRATION_5_6, PopcoonDatabase.MIGRATION_6_7,
         )
         val cursor = db.query("SELECT * FROM watchlist WHERE productKey = 'amazon:FULL'")
         cursor.use {
-            assert(it.moveToFirst()) { "v1で挿入した行が v1→v6 の全マイグレーション後も残っているべき" }
+            assert(it.moveToFirst()) { "v1で挿入した行が v1→v7 の全マイグレーション後も残っているべき" }
         }
     }
 }

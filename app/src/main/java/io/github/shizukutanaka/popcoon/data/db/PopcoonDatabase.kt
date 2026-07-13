@@ -72,6 +72,14 @@ data class WatchlistItem(
      * (v6 で追加 — MIGRATION_5_6)
      */
     val tag: String? = null,
+    /**
+     * 価格アラートの「1同期サイクル遅延確認」で保留中の観測値（円）。null = 保留なし。
+     * PriceAlertDebouncer が使用: 通知に値する値下がり/目標到達を検知しても即座には
+     * 発火させず、この列に観測値を保存し次回同期で同じ値が再現した場合のみ発火する
+     * (瞬間的なスクレイピングエラーによる誤通知対策、機能過不足監査で発見)。
+     * (v7 で追加 — MIGRATION_6_7)
+     */
+    val pendingPrice: Long? = null,
 )
 
 // ── Entity: SearchHistory ───────────────────────────────────────────────────
@@ -126,6 +134,14 @@ interface WatchlistDao {
     /** 現在価格のみ更新。upsert の全フィールド書き換えを避け addedPrice を保全する。 */
     @Query("UPDATE watchlist SET realPrice = :price WHERE productKey = :key")
     suspend fun updatePrice(key: String, price: Long)
+
+    /**
+     * 現在価格と、価格アラート確認待ち状態 (PriceAlertDebouncer) をまとめて更新する。
+     * updatePrice() 単体だと pendingPrice が古いまま残ってしまうため、
+     * デバウンス対応後の PriceSyncWorker はこちらを使う。
+     */
+    @Query("UPDATE watchlist SET realPrice = :price, pendingPrice = :pendingPrice WHERE productKey = :key")
+    suspend fun updatePriceAndPending(key: String, price: Long, pendingPrice: Long?)
 
     /** 在庫アラートの on/off を設定する。 */
     @Query("UPDATE watchlist SET stockAlertEnabled = :enabled WHERE productKey = :key")
@@ -195,7 +211,7 @@ interface PriceCacheDao {
 // ── Database ────────────────────────────────────────────────────────────────
 @Database(
     entities = [WatchlistItem::class, SearchHistoryEntry::class, PriceCacheEntry::class],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 @TypeConverters(InstantConverter::class)
@@ -262,6 +278,18 @@ abstract class PopcoonDatabase : RoomDatabase() {
         val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE watchlist ADD COLUMN tag TEXT")
+            }
+        }
+
+        /**
+         * v6 → v7: watchlist に価格アラート確認待ち列を追加。
+         * nullable で追加するため既存行はそのまま（pendingPrice = NULL = 保留なし）。
+         * PriceAlertDebouncer の「1同期サイクル遅延確認」に使用 (機能過不足監査で発見:
+         * 瞬間的なスクレイピングエラーで誤った値下がり通知/目標到達通知が即座に発火していた)。
+         */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE watchlist ADD COLUMN pendingPrice INTEGER")
             }
         }
     }

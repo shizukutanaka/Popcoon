@@ -1,14 +1,18 @@
 package io.github.shizukutanaka.popcoon.worker
 
+import io.github.shizukutanaka.popcoon.feature.notification.PriceAlertDebouncer
 import io.github.shizukutanaka.popcoon.feature.notification.PriceAlertEvaluator
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 
 /**
- * PriceSyncWorker が使う PriceAlertEvaluator の仕様テスト。
+ * PriceSyncWorker が使う判定ロジックの仕様テスト。
  *
- * 本番コード (PriceAlertEvaluator.evaluate) を直接呼ぶことで、
- * 閾値やロジック変更時の回帰を確実に検出する。
+ * PriceSyncWorker は実際には PriceAlertDebouncer.resolve() (1同期サイクル遅延確認つき)
+ * を呼び、これが内部で PriceAlertEvaluator.evaluate() へ委譲する。以下の
+ * evaluate() 直接呼び出しテスト群は、閾値・エッジトリガ等の判定ロジック自体の回帰検出
+ * (PriceAlertDebouncer 越しでも判定基準は不変) を目的として残す。
+ * デバウンス自体の状態遷移テストは PriceAlertDebouncerTest を参照。
  * Context 依存部分 (WorkManager 制約・バックオフ) は Instrumentation テストに委ねる。
  */
 class PriceSyncWorkerLogicTest : StringSpec({
@@ -87,5 +91,23 @@ class PriceSyncWorkerLogicTest : StringSpec({
     // 旧スケジュールがキャンセルされず二重同期になるため、具体値を固定する。
     "WORK_NAME は 'price_sync_daily' (WorkManager スケジュール一意識別子)" {
         PriceSyncWorker.WORK_NAME shouldBe "price_sync_daily"
+    }
+
+    // PriceSyncWorker の実際の呼び出し経路 (PriceAlertDebouncer 越し) を確認する。
+    // 初回同期で20%下落を検知しても即座には通知せず、翌日の同期で同じ値が
+    // 再現して初めて発火する — 瞬間的なスクレイピングエラーによる誤通知対策。
+    "実運用経路: 5000→4000 の初回同期は保留、翌日同じ値が再現して初めて PRICE_DROP" {
+        val day1 = PriceAlertDebouncer.resolve(
+            previousPrice = 5000L, latestPrice = 4000L, targetPrice = null,
+            minDropPercent = 3, pendingPrice = null,
+        )
+        day1.alert.shouldNotify shouldBe false
+
+        val day2 = PriceAlertDebouncer.resolve(
+            previousPrice = day1.resolvedPrice, latestPrice = 4000L, targetPrice = null,
+            minDropPercent = 3, pendingPrice = day1.newPendingPrice,
+        )
+        day2.alert.kind shouldBe PriceAlertEvaluator.Kind.PRICE_DROP
+        day2.alert.dropPercent shouldBe 20
     }
 })

@@ -18,6 +18,7 @@ import io.github.shizukutanaka.popcoon.data.db.WatchlistItem
 import io.github.shizukutanaka.popcoon.data.repository.BackendClient
 import io.github.shizukutanaka.popcoon.data.repository.IProductRepository
 import io.github.shizukutanaka.popcoon.feature.notification.LocalNotificationManager
+import io.github.shizukutanaka.popcoon.feature.notification.PriceAlertDebouncer
 import io.github.shizukutanaka.popcoon.feature.notification.PriceAlertEvaluator
 import io.github.shizukutanaka.popcoon.feature.notification.StockAlertEvaluator
 import io.github.shizukutanaka.popcoon.feature.retention.ReviewPrompter
@@ -104,21 +105,28 @@ class PriceSyncWorker @AssistedInject constructor(
                             val latest = history.first()
                             val previousPrice = item.realPrice
 
-                            watchlistDao.updatePrice(item.productKey, latest.realPrice)
-
-                            // 目標価格到達 / 有意な値下がりを純関数で判定。
+                            // 目標価格到達 / 有意な値下がりを純関数で判定。1同期サイクル遅延確認
+                            // (PriceAlertDebouncer) を経由することで、瞬間的なスクレイピングエラー
+                            // による誤通知を防ぐ — 通知に値する変化は次回同期で同じ値が再現した
+                            // 場合のみ発火する (機能過不足監査で発見)。
                             // 目標到達は率に関係なく最優先で通知（ユーザーが明示的に求めた情報）。
                             // (arXiv 2509.02458: 経験的閾値で値下がり通知の頻度を制御)
-                            val alert = PriceAlertEvaluator.evaluate(
+                            val resolution = PriceAlertDebouncer.resolve(
                                 previousPrice = previousPrice,
                                 latestPrice = latest.realPrice,
                                 targetPrice = item.targetPrice,
                                 minDropPercent = minDropPercent,
+                                pendingPrice = item.pendingPrice,
                             )
+                            watchlistDao.updatePriceAndPending(
+                                item.productKey, resolution.resolvedPrice, resolution.newPendingPrice,
+                            )
+
+                            val alert = resolution.alert
                             if (alert.shouldNotify) {
                                 Drop(
                                     item = item,
-                                    latest = latest.realPrice,
+                                    latest = resolution.resolvedPrice,
                                     prev = previousPrice,
                                     pct = alert.dropPercent,
                                     targetReached =

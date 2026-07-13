@@ -20,6 +20,7 @@ ST="$(find "$LIB" -name 'kotlin-stdlib-2*.jar' | grep -v sources | head -1)"
 java -cp "$LIB/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
   -cp "$ST" -d "$OUT/alerts.jar" -nowarn -no-reflect \
   "$SRC/feature/notification/PriceAlertEvaluator.kt" \
+  "$SRC/feature/notification/PriceAlertDebouncer.kt" \
   "$HERE/alerts/PriceAlertEvaluatorCheck.kt" 2>&1 | grep -v 'unable to find kotlin' || true
 
 java -Dstdout.encoding=UTF-8 -cp "$OUT/alerts.jar:$ST" \
