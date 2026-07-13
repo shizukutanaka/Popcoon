@@ -47,8 +47,8 @@
 **改善候補**
 - ✅ **HIDDEN_SUBSCRIPTION (隠れ定期購入) カテゴリ追加** — 実装済 (Kotlin+Python+parity+両テスト、97 parity / 397 oracle green)。特商法 2027 改正・FTC 和解の中核類型に先回り。
 - ✅ **警告のカテゴリ名・深刻度のローカライズ表示** — 実装済 (`ui/DarkPatternTextLabels.kt`)。カテゴリ名が一切表示されず severity は英語 enum 生値だった実バグを修正。CAA 32類型の正式名は調査で全量を確認できなかったため、不正確な規制引用を避け一般的な日本語記述に留めた。
-- ⏸️ **ec-darkpattern (Apache-2.0) からの日本語ルール拡充** — ライセンス表記を OssLicenses に追加要。
-- ⏸️ **ReviewTrustScorer v2** (二峰性係数・レビュー急増検知) — pure Kotlin、要 oracle。
+- ⏸️ **ec-darkpattern (Apache-2.0) からの日本語ルール拡充** — 実地確認の結果、データセットは Mathur et al. 2019 (英語圏ECサイト調査) 由来の英語テキストで日本語コンテンツが無いことが判明。直接移植ではなく大規模な翻訳・日本市場への適応が必要で費用対効果が見合わないため見送り。
+- ✅→部分実装 **ReviewTrustScorer**: 当初想定の二峰性係数・レビュー急増検知は星別内訳・投稿日時が Amazon PA-API/楽天/Yahoo のいずれからも取得不可と判明し実装不可 (データモデル変更+3マッパー改修+API側対応未確認という前提の上に成立せず見送り)。代わりに既存データ (平均評価+件数) だけで直せる実バグを発見・修正: 「完璧すぎる」判定が reviewCount>=1000 の単一しきい値のみで、999件はどんな高評価でも無条件で素通りしていた。300〜999件の中量域に4.95以上という厳しめの中間しきい値を追加し抜け穴を解消。
 
 ## 4. Android / Google Play 2026 要件
 
@@ -101,6 +101,7 @@
 | Yahoo 2026 ルール (プレミアムな日曜日/感謝デー) | fix | run_points + run.sh parity + oracle 404 |
 | ネイティブ rate-limit binding (KV フォールバック付き) | feat | tsc + vitest 50/50 |
 | ProductMatcher 属性不一致ペナルティ (個数/色) | feat | run_matcher 8件追加 全green |
+| ReviewTrustScorer 中量域しきい値バグ修正 | fix | 手動検証12件全一致 (Kotest 実行不可のため throwaway harness) |
 
 ## 恒久的な環境制約
 
