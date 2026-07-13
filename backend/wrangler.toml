@@ -44,6 +44,27 @@ id = "${CLOUDFLARE_KV_RATE_LIMIT_ID}"
 ENVIRONMENT = "production"
 MAX_HISTORY_PER_PRODUCT = "365"   # 1年分の価格履歴
 
+# ── Rate Limiting bindings (2025-09 GA) ─────────────────────────────────────
+# ネイティブのレート制限。per-PoP の近似カウンターだがアトミックで、KV カウンター
+# (レースあり + リクエスト毎に read/write を消費し無料枠を圧迫) を置き換える。
+# binding 未設定の古いデプロイでも src/index.ts は KV パスへフォールバックする。
+# namespace_id は アカウント内で binding 毎に一意な任意の正整数。
+
+[[ratelimits]]
+binding = "WRITE_RATE_LIMITER"
+namespace_id = "1001"
+simple = { limit = 5, period = 60 }    # 書き込み系 5回/分/IP
+
+[[ratelimits]]
+binding = "READ_RATE_LIMITER"
+namespace_id = "1002"
+simple = { limit = 30, period = 60 }   # 読み取り系 30回/分/IP
+
+[[ratelimits]]
+binding = "ADVICE_RATE_LIMITER"
+namespace_id = "1003"
+simple = { limit = 3, period = 60 }    # LLM プロキシ 3回/分/IP (課金コスト保護)
+
 # ── Triggers: 毎時アラート評価 ───────────────────────────────────────────────
 [triggers]
 crons = ["0 * * * *"]

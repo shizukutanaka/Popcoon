@@ -72,3 +72,39 @@ curl https://<デプロイ先>/v1/health
 現状 backend 単体で完結する死コードであり、実際に通知は届かない (詳細は
 リポジトリルートの ARCHITECTURE.md 参照)。`FCM_SERVER_KEY` 未設定の場合は通知送信を
 スキップする (エラーにはならない) — Android 統合前は未設定のままで構わない。
+
+## レート制限: ネイティブ binding への移行 (2026-07)
+
+`wrangler.toml` に Workers Rate Limiting binding (2025-09 GA) を3本宣言済み
+(`WRITE_RATE_LIMITER` 5/分、`READ_RATE_LIMITER` 30/分、`ADVICE_RATE_LIMITER` 3/分)。
+`src/index.ts::rateLimit()` は binding があればそれを使い、無ければ従来の KV
+カウンターにフォールバックする (古いデプロイを壊さない漸進移行)。
+
+- binding は per-PoP の近似カウンター (厳密なグローバル上限ではない) だが、
+  KV カウンターが持つ read-modify-write レース (同一分バケットへの同時リクエストが
+  同じ count を読んで全部通過する) が無く、リクエスト毎の KV read+write も消費しない。
+- binding が有効なデプロイでは `RATE_LIMIT` KV namespace は不要になる (削除は
+  フォールバックを廃止する将来のタイミングで)。
+
+## 価格履歴の lost-update 対策 (設計メモ、未実装)
+
+`appendPriceHistory()` は KV の read→merge→put で、同一 `product_key` への同時
+POST は後勝ちになり先行クライアントの記録が消える (lost update)。KV は結果整合の
+ため根本解決はストレージ側の変更が必要。**無料プランでも Durable Objects (SQLite
+backend) が使えるようになった (2025-04)** ため、正攻法は per-product DO への移行:
+
+1. `PriceHistoryDO` クラス (SQLite backend) を追加し、`idFromName(product_key)` で
+   商品毎に単一インスタンス化 — DO 内の逐次実行がレースを構造的に排除する。
+2. DO 内は `ctx.storage.sql` に `(recorded_at TEXT PRIMARY KEY, platform TEXT,
+   list_price INTEGER, real_price INTEGER)` の1テーブル。重複排除は PRIMARY KEY、
+   365件制限は挿入後に `DELETE ... ORDER BY recorded_at ASC LIMIT -1 OFFSET 365`。
+3. `POST /v1/history` は DO への `fetch()` 転送に置換。`GET` は移行期間中
+   「DO に無ければ KV を読む」二段フォールバックにし、書き込み経由で徐々に DO へ
+   移住させる (一括移行バッチは KV list の read 予算を食うため不要な限り避ける)。
+4. 無料枠の注意: DO は 100k リクエスト/日・5GB SQLite 合計。現行の書き込み
+   レート制限 (5/分/IP) の下では十分収まる。
+
+本セッションで実装しなかった理由: wrangler ランタイムでの実行検証 (miniflare /
+`wrangler dev`) が本環境で不可能で、DO クラスの export 追加・migrations 宣言
+(`[[migrations]]` の `new_sqlite_classes`) はデプロイ設定と密結合しており、
+検証なしで本番構成を書き換えるリスクが利益を上回るため。上記手順で別途実施を推奨。

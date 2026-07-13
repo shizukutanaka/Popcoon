@@ -28,6 +28,15 @@ export interface Env {
   // クライアント (Android アプリ) には一切渡さない — POST /v1/advice がこの鍵を
   // 保持したままプロキシする (APK 埋め込みは抽出可能で課金悪用リスクがあるため)。
   ANTHROPIC_API_KEY?: string;
+  // Workers Rate Limiting binding (2025-09 GA)。wrangler.toml の [[ratelimits]] で設定。
+  // KV カウンター実装 (rateLimit() のフォールバック) は read-modify-write レースで
+  // バースト時に上限を超えて通す欠陥がある上、リクエスト毎に KV read+write を消費する
+  // (無料枠 100k read/1k write/day を圧迫)。binding は per-PoP の近似カウンターだが
+  // アトミックで KV を消費しない。未設定 (undefined) の場合は従来の KV パスに落ちる —
+  // 既存デプロイを壊さないための漸進移行。
+  WRITE_RATE_LIMITER?: RateLimit;
+  READ_RATE_LIMITER?: RateLimit;
+  ADVICE_RATE_LIMITER?: RateLimit;
 }
 
 interface PriceRecord {
@@ -62,7 +71,19 @@ function bad(msg: string, status = 400): Response {
   return json({ error: msg }, status);
 }
 
-async function rateLimit(env: Env, ip: string, max = 5): Promise<boolean> {
+/**
+ * レート制限。ネイティブ binding (per-PoP・アトミック・KV 消費なし) があればそれを使い、
+ * 無ければ従来の KV 1分バケットカウンター (近似・レースあり) にフォールバックする。
+ * binding 側の limit/period は wrangler.toml の [[ratelimits]] で宣言するため、
+ * `max` はフォールバック時のみ意味を持つ。
+ */
+async function rateLimit(
+  env: Env, ip: string, max = 5, binding?: RateLimit,
+): Promise<boolean> {
+  if (binding) {
+    const { success } = await binding.limit({ key: ip });
+    return success;
+  }
   const key = `rate:${ip}:${Math.floor(Date.now() / 60000)}`;  // 1分バケット
   const raw = await env.RATE_LIMIT.get(key);
   const count = (raw ? parseInt(raw, 10) : 0) + 1;
@@ -159,7 +180,10 @@ async function handleRequest(req: Request, env: Env): Promise<Response> {
 
   // Rate limit (read 操作は緩め)
   const isWrite = ["POST", "DELETE", "PUT"].includes(req.method);
-  const allowed = await rateLimit(env, ip, isWrite ? 5 : 30);
+  const allowed = await rateLimit(
+    env, ip, isWrite ? 5 : 30,
+    isWrite ? env.WRITE_RATE_LIMITER : env.READ_RATE_LIMITER,
+  );
   if (!allowed) return bad("rate limited", 429);
 
   // GET /v1/history?key=amazon:B0C...
@@ -302,7 +326,7 @@ async function handleRequest(req: Request, env: Env): Promise<Response> {
 
     // 通常の書き込み系レート制限 (5/分/IP) とは別バケットで絞る — LLM 呼び出しは
     // 1回あたりの課金コストが history 書き込みより大きいため、より厳しい上限にする。
-    const adviceAllowed = await rateLimit(env, `advice:${ip}`, 3);
+    const adviceAllowed = await rateLimit(env, `advice:${ip}`, 3, env.ADVICE_RATE_LIMITER);
     if (!adviceAllowed) return bad("rate limited", 429);
 
     const body = await req.json().catch(() => null) as
