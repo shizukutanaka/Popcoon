@@ -49,13 +49,27 @@ class ReviewTrustScorerTest : StringSpec({
         ReviewTrustScorer.evaluate(4.2f, 50).reasonKey shouldBe null
     }
 
-    // 回帰防止: MANY_REVIEWS=1000 境界テスト。片側だけでは境界値 off-by-one を検出できない。
-    // guard を 1001 にずらしても「大量レビューで満点は LOW」テストはパスするが、このテストが落ちる。
-    "999件+高評価は HIGH (MANY_REVIEWS 境界の識別)" {
-        ReviewTrustScorer.evaluate(4.95f, 999).trust shouldBe ReviewTrustScorer.Trust.HIGH
-    }
     "1000件+4.9評価は LOW (MANY_REVIEWS 境界の識別)" {
         ReviewTrustScorer.evaluate(4.9f, 1000).trust shouldBe ReviewTrustScorer.Trust.LOW
+    }
+
+    // 回帰: 旧実装は MANY_REVIEWS=1000 の単一しきい値しか持たず、reviewCount=999 が
+    // どんなに満点に近くても無条件で素通りしていた (2026-07 リサーチで発見: このファイルの
+    // 旧テスト「999件+高評価は HIGH」は、実はこの抜け穴自体を固定していただけだった)。
+    // 中量域 (300〜999件) では通常域より厳しい 4.95 基準で「完璧すぎる」を検出する。
+    "300〜999件でも評価 4.95 以上ならサクラ疑い LOW (中量域の抜け穴修正)" {
+        ReviewTrustScorer.evaluate(4.95f, 999).trust shouldBe ReviewTrustScorer.Trust.LOW
+        ReviewTrustScorer.evaluate(5.0f, 300).trust shouldBe ReviewTrustScorer.Trust.LOW
+    }
+
+    "中量域でも評価が 4.95 未満なら自然な分布として HIGH のまま" {
+        ReviewTrustScorer.evaluate(4.94f, 999).trust shouldBe ReviewTrustScorer.Trust.HIGH
+    }
+
+    "300件未満の中量域は「完璧すぎる」判定の対象外" {
+        // 件数が少なすぎて統計的異常とまでは言えないため、4.95 以上でも HIGH のまま
+        // (別途 MIN_REVIEWS_FOR_TRUST や 5-99 の MEDIUM ルールは適用される)
+        ReviewTrustScorer.evaluate(5.0f, 299).trust shouldBe ReviewTrustScorer.Trust.HIGH
     }
 
     "どんな入力でも例外なし" {

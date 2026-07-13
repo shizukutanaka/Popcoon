@@ -38,6 +38,16 @@ object ReviewTrustScorer {
     private const val SUSPICIOUS_HIGH_RATING = 4.9f
     private const val MANY_REVIEWS = 1000
 
+    // 中量域 (300件以上・1000件未満) での「完璧すぎる」しきい値。1000件境界の単一しきい値
+    // だけだと reviewCount=999 のような直下の件数が丸ごと素通りしてしまっていた
+    // (2026-07 リサーチで発見: ReviewTrustScorerTest の既存の境界回帰テスト
+    // 「999件+高評価は HIGH」は、この抜け穴そのものを固定してしまっていた)。
+    // 件数が少ないほど「たまたま」の余地が大きいので、この中量域では通常域よりも
+    // 厳しい (より満点寄りの値だけを拾う) 基準を要求する — 300件超で評価 4.95 以上と
+    // いう自然発生的な分布はまず起こらない。
+    private const val MEDIUM_VOLUME_REVIEWS = 300
+    private const val MEDIUM_VOLUME_SUSPICIOUS_RATING = 4.95f
+
     /**
      * @param rating 平均評価 (0.0-5.0、null = 評価なし)
      * @param reviewCount レビュー件数
@@ -54,8 +64,14 @@ object ReviewTrustScorer {
         }
 
         // 完璧すぎる: 大量レビューで平均がほぼ満点 → サクラ疑い
-        // (正常な商品は不満レビューも一定数混ざり 4.9 未満に収束する)
-        if (reviewCount >= MANY_REVIEWS && rating >= SUSPICIOUS_HIGH_RATING) {
+        // (正常な商品は不満レビューも一定数混ざり 4.9 未満に収束する)。
+        // 件数の少ない中量域ほど基準を厳しくして、単一しきい値の抜け穴を塞ぐ。
+        val isTooPerfect = when {
+            reviewCount >= MANY_REVIEWS -> rating >= SUSPICIOUS_HIGH_RATING
+            reviewCount >= MEDIUM_VOLUME_REVIEWS -> rating >= MEDIUM_VOLUME_SUSPICIOUS_RATING
+            else -> false
+        }
+        if (isTooPerfect) {
             return Result(Trust.LOW, 35, "review_trust_too_perfect")
         }
 
