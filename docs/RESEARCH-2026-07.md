@@ -30,7 +30,7 @@
 
 **改善候補**
 - ✅ **split-conformal → Conformal PID (P項のみ)** — 実装済 (`ConformalInterval.adaptiveConformalMargin`、`PricePredictionEngine.predict()` に配線、Python oracle 7件追加 + parity 7件追加、404/104 green)。積分項 (I) は飽和関数のチューニングリスクがあるため見送り、P項単独で分布シフト追従の主要な利得を確認 (shift/shrink/shock の3ケースで順序依存の反応を実証)。
-- ⏸️ **価格アラートのデバウンス** — 「7日移動中央値から X% 以上下」かつ「N記録継続」で誤検知削減。中程度・要 oracle。次候補。
+- ✅ **価格アラートのデバウンス** — 実装済 (`PriceAlertDebouncer`、ユーザーに設計判断を確認: 1サイクル遅延確認を選択)。当初案の「7日移動中央値」ではなく、次回同期で同じ観測値が再現した場合のみ発火するシンプルな1サイクル確認方式を採用 (Room v6→v7、実コンパイル検証 run_alerts.sh green)。
 - ⏸️ **Holt + damped-trend ETS + seasonal-naive の中央値アンサンブル** — <30点系列で頑健。
 - ⏸️ **TTM オンデバイス** — 見送り (非決定的・効果不確実)。
 
@@ -101,6 +101,7 @@
 | Yahoo 2026 ルール (プレミアムな日曜日/感謝デー) | fix | run_points + run.sh parity + oracle 404 |
 | ネイティブ rate-limit binding (KV フォールバック付き) | feat | tsc + vitest 50/50 |
 | ProductMatcher 属性不一致ペナルティ (個数/色) | feat | run_matcher 8件追加 全green |
+| 価格アラートのデバウンス (1サイクル遅延確認) | feat | run_alerts parity + Room v6→v7 migration test |
 | ReviewTrustScorer 中量域しきい値バグ修正 | fix | 手動検証12件全一致 (Kotest 実行不可のため throwaway harness) |
 
 ## 恒久的な環境制約
