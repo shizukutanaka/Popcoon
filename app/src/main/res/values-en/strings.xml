@@ -29,6 +29,17 @@
     <string name="dp_drip_pricing_high">Shipping/fees inflate cost (+%1$d%% effective)</string>
     <string name="dp_drip_pricing_medium">Shipping raises effective cost (+%1$d%% effective)</string>
 
+    <string name="severity_low">Low</string>
+    <string name="severity_medium">Medium</string>
+    <string name="severity_high">High</string>
+
+    <string name="dp_text_category_urgency">Urgency pressure</string>
+    <string name="dp_text_category_scarcity">Scarcity pressure</string>
+    <string name="dp_text_category_social_proof">Exaggerated social proof</string>
+    <string name="dp_text_category_misdirection">Misdirection (pre-selection, etc.)</string>
+    <string name="dp_text_category_forced_action">Forced-action pressure</string>
+    <string name="dp_text_category_hidden_subscription">Hidden subscription</string>
+
     <string name="detail_ai_advice">AI Advice</string>
     <string name="detail_confidence">Confidence</string>
     <string name="confidence_high">High</string>

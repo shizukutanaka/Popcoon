@@ -154,10 +154,18 @@ class ProductDetailViewModel @Inject constructor(
                 val warnings = (priceWarnings + listOfNotNull(dripWarning))
                     .map { w ->
                         val (resId, args) = w.toLabelResource()
-                        "${context.getString(resId, *args.toTypedArray())} (${w.severity.name})"
+                        val label = context.getString(resId, *args.toTypedArray())
+                        val severity = context.getString(w.severity.toLabelResource())
+                        "$label ($severity)"
                     }
                     .toMutableList()
-                warnings += textSignals.map { "${it.evidence} (${it.severity.name})" }
+                // カテゴリ名も表示する (以前は検出根拠の生テキストと severity のみで、
+                // どの種類のダークパターンかユーザーが判別できなかった — 機能過不足監査で発見)。
+                warnings += textSignals.map {
+                    val category = context.getString(it.category.toLabelResource())
+                    val severity = context.getString(it.severity.toLabelResource())
+                    "$category: ${it.evidence} ($severity)"
+                }
 
                 // レビュー信頼性: LOW なら警告に追加 (サクラ・サンプル不足の注意喚起)
                 val reviewTrust = ReviewTrustScorer.evaluate(product.rating, product.reviewCount)

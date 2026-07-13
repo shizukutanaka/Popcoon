@@ -29,6 +29,17 @@
     <string name="dp_drip_pricing_high">배송비・수수료가 비쌈 (실질 +%1$d%%)</string>
     <string name="dp_drip_pricing_medium">배송비 포함 시 비쌈 (실질 +%1$d%%)</string>
 
+    <string name="severity_low">경미</string>
+    <string name="severity_medium">중간</string>
+    <string name="severity_high">중요</string>
+
+    <string name="dp_text_category_urgency">긴급성을 부추기는 표현</string>
+    <string name="dp_text_category_scarcity">품절 임박을 부추기는 표현</string>
+    <string name="dp_text_category_social_proof">사회적 증거 과장</string>
+    <string name="dp_text_category_misdirection">잘못된 유도 (기본 선택 등)</string>
+    <string name="dp_text_category_forced_action">강제적 행동 유도</string>
+    <string name="dp_text_category_hidden_subscription">숨겨진 정기구독</string>
+
     <string name="detail_ai_advice">AI 조언</string>
     <string name="detail_confidence">신뢰도</string>
     <string name="confidence_high">높음</string>

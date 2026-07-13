@@ -29,6 +29,17 @@
     <string name="dp_drip_pricing_high">运费/手续费过高 (实际+%1$d%%)</string>
     <string name="dp_drip_pricing_medium">含运费后偏高 (实际+%1$d%%)</string>
 
+    <string name="severity_low">轻微</string>
+    <string name="severity_medium">中等</string>
+    <string name="severity_high">重要</string>
+
+    <string name="dp_text_category_urgency">紧迫感话术</string>
+    <string name="dp_text_category_scarcity">缺货紧迫话术</string>
+    <string name="dp_text_category_social_proof">夸大的社会认同</string>
+    <string name="dp_text_category_misdirection">误导 (默认勾选等)</string>
+    <string name="dp_text_category_forced_action">强制行动诱导</string>
+    <string name="dp_text_category_hidden_subscription">隐藏定期购买</string>
+
     <string name="detail_ai_advice">AI 建议</string>
     <string name="detail_confidence">可信度</string>
     <string name="confidence_high">高</string>

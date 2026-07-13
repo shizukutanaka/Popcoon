@@ -31,6 +31,21 @@
     <string name="dp_drip_pricing_high">送料・手数料が割高 (実質+%1$d%%)</string>
     <string name="dp_drip_pricing_medium">送料込みで割高 (実質+%1$d%%)</string>
 
+    <!-- 警告の深刻度 (DarkPatternDetector/DarkPatternTextDetector 共通の LOW/MEDIUM/HIGH)。
+         以前は enum の生の英語識別子 (.name) がロケールを問わずそのまま表示されていた。 -->
+    <string name="severity_low">軽微</string>
+    <string name="severity_medium">中程度</string>
+    <string name="severity_high">重要</string>
+
+    <!-- テキスト系ダークパターンのカテゴリ名 (DarkPatternTextDetector.Category)。
+         以前はカテゴリ名自体が一切表示されず、検出根拠の生テキストと深刻度のみだった。 -->
+    <string name="dp_text_category_urgency">緊急性を煽る表現</string>
+    <string name="dp_text_category_scarcity">品薄を煽る表現</string>
+    <string name="dp_text_category_social_proof">社会的証明の誇張</string>
+    <string name="dp_text_category_misdirection">誤誘導 (デフォルト選択等)</string>
+    <string name="dp_text_category_forced_action">強制的な行動誘導</string>
+    <string name="dp_text_category_hidden_subscription">隠れ定期購入</string>
+
     <string name="detail_price_history">価格履歴</string>
     <string name="detail_more_info">詳細情報</string>
     <string name="detail_ai_advice">AI アドバイス</string>
