@@ -412,6 +412,10 @@
     <string name="price_chart_range_week">1周</string>
     <string name="price_chart_range_month">1个月</string>
     <string name="price_chart_range_all">全部时间</string>
+    <string name="price_chart_trend_up">上涨趋势</string>
+    <string name="price_chart_trend_down">下跌趋势</string>
+    <string name="price_chart_trend_flat">持平</string>
+    <string name="price_chart_a11y">价格走势图，%1$s。当前价格%2$s，期间最低价%3$s</string>
     <string name="point_effective_price">积分返还后实付价</string>
     <string name="point_breakdown">明细</string>
     <string name="point_effective_subtitle">原价 %1$s 返还 %2$s</string>

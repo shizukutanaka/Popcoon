@@ -444,6 +444,10 @@
     <string name="price_chart_range_week">1週間</string>
     <string name="price_chart_range_month">1ヶ月</string>
     <string name="price_chart_range_all">全期間</string>
+    <string name="price_chart_trend_up">上昇傾向</string>
+    <string name="price_chart_trend_down">下降傾向</string>
+    <string name="price_chart_trend_flat">横ばい</string>
+    <string name="price_chart_a11y">価格推移グラフ、%1$s。現在価格%2$s、期間最安値%3$s</string>
     <string name="point_effective_price">ポイント還元後 実質価格</string>
     <string name="point_breakdown">内訳</string>
     <string name="point_effective_subtitle">定価 %1$s より %2$s 還元</string>

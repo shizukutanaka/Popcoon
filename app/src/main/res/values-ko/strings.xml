@@ -412,6 +412,10 @@
     <string name="price_chart_range_week">1주일</string>
     <string name="price_chart_range_month">1개월</string>
     <string name="price_chart_range_all">전체 기간</string>
+    <string name="price_chart_trend_up">상승 추세</string>
+    <string name="price_chart_trend_down">하락 추세</string>
+    <string name="price_chart_trend_flat">보합세</string>
+    <string name="price_chart_a11y">가격 추이 그래프, %1$s. 현재 가격 %2$s, 기간 내 최저가 %3$s</string>
     <string name="point_effective_price">포인트 적용 후 실질 가격</string>
     <string name="point_breakdown">내역</string>
     <string name="point_effective_subtitle">정가 %1$s 에서 %2$s 적립</string>

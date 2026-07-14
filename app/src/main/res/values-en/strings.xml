@@ -420,6 +420,10 @@
     <string name="price_chart_range_week">1 week</string>
     <string name="price_chart_range_month">1 month</string>
     <string name="price_chart_range_all">All time</string>
+    <string name="price_chart_trend_up">trending up</string>
+    <string name="price_chart_trend_down">trending down</string>
+    <string name="price_chart_trend_flat">flat</string>
+    <string name="price_chart_a11y">Price history chart, %1$s. Current price %2$s, lowest in this period %3$s</string>
     <string name="point_effective_price">Effective price after points</string>
     <string name="point_breakdown">Breakdown</string>
     <string name="point_effective_subtitle">%2$s back off list price %1$s</string>

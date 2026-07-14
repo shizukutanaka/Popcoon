@@ -28,10 +28,13 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.shizukutanaka.popcoon.R
 import io.github.shizukutanaka.popcoon.data.model.PriceRecord
+import io.github.shizukutanaka.popcoon.ui.a11y.priceA11yLabel
 import java.time.Instant
 
 /**
@@ -133,12 +136,32 @@ private fun PriceChartCanvas(
     val maxPrice = remember(sorted) { sorted.maxOf { it.realPrice } }
     val range = remember(minPrice, maxPrice) { (maxPrice - minPrice).coerceAtLeast(1L) }
 
+    // Canvas は純粋な描画で自動的な読み上げ内容を一切持たないため、TalkBack には
+    // 何も伝わらなかった (機能過不足監査で発見)。現在価格・期間最安値・傾向の
+    // 3点に要約した contentDescription を Canvas 自体に付与する。
+    val trendRes = when {
+        sorted.first().realPrice < sorted.last().realPrice -> R.string.price_chart_trend_up
+        sorted.first().realPrice > sorted.last().realPrice -> R.string.price_chart_trend_down
+        else -> R.string.price_chart_trend_flat
+    }
+    val chartA11y = stringResource(
+        R.string.price_chart_a11y,
+        stringResource(trendRes),
+        priceA11yLabel(sorted.last().realPrice),
+        priceA11yLabel(minPrice),
+    )
+
     Surface(
         modifier = Modifier.fillMaxWidth().height(Spacing.chart),
         shape = RoundedCornerShape(CornerRadius.card),
         color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
-        Canvas(modifier = Modifier.fillMaxWidth().padding(Spacing.ml)) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.ml)
+                .semantics { contentDescription = chartA11y },
+        ) {
             val w = size.width
             val h = size.height
             if (sorted.size < 2 || w <= 0f || h <= 0f) return@Canvas
