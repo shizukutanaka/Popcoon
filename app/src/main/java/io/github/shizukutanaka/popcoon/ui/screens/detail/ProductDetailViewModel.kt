@@ -31,6 +31,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
 sealed interface DetailUiState {
@@ -85,6 +87,12 @@ class ProductDetailViewModel @Inject constructor(
 
     private val _state = MutableStateFlow<DetailUiState>(DetailUiState.Loading)
     val state: StateFlow<DetailUiState> = _state.asStateFlow()
+
+    // toggleWatchlist() の read (isInWatchlist) → suspend DAO 呼び出し → write (_state 更新) の
+    // 間に複数の中断点があり、★ ボタンの連打で2つの呼び出しが両方とも同じ古い isInWatchlist を
+    // 読んでしまうレースがあった (両方が「追加」実行、片方の削除操作が失われる等)
+    // (機能過不足監査で発見)。1トグル操作を完全に直列化して防ぐ。
+    private val toggleWatchlistMutex = Mutex()
 
     fun load(productKey: String) {
         viewModelScope.launch {
@@ -290,34 +298,36 @@ class ProductDetailViewModel @Inject constructor(
     /** ウォッチリスト追加/削除トグル */
     fun toggleWatchlist(product: Product) {
         viewModelScope.launch {
-            val cur = _state.value as? DetailUiState.Loaded ?: return@launch
-            if (cur.isInWatchlist) {
-                watchlistDao.delete(product.key)
-                _state.value = cur.copy(isInWatchlist = false)
-            } else {
-                watchlistDao.upsert(
-                    io.github.shizukutanaka.popcoon.data.db.WatchlistItem(
-                        productKey = product.key,
-                        sku = product.sku,
-                        title = product.title,
-                        platform = product.platform.id,
-                        realPrice = product.realPrice,
-                        listPrice = product.listPrice,
-                        url = product.url,
-                        imageUrl = product.imageUrl,
-                        addedPrice = product.realPrice,  // 追加時価格を基準として固定
+            toggleWatchlistMutex.withLock {
+                val cur = _state.value as? DetailUiState.Loaded ?: return@withLock
+                if (cur.isInWatchlist) {
+                    watchlistDao.delete(product.key)
+                    _state.value = cur.copy(isInWatchlist = false)
+                } else {
+                    watchlistDao.upsert(
+                        io.github.shizukutanaka.popcoon.data.db.WatchlistItem(
+                            productKey = product.key,
+                            sku = product.sku,
+                            title = product.title,
+                            platform = product.platform.id,
+                            realPrice = product.realPrice,
+                            listPrice = product.listPrice,
+                            url = product.url,
+                            imageUrl = product.imageUrl,
+                            addedPrice = product.realPrice,  // 追加時価格を基準として固定
+                        )
                     )
-                )
-                _state.value = cur.copy(isInWatchlist = true)
-            }
-            // ウィジェット更新 (ホーム画面の最安値リストを最新化)
-            try {
-                val items = kotlinx.coroutines.flow.first(watchlistDao.observeAll())
-                io.github.shizukutanaka.popcoon.widget.WidgetUpdater.update(context, items)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                PopcoonLogger.w(this@ProductDetailViewModel, "Widget update failed: ${e.message}")
+                    _state.value = cur.copy(isInWatchlist = true)
+                }
+                // ウィジェット更新 (ホーム画面の最安値リストを最新化)
+                try {
+                    val items = kotlinx.coroutines.flow.first(watchlistDao.observeAll())
+                    io.github.shizukutanaka.popcoon.widget.WidgetUpdater.update(context, items)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    PopcoonLogger.w(this@ProductDetailViewModel, "Widget update failed: ${e.message}")
+                }
             }
         }
     }
