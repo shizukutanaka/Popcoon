@@ -17,6 +17,7 @@ import io.github.shizukutanaka.popcoon.ui.theme.Spacing
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.shizukutanaka.popcoon.R
@@ -43,7 +44,13 @@ fun ScoreCard(
     var expanded by remember { mutableStateOf(false) }
 
     Card(
-        modifier = modifier.fillMaxWidth().clickable(role = Role.Button) { expanded = !expanded },
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button) { expanded = !expanded }
+            // TalkBack はカード全体を1つのフォーカス対象として読み上げる。merge しないと
+            // スコア数値・判定ラベル・信頼度・展開インジケーターで個別に止まってしまう
+            // (機能過不足監査で発見、ProductRow/WatchlistScreen と同方針)。
+            .semantics(mergeDescendants = true) {},
         shape = RoundedCornerShape(CornerRadius.modal),
         colors = CardDefaults.cardColors(
             containerColor = when (verdict) {
