@@ -222,9 +222,12 @@ class PriceSyncWorker @AssistedInject constructor(
         }
 
         // ウィジェット更新
+        // update() は連続タップ UI 向けの 500ms デバウンス版 — バックグラウンドワーカーは
+        // この呼び出しの後すぐプロセスがアイドル/終了しうるため、デバウンス中に更新が
+        // 破棄される恐れがある (機能過不足監査で発見)。ワーカーからは即時実行版を使う。
         try {
             val updated = watchlistDao.observeAll().first()
-            WidgetUpdater.update(applicationContext, updated)
+            WidgetUpdater.updateImmediate(applicationContext, updated)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
