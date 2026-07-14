@@ -270,20 +270,33 @@ class SettingsViewModel @Inject constructor(
      */
     fun restoreWatchlist(uri: Uri) {
         viewModelScope.launch {
-            val result = watchlistBackup.import(context, uri)
-            val message = when (result) {
-                is WatchlistBackupManager.ImportResult.Success ->
-                    // 単複区別が必要な英語等のため plurals を使う (UiText.StringResource は
-                    // pluralStringResource に対応しないため、ここで resolve して DynamicString 化)。
-                    UiText.DynamicString(
-                        context.resources.getQuantityString(
-                            R.plurals.watchlist_restore_success, result.count, result.count,
-                        ),
-                    )
-                is WatchlistBackupManager.ImportResult.Failure ->
-                    UiText.StringResource(R.string.watchlist_restore_failed)
+            try {
+                val result = watchlistBackup.import(context, uri)
+                val message = when (result) {
+                    is WatchlistBackupManager.ImportResult.Success ->
+                        // 単複区別が必要な英語等のため plurals を使う (UiText.StringResource は
+                        // pluralStringResource に対応しないため、ここで resolve して DynamicString 化)。
+                        UiText.DynamicString(
+                            context.resources.getQuantityString(
+                                R.plurals.watchlist_restore_success, result.count, result.count,
+                            ),
+                        )
+                    is WatchlistBackupManager.ImportResult.Failure ->
+                        UiText.StringResource(R.string.watchlist_restore_failed)
+                }
+                _state.value = _state.value.copy(restoreResultMessage = message)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // watchlistBackup.import() 内の DAO 書き込みループは例外を握り潰さない
+                // (途中失敗時にどこまで復元されたか不明瞭になるのを避けるため意図的)。
+                // ここで捕捉しないと Room 例外等でアプリがクラッシュし、「復元失敗」の
+                // メッセージも表示されなかった (機能過不足監査で発見)。
+                PopcoonLogger.w(this@SettingsViewModel, "restoreWatchlist failed: ${e.message}", e)
+                _state.value = _state.value.copy(
+                    restoreResultMessage = UiText.StringResource(R.string.watchlist_restore_failed),
+                )
             }
-            _state.value = _state.value.copy(restoreResultMessage = message)
         }
     }
 
