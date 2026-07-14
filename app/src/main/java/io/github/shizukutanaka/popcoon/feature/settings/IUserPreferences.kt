@@ -14,4 +14,9 @@ interface IUserPreferences {
 
     /** バナーを閉じる/設定へ進んだ操作を記録し、以後表示しない。 */
     suspend fun dismissEcPrompt()
+
+    /** ウォッチリストの並べ替えモード（WatchlistSort.Mode の ordinal）。既定 0 = ADDED_DESC。 */
+    val watchlistSortOrdinal: Flow<Int>
+
+    suspend fun setWatchlistSort(ordinal: Int)
 }

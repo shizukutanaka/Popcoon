@@ -117,10 +117,10 @@ class UserPreferences @Inject constructor(
     }
 
     /** ウォッチリストの並べ替えモード（WatchlistSort.Mode の ordinal）。既定 0 = ADDED_DESC。 */
-    val watchlistSortOrdinal: Flow<Int> = safeData
+    override val watchlistSortOrdinal: Flow<Int> = safeData
         .map { it[KEY_WATCHLIST_SORT] ?: 0 }
 
-    suspend fun setWatchlistSort(ordinal: Int) {
+    override suspend fun setWatchlistSort(ordinal: Int) {
         context.dataStore.edit { it[KEY_WATCHLIST_SORT] = ordinal }
     }
 

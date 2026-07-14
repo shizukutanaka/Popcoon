@@ -252,6 +252,12 @@ private class FakeUserPreferences(
     override val amazonPrime: Flow<Boolean> = flowOf(prime)
     override val ecPromptDismissed: Flow<Boolean> = flowOf(ecPromptDismissed)
     override suspend fun dismissEcPrompt() {}
+
+    private val sortOrdinal = MutableStateFlow(0)
+    override val watchlistSortOrdinal: Flow<Int> = sortOrdinal
+    override suspend fun setWatchlistSort(ordinal: Int) {
+        sortOrdinal.value = ordinal
+    }
 }
 
 /**

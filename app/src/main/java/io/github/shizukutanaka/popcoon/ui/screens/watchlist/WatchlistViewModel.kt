@@ -1,17 +1,15 @@
 package io.github.shizukutanaka.popcoon.ui.screens.watchlist
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.shizukutanaka.popcoon.data.db.WatchlistDao
 import io.github.shizukutanaka.popcoon.data.db.WatchlistItem
 import io.github.shizukutanaka.popcoon.feature.cart.SmartCartService
 import io.github.shizukutanaka.popcoon.feature.points.PointSimulator
-import io.github.shizukutanaka.popcoon.feature.settings.UserPreferences
+import io.github.shizukutanaka.popcoon.feature.settings.IUserPreferences
 import io.github.shizukutanaka.popcoon.feature.watchlist.WatchlistSort
-import io.github.shizukutanaka.popcoon.widget.WidgetUpdater
+import io.github.shizukutanaka.popcoon.widget.IWidgetRefresher
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.shizukutanaka.popcoon.core.PopcoonLogger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -32,8 +30,8 @@ import javax.inject.Inject
 @HiltViewModel
 class WatchlistViewModel @Inject constructor(
     private val dao: WatchlistDao,
-    private val prefs: UserPreferences,
-    @ApplicationContext private val context: Context,
+    private val prefs: IUserPreferences,
+    private val widgetRefresher: IWidgetRefresher,
 ) : ViewModel() {
 
     // Room の observe クエリはテーブルへの任意の書き込みで再発火する (結果が同一でも)。
@@ -93,7 +91,13 @@ class WatchlistViewModel @Inject constructor(
     /** タグ (フォルダ分類) を設定 / 解除する。@param tag null または空文字で「未分類」に戻す。 */
     fun setTag(productKey: String, tag: String?) {
         viewModelScope.launch {
-            dao.setTag(productKey, tag?.takeIf { it.isNotBlank() })
+            try {
+                dao.setTag(productKey, tag?.takeIf { it.isNotBlank() })
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                PopcoonLogger.w(this@WatchlistViewModel, "setTag failed: ${e.message}", e)
+            }
         }
     }
 
@@ -138,15 +142,27 @@ class WatchlistViewModel @Inject constructor(
 
     fun remove(productKey: String) {
         viewModelScope.launch {
-            dao.delete(productKey)
-            updateWidget()
+            try {
+                dao.delete(productKey)
+                updateWidget()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                PopcoonLogger.w(this@WatchlistViewModel, "remove failed: ${e.message}", e)
+            }
         }
     }
 
     fun add(item: WatchlistItem) {
         viewModelScope.launch {
-            dao.upsert(item)
-            updateWidget()
+            try {
+                dao.upsert(item)
+                updateWidget()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                PopcoonLogger.w(this@WatchlistViewModel, "add failed: ${e.message}", e)
+            }
         }
     }
 
@@ -157,7 +173,13 @@ class WatchlistViewModel @Inject constructor(
      */
     fun setTargetPrice(productKey: String, target: Long?) {
         viewModelScope.launch {
-            dao.setTargetPrice(productKey, target)
+            try {
+                dao.setTargetPrice(productKey, target)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                PopcoonLogger.w(this@WatchlistViewModel, "setTargetPrice failed: ${e.message}", e)
+            }
         }
     }
 
@@ -168,12 +190,18 @@ class WatchlistViewModel @Inject constructor(
      */
     fun setStockAlertEnabled(productKey: String, enabled: Boolean) {
         viewModelScope.launch {
-            dao.setStockAlertEnabled(productKey, enabled)
+            try {
+                dao.setStockAlertEnabled(productKey, enabled)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                PopcoonLogger.w(this@WatchlistViewModel, "setStockAlertEnabled failed: ${e.message}", e)
+            }
         }
     }
 
     private suspend fun updateWidget() {
         val current = rawItems.first()
-        WidgetUpdater.update(context, current)
+        widgetRefresher.refresh(current)
     }
 }
