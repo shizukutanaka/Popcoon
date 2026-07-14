@@ -25,7 +25,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
-import android.util.Log
+import io.github.shizukutanaka.popcoon.core.PopcoonLogger
 
 /**
  * Cloudflare Workers backend クライアント。
@@ -82,12 +82,12 @@ class BackendClient @Inject constructor() {
                     if (success) succeeded++ else failed++
                 }
                 if (failed > 0) {
-                    Log.w(
-                        "BackendClient",
+                    PopcoonLogger.w(
+                        this@BackendClient,
                         "Price sync: $succeeded/${records.size} succeeded, $failed failed",
                     )
                 }
-            } ?: Log.w("BackendClient", "Price sync aborted: exceeded ${BATCH_TIMEOUT_MS}ms budget")
+            } ?: PopcoonLogger.w(this@BackendClient, "Price sync aborted: exceeded ${BATCH_TIMEOUT_MS}ms budget")
         }
     }
 
@@ -102,8 +102,8 @@ class BackendClient @Inject constructor() {
                     val delayMs = (1000 * (1 shl attempt)).toLong()  // 1s, 2s, 4s
                     delay(delayMs)
                 } else {
-                    Log.w(
-                        "BackendClient",
+                    PopcoonLogger.w(
+                        this@BackendClient,
                         "Price POST failed after $maxAttempts attempts: ${e.message}",
                     )
                 }
