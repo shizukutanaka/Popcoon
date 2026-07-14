@@ -18,11 +18,17 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
 import io.github.shizukutanaka.popcoon.core.PopcoonLogger
@@ -50,14 +56,20 @@ class BackendClient @Inject constructor() {
 
     companion object {
         private const val BATCH_TIMEOUT_MS = 120_000L  // 2分: 大量 records でも無制限に走らせない
+        // backend に複数件をまとめて送る batch エンドポイントは無い (POST /v1/history は
+        // 1 リクエスト 1 PriceRecord)。そのため件数分の HTTP リクエストは避けられないが、
+        // 完全に順次だと数十件で数秒かかる。Semaphore で上限を設けて並行化する
+        // (PriceSyncWorker/SearchViewModel と同じ有界並行パターン、無制限 fan-out には戻さない)。
+        private const val MAX_CONCURRENCY = 8
     }
 
     /**
      * 価格履歴をまとめて fire-and-forget で送信。失敗しても UI に影響させない。
      *
-     * 1 検索の全結果 (数十件) を **1 つのコルーチン内で順次** 送る。
+     * 1 検索の全結果 (数十件) を Semaphore(MAX_CONCURRENCY) で有界並行送信する。
      * 以前は結果 1 件ごとに launch しており、検索のたびに数十の無制限な並行 POST が
-     * never-cancelled な singleton scope 上に積まれていた (fan-out)。
+     * never-cancelled な singleton scope 上に積まれていた (fan-out) — その後 1 コルーチン内の
+     * 完全順次に修正されたが、数十件では数秒かかり遅かった。有界並行で両者の問題を避ける。
      * レスポンスは bodyAsText() で消費してコネクションを解放する。
      *
      * 再試行: 指数バックオフで最大 3 回まで試行。
@@ -70,21 +82,28 @@ class BackendClient @Inject constructor() {
         if (records.isEmpty()) return
         asyncScope.launch {
             withTimeoutOrNull(BATCH_TIMEOUT_MS) {
-                var succeeded = 0
-                var failed = 0
-                records.forEach { record ->
-                    val success = retryWithBackoff(maxAttempts = 3) {
-                        client.post("$baseUrl/v1/history") {
-                            contentType(ContentType.Application.Json)
-                            setBody(record)
-                        }.bodyAsText()
-                    }
-                    if (success) succeeded++ else failed++
+                val succeeded = AtomicInteger(0)
+                val failed = AtomicInteger(0)
+                val semaphore = Semaphore(MAX_CONCURRENCY)
+                coroutineScope {
+                    records.map { record ->
+                        async {
+                            semaphore.withPermit {
+                                val success = retryWithBackoff(maxAttempts = 3) {
+                                    client.post("$baseUrl/v1/history") {
+                                        contentType(ContentType.Application.Json)
+                                        setBody(record)
+                                    }.bodyAsText()
+                                }
+                                if (success) succeeded.incrementAndGet() else failed.incrementAndGet()
+                            }
+                        }
+                    }.awaitAll()
                 }
-                if (failed > 0) {
+                if (failed.get() > 0) {
                     PopcoonLogger.w(
                         this@BackendClient,
-                        "Price sync: $succeeded/${records.size} succeeded, $failed failed",
+                        "Price sync: ${succeeded.get()}/${records.size} succeeded, ${failed.get()} failed",
                     )
                 }
             } ?: PopcoonLogger.w(this@BackendClient, "Price sync aborted: exceeded ${BATCH_TIMEOUT_MS}ms budget")
