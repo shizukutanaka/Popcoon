@@ -1,10 +1,11 @@
 /**
  * rateLimit() の binding/KV フォールバック選択ロジックのテスト。
  *
- * src/index.ts はこのバケットの vitest-pool-workers 設定を持たないため
- * (alerts.test.ts と同じ制約)、実装をここに再実装して契約として固定する。
- * ネイティブ RateLimit binding (2025-09 GA) があればそれを使い、無ければ
- * 従来の KV 1分バケットカウンターに落ちる。
+ * vitest.config.ts で @cloudflare/vitest-pool-workers は有効化済み (2026-07〜)。
+ * このファイルは意図的に実装を再実装し、binding 選択ロジック単体を分岐カバレッジ
+ * レベルで固定する — worker.test.ts の「実ハンドラー越しの rate limit テスト
+ * (6回目で429)」を補完する役割。ネイティブ RateLimit binding (2025-09 GA) が
+ * あればそれを使い、無ければ従来の KV 1分バケットカウンターに落ちる。
  */
 
 import { describe, it, expect } from "vitest";

@@ -2,7 +2,9 @@
  * AlertCondition ツリー評価エンジンのテスト。
  *
  * Kotlin 側からの仕様確認 — backend が price_below/above/atl/discount_pct/AND/OR/NOT を
- * 正しく評価することを保証する。
+ * 正しく評価することを保証する。境界値・プロパティレベルの網羅は再実装コピーで行い、
+ * 実ハンドラー越しの HTTP 層・KV 実処理・認可検証は worker.test.ts が担う
+ * (vitest.config.ts で @cloudflare/vitest-pool-workers を 2026-07 に有効化済み)。
  */
 
 import { describe, it, expect } from "vitest";

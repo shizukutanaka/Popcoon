@@ -32,7 +32,7 @@ Cloudflare Workers。詳細な設計方針は `src/index.ts` 冒頭のコメン�
 3. **依存関係をインストールし、テストを通す**:
    ```bash
    npm install   # 既知の注意点は下記「依存関係の既知の問題」参照
-   npm test      # vitest — 34 テスト (アラート評価/PII検査/KVページネーション/advice検証等)
+   npm test      # vitest — 61 テスト (下記「テスト構成」参照)
    npx tsc --noEmit   # 型チェック
    ```
 
@@ -52,6 +52,38 @@ Cloudflare Workers。詳細な設計方針は `src/index.ts` 冒頭のコメン�
 curl https://<デプロイ先>/v1/health
 # => {"status":"ok","environment":"production"}
 ```
+
+## テスト構成
+
+2026-07 の監査で発見: `@cloudflare/vitest-pool-workers` は package.json に
+devDependency として存在していたが `vitest.config.ts` が無く、一度も有効化されて
+いなかった。`alerts.test.ts` / `advice.test.ts` / `ratelimit.test.ts` はこれを前提に
+`src/index.ts` の関数を直接 import せず、ロジックを手動で再実装して仕様として固定
+する方針を取っていた (各ファイル冒頭のコメント参照) — 実際の `handleRequest` /
+`evaluateAlerts` は一度も実行検証されていなかった。
+
+`vitest.config.ts` を追加して `defineWorkersConfig` を有効化し、`worker.test.ts`
+(新規) で実際に `import worker from "../src/index"` した本番ハンドラーを Miniflare
+上で (ローカル・ネットワーク不要) 実行するテストを追加した。KV も実物の (ローカル)
+`KVNamespace` 実装を使うため「書いた値が実際に読めるか」まで検証できる — admin
+ゲート付き DELETE の実削除確認、アラート所有権チェック、条件ツリー深度バリデーション、
+レート制限の 6 回目 429 等、再実装コピーでは原理的に検証できなかった経路を実ハンドラー
+越しに固定している。
+
+既存の再実装スタイルのテスト (`alerts.test.ts` 等) は削除していない — 純粋ロジックの
+境界値・プロパティテストとして依然価値があり、`worker.test.ts` は HTTP 層の配線・KV
+実処理・認可を実ハンドラーで検証する**補完**という位置づけ。
+
+**ローカル Miniflare の既知の制限**:
+- `wrangler.toml` の `[[ratelimits]]` (ネイティブ rate limit binding) はインストール済み
+  vitest-pool-workers (0.5.41系) の内部 wrangler パーサが未対応で無視される
+  ("Unexpected fields found in top-level field: ratelimits" 警告)。テスト内の
+  `env.WRITE_RATE_LIMITER` 等は常に `undefined` になり、`rateLimit()` は常に KV
+  フォールバック経路を通る — これはネイティブ binding が使えないデプロイ環境
+  (古い wrangler 等) を想定した設計通りのフォールバックなので、意図的にその経路を
+  検証している。ネイティブ binding 自体の実機検証は本番デプロイ後に別途必要。
+- `compatibility_date = "2026-04-01"` はインストール済みランタイムの対応範囲外で
+  `2024-12-30` にフォールバックする (警告のみ、テストは通る)。
 
 ## 依存関係の既知の問題
 

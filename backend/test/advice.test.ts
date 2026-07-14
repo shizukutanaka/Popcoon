@@ -1,10 +1,12 @@
 /**
  * POST /v1/advice (Claude API プロキシ) のテスト。
  *
- * src/index.ts はこのバケットの vitest-pool-workers 設定を持たないため
- * (alerts.test.ts と同じ制約)、実際の fetch ハンドラーを直接 import せず、
- * ルートの契約となる純粋ロジック (payload 検証・レート制限バケット分離) を
- * ここで再実装して仕様として固定する — alerts.test.ts の既存方針を踏襲。
+ * vitest.config.ts で @cloudflare/vitest-pool-workers は有効化済み (2026-07〜、
+ * worker.test.ts が実ハンドラーを import して実行する)。このファイルは意図的に
+ * ルートの契約となる純粋ロジック (payload 検証・レート制限バケット分離) を境界値・
+ * プロパティレベルで再実装し仕様として固定する — worker.test.ts (実ハンドラー越しの
+ * HTTP 層・KV 実処理・認可検証) を補完する役割。ANTHROPIC_API_KEY を要する実際の
+ * Claude API 呼び出しは外部 API 依存のためどちらのレイヤーでも検証対象外。
  */
 
 import { describe, it, expect } from "vitest";
