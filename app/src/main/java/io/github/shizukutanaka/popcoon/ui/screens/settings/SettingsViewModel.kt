@@ -11,8 +11,10 @@ import io.github.shizukutanaka.popcoon.R
 import io.github.shizukutanaka.popcoon.core.PopcoonLogger
 import io.github.shizukutanaka.popcoon.data.db.PopcoonDatabase
 import io.github.shizukutanaka.popcoon.feature.billing.BillingManager
+import io.github.shizukutanaka.popcoon.feature.crash.PrivacyCrashReporter
 import io.github.shizukutanaka.popcoon.feature.export.WatchlistBackupManager
 import io.github.shizukutanaka.popcoon.feature.settings.UserPreferences
+import coil3.ImageLoader
 import io.github.shizukutanaka.popcoon.ui.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -52,6 +54,8 @@ class SettingsViewModel @Inject constructor(
     private val database: PopcoonDatabase,
     private val csvExporter: io.github.shizukutanaka.popcoon.feature.export.PriceHistoryCsvExporter,
     private val watchlistBackup: WatchlistBackupManager,
+    private val crashReporter: PrivacyCrashReporter,
+    private val imageLoader: ImageLoader,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -160,7 +164,13 @@ class SettingsViewModel @Inject constructor(
     /**
      * GDPR Article 17 — 全データ削除。
      *
-     * 端末内データ (Room 全テーブル + DataStore 設定) を完全削除する。
+     * 端末内データを完全削除する: Room 全テーブル + DataStore 設定 + ローカル保存済み
+     * クラッシュレポート (`PrivacyCrashReporter` が送信前に `filesDir/crashes/` へ永続化する
+     * JSON、機種名・Androidバージョン等を含む) + Coil の画像ディスク/メモリキャッシュ
+     * (`filesDir/cache/image_cache/`、商品画像)。
+     * 以前はクラッシュレポートと画像キャッシュがこの削除対象から漏れており、「完全削除」の
+     * 表示に反して実際には端末に個人利用履歴の痕跡 (閲覧した商品のサムネイル、クラッシュ発生
+     * 時刻とセッションID) が残り続けていた (機能過不足監査で発見)。
      * **サーバー側に削除すべき個人データは存在しない**: アプリはデバイス識別子を一切持たず、
      * backend に送るのは商品キー単位の匿名・共有価格履歴 (特定個人に紐づかない) と、
      * PII 除去済み・デバイス非紐付けのクラッシュレポート (90日 TTL で自動失効) のみ。
@@ -173,6 +183,9 @@ class SettingsViewModel @Inject constructor(
             try {
                 database.clearAllTables()
                 prefs.clearAll()
+                crashReporter.clearLocalCrashes()
+                imageLoader.diskCache?.clear()
+                imageLoader.memoryCache?.clear()
             } catch (e: CancellationException) {
                 _state.value = _state.value.copy(isDeleting = false)
                 throw e
