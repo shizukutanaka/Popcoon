@@ -167,7 +167,7 @@ class FallbackScraper {
         )
 
         return Product(
-            sku = java.net.URI(url).path.substringAfterLast("/").take(64),
+            sku = skuFromUrl(url),
             title = name,
             platform = platform,
             realPrice = price,
@@ -185,6 +185,18 @@ class FallbackScraper {
     // パリティハーネスがその実関数を直接検証できるよう委譲する (正規表現の複製を排除)。
     internal fun extractJsonString(json: String, key: String): String? =
         extractJsonLdString(json, key)
+
+    /**
+     * 商品 URL の最終パスセグメントを sku として抽出する。
+     *
+     * trimEnd('/'): 楽天の正規 URL は "https://item.rakuten.co.jp/$shop/$item/" と
+     * 末尾スラッシュ付きで構築される (UrlClassifier.kt)。trim せずに substringAfterLast("/")
+     * すると末尾スラッシュの直後 (=空文字列) を拾ってしまい、楽天商品の sku が常に "" になって
+     * 全ての楽天商品が同じ productKey ("rakuten:") に潰れ、ウォッチリストの別商品が互いを
+     * 上書きしていた (機能過不足監査で発見)。
+     */
+    internal fun skuFromUrl(url: String): String =
+        java.net.URI(url).path.trimEnd('/').substringAfterLast("/").take(64)
 
     /** 引用符なし数値 (`"price": 1980`) の抽出。詳細は extractJsonLdNumber を参照。 */
     internal fun extractJsonNumber(json: String, key: String): String? =

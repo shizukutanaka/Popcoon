@@ -108,4 +108,20 @@ class FallbackScraperRegexTest : StringSpec({
         val json = """{"name":"商品"}"""
         scraper.extractJsonObjectField(json, "brand", "name").shouldBeNull()
     }
+
+    // ── skuFromUrl: 末尾スラッシュ URL の sku 抽出 (機能過不足監査で発見の回帰) ──
+    // 楽天の正規 URL ("https://item.rakuten.co.jp/$shop/$item/") は末尾スラッシュ付き。
+    // trimEnd せず substringAfterLast("/") すると空文字列を拾い、全楽天商品が
+    // productKey "rakuten:" に潰れてウォッチリストの別商品を互いに上書きしていた。
+    "末尾スラッシュ付き URL (楽天の正規形式) でも sku を正しく抽出する" {
+        scraper.skuFromUrl("https://item.rakuten.co.jp/shop123/itemcode456/") shouldBe "itemcode456"
+    }
+
+    "末尾スラッシュなし URL でも従来どおり sku を抽出する" {
+        scraper.skuFromUrl("https://www.amazon.co.jp/dp/B0CXXXXXXX") shouldBe "B0CXXXXXXX"
+    }
+
+    "クエリ文字列付き末尾スラッシュ URL でも sku を正しく抽出する" {
+        scraper.skuFromUrl("https://item.rakuten.co.jp/shop123/itemcode456/?query=1") shouldBe "itemcode456"
+    }
 })

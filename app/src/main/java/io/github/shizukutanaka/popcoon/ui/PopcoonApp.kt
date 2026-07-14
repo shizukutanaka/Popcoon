@@ -110,10 +110,33 @@ private fun MainWithTabs(intentEvent: IntentEvent) {
     // Intent 由来の遷移
     LaunchedEffect(intentEvent) {
         when (intentEvent) {
-            is IntentEvent.OpenProduct ->
+            is IntentEvent.OpenProduct -> {
+                // 共有/スキャンで開いた商品は検索結果から来ていないため ProductNavCache に
+                // 何も登録されていない。事前登録しないと ProductDetailViewModel.load() が
+                // キャッシュミス → buildProductFromKey() にフォールバックし、url も設定
+                // されない空の Product (title=sku のプレースホルダ) になり、共有・スキャンで
+                // 開いた商品の詳細が実質何も表示されなかった (機能過不足監査で発見)。
+                // url だけでも積んでおけば load() 内の repository.refresh() (JSON-LD) が
+                // タイトル・画像・価格を補完できる。デフォルト値は buildProductFromKey() の
+                // フォールバックと同じ形にして、url 未取得時 (deep link 等) の挙動は変えない。
+                val parts = intentEvent.productKey.split(":", limit = 2)
+                val platform = io.github.shizukutanaka.popcoon.data.model.Platform
+                    .fromId(parts.getOrNull(0))
+                val sku = parts.getOrNull(1) ?: intentEvent.productKey
+                io.github.shizukutanaka.popcoon.ui.screens.detail.ProductNavCache.put(
+                    io.github.shizukutanaka.popcoon.data.model.Product(
+                        sku = sku,
+                        title = sku,
+                        platform = platform,
+                        realPrice = 0,
+                        listPrice = 0,
+                        url = intentEvent.url,
+                    ),
+                )
                 navController.navigate("detail/${intentEvent.productKey}") {
                     launchSingleTop = true
                 }
+            }
             is IntentEvent.StartSearch -> {
                 navController.navigate(Tab.SEARCH.route) {
                     launchSingleTop = true
