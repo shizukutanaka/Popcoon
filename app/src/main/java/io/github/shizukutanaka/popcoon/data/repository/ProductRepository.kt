@@ -109,6 +109,19 @@ open class ProductRepository @Inject constructor(
     /**
      * 商品キーから最新情報を再取得。
      * API 失敗時は FallbackScraper で商品ページから JSON-LD を解析。
+     *
+     * 失敗時 (URL 空・例外・JSON-LD 解析失敗) は null を返す — **元の product にフォール
+     * バックしてはならない**。以前は `?: product` で失敗を握りつぶし、呼び出し元に
+     * 「取得できたが変化なし」であるかのような偽装データ (実際は未更新の古い product)
+     * を返していた。これが PriceSyncWorker の在庫アラート判定 (StockAlertEvaluator) と
+     * 組み合わさると、フォールバック取得が単に失敗しただけ (ネットワークエラー・
+     * robots.txt 拒否・ページ構造変更等) のケースで「在庫あり」の確定情報として扱われ、
+     * 在庫切れ→在庫復活の誤検知プッシュ通知を大量発生させていた (機能過不足監査で発見)。
+     * 呼び出し元は元々 null を正しく処理する設計だった (PriceSyncWorker.kt:199 の
+     * `?: return@runCatching` は本来失敗時にスキップするためのガードだったが、この関数が
+     * 常に非 null を返すため到達しない死コードになっていた。ProductDetailViewModel.kt の
+     * `refreshDeferred?.await() ?: cachedProduct ?: buildProductFromKey(...)` も同様に
+     * null を想定したフォールバックチェーンを既に持つ)。
      */
     override suspend fun refresh(product: Product): Product? {
         val url = product.url.ifEmpty { return null }
@@ -119,7 +132,7 @@ open class ProductRepository @Inject constructor(
         } catch (e: Exception) {
             PopcoonLogger.w("ProductRepository", "詳細フォールバック取得失敗", e)
             null
-        } ?: product
+        }
     }
 
     /** 商品の価格履歴を backend から取得 */

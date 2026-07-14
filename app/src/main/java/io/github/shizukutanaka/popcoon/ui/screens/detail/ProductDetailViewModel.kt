@@ -105,7 +105,9 @@ class ProductDetailViewModel @Inject constructor(
                 //     レスポンスそのままで、いずれも原産国を一切返さないため、これが無いと
                 //     EthicsCard は永久に表示されなかった (機能過不足監査で発見: refresh() は
                 //     このために実装済みだったが、呼び出し元がどこにも存在しなかった)。
-                //     失敗時・URL 不明時は refresh() 自身が元の product にフォールバックする。
+                //     refresh() は失敗時 null を返す (以前は元の product に握りつぶしていたが、
+                //     それが PriceSyncWorker の在庫アラート誤検知の原因だったため撤去済み —
+                //     機能過不足監査で発見)。null 時はこの下の `?: cachedProduct` が拾う。
                 val refreshDeferred = cachedProduct?.takeIf { it.url.isNotEmpty() }
                     ?.let { p -> async { repository.refresh(p) } }
 
