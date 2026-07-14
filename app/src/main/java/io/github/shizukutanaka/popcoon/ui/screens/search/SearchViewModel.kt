@@ -37,6 +37,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import javax.inject.Inject
 
 sealed interface SearchUiState {
@@ -211,9 +213,15 @@ class SearchViewModel @Inject constructor(
             }
             // 各グループの価格履歴取得は独立した backend 往復なので並列化する
             // (従来は逐次で、結果数ぶん直列にネットワーク待ちしていた)。
+            // ただし無制限並列は禁物: backend の GET レート制限は 30回/分/IP
+            // (backend/src/index.ts) で、groupByIdentity 後もグループ数は最大30近くに
+            // なりうるため、1回の検索だけで制限のほぼ全てを消費しうる。PriceSyncWorker.kt
+            // と同じ Semaphore(MAX_CONCURRENCY) パターンで同時実行数を絞る
+            // (機能過不足監査で発見: この画面だけ無制限並列のままだった)。
+            val searchSemaphore = Semaphore(MAX_CONCURRENCY)
             val rows = coroutineScope {
                 groups.map { group ->
-                    async {
+                    async { searchSemaphore.withPermit {
                 val product = group.first()  // 最安値 (groupByIdentity がソート済み)
                 val alternatives = group.drop(1)  // 他モールの同一商品
                 val history = runCatching {
@@ -255,7 +263,7 @@ class SearchViewModel @Inject constructor(
                     alternatives = alternatives,
                     effectivePrice = PointSimulator.simulate(product, userCtx).effectivePrice,
                 )
-                    }
+                    } }
                 }.awaitAll()
             }
             // 検索履歴を保存し Trie に登録 (次回からオートコンプリートに使用)
@@ -287,5 +295,8 @@ class SearchViewModel @Inject constructor(
 
     private companion object {
         const val KEY_SEARCH_QUERY = "search_query"
+        // PriceSyncWorker.kt と同じ上限。backend の GET レート制限 (30回/分/IP) を
+        // 1回の検索だけで消費し尽くさないための同時実行数キャップ。
+        const val MAX_CONCURRENCY = 8
     }
 }
