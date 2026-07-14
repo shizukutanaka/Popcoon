@@ -105,4 +105,34 @@ class TrieSuggestTest : StringSpec({
         // 1000 件挿入 + 10 件サジェスト合計 500ms 以下を期待
         elapsedMs shouldBeLessThan 500L
     }
+
+    // ── サイズ上限 (機能過不足監査で発見: 上限が無く長時間セッションで無制限に蓄積していた) ──
+    "既定の上限 (2000) は 1000 件挿入では発動しない (上の速度テストと同じ前提)" {
+        val t = Trie()
+        repeat(1000) { i -> t.insert("商品名${i}号") }
+        t.size() shouldBe 1000
+    }
+
+    "上限到達時は一括クリアしてから挿入し直す (直近の語のみ残る)" {
+        val t = Trie(maxWords = 5)
+        repeat(5) { i -> t.insert("item$i") }
+        t.size() shouldBe 5
+        t.insert("item5")  // 6件目 (新規語) が上限超過を引き起こす
+        t.size() shouldBe 1
+        t.suggest("item", limit = 10) shouldBe listOf("item5")
+        t.suggest("item0", limit = 10) shouldBe emptyList()
+    }
+
+    "重複登録は上限カウントに影響しない" {
+        val t = Trie(maxWords = 3)
+        repeat(10) { t.insert("dup") }
+        t.size() shouldBe 1
+    }
+
+    "clear() は上限カウントもリセットする" {
+        val t = Trie(maxWords = 5)
+        repeat(3) { i -> t.insert("x$i") }
+        t.clear()
+        t.size() shouldBe 0
+    }
 })

@@ -21,10 +21,24 @@ import kotlin.concurrent.write
  *
  * 重複排除:
  *  - 同一単語の二重登録を防止 (Set で管理)
+ *
+ * サイズ上限:
+ *  - SearchViewModel は ViewModel 存続中ずっと同じ Trie インスタンスを保持し、検索の
+ *    たびに結果の商品タイトルを追加登録する。上限が無いと長時間セッションで商品
+ *    タイトルが無制限に蓄積し続けていた (機能過不足監査で発見)。
+ *  - オートコンプリートは古い候補が消えても実害が小さい用途のため、単語単位の厳密な
+ *    LRU 追跡は行わず、[maxWords] に達したら一括クリアしてから挿入し直す単純な
+ *    世代方式で十分 (直近の検索語を優先して残す)。
  */
-class Trie {
+class Trie(private val maxWords: Int = DEFAULT_MAX_WORDS) {
     private val root = Node()
     private val lock = ReentrantReadWriteLock()
+    private var wordCount = 0
+
+    companion object {
+        /** 1語あたり数十文字として 2000語で数百KB程度に収まる、十分実用的な上限。 */
+        const val DEFAULT_MAX_WORDS = 2000
+    }
 
     private class Node {
         // LinkedHashMap = 挿入順を保持。Python の dict (挿入順) と BFS の子訪問順を一致させ、
@@ -35,15 +49,25 @@ class Trie {
         val words = LinkedHashSet<String>(2)
     }
 
-    /** 単語を登録する。スレッド安全。*/
+    /**
+     * 単語を登録する。スレッド安全。
+     * 登録数が [maxWords] に達している場合は先に全クリアしてから登録する
+     * (直近の検索語を優先して残す — サイズ上限を参照)。
+     */
     fun insert(word: String) {
         if (word.isBlank()) return
         lock.write {
+            if (wordCount >= maxWords) {
+                root.children.clear()
+                wordCount = 0
+            }
             var node = root
             for (c in word) {
                 node = node.children.getOrPut(c) { Node() }
             }
-            node.words.add(word)
+            if (node.words.add(word)) {
+                wordCount++
+            }
         }
     }
 
@@ -80,20 +104,11 @@ class Trie {
     }
 
     /** 登録済み単語数を返す。スレッド安全。*/
-    fun size(): Int = lock.read {
-        var count = 0
-        val queue = ArrayDeque<Node>()
-        queue.addLast(root)
-        while (queue.isNotEmpty()) {
-            val node = queue.pollFirst()
-            count += node.words.size
-            node.children.values.forEach { queue.addLast(it) }
-        }
-        count
-    }
+    fun size(): Int = lock.read { wordCount }
 
     /** 全クリア。スレッド安全。*/
     fun clear() = lock.write {
         root.children.clear()
+        wordCount = 0
     }
 }
