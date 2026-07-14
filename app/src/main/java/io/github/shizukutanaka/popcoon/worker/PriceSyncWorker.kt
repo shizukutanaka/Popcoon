@@ -14,7 +14,6 @@ import io.github.shizukutanaka.popcoon.R
 import io.github.shizukutanaka.popcoon.core.CurrencyFormatter
 import io.github.shizukutanaka.popcoon.core.PopcoonLogger
 import io.github.shizukutanaka.popcoon.data.db.WatchlistDao
-import io.github.shizukutanaka.popcoon.data.db.WatchlistItem
 import io.github.shizukutanaka.popcoon.data.repository.BackendClient
 import io.github.shizukutanaka.popcoon.data.repository.IProductRepository
 import io.github.shizukutanaka.popcoon.feature.notification.LocalNotificationManager
@@ -80,20 +79,10 @@ class PriceSyncWorker @AssistedInject constructor(
 
         var priceDropCount = 0
 
-        // arXiv (PMC8523513) の知見: 過剰な通知は割り込み負荷となりUXを損なう。
-        // 1回の同期で送る通知を上限 MAX_NOTIFICATIONS 件に制限し、
-        // 目標価格到達 → 値下がり率が大きい順、で優先する。
-        data class Drop(
-            val item: WatchlistItem,
-            val latest: Long,
-            val prev: Long,
-            val pct: Int,
-            val targetReached: Boolean,
-        )
         // 各アイテムを並列取得 (最大 MAX_CONCURRENCY 並列)。従来は逐次で、
         // 件数ぶん直列にネットワーク待ちしていた。Result で成否を追跡する。
         val semaphore = Semaphore(MAX_CONCURRENCY)
-        val outcomes: List<kotlin.Result<Drop?>> = coroutineScope {
+        val outcomes: List<kotlin.Result<PriceSyncPlanner.Drop?>> = coroutineScope {
             watchlist.map { item ->
                 async {
                     semaphore.withPermit {
@@ -124,7 +113,7 @@ class PriceSyncWorker @AssistedInject constructor(
 
                             val alert = resolution.alert
                             if (alert.shouldNotify) {
-                                Drop(
+                                PriceSyncPlanner.Drop(
                                     item = item,
                                     latest = resolution.resolvedPrice,
                                     prev = previousPrice,
@@ -147,8 +136,7 @@ class PriceSyncWorker @AssistedInject constructor(
         val failureCount = outcomes.count { it.isFailure }
 
         // 目標価格到達を最優先、次に値下がり率が大きい順。最大 MAX_NOTIFICATIONS 件。
-        drops.sortedWith(compareByDescending<Drop> { it.targetReached }.thenByDescending { it.pct })
-            .take(MAX_NOTIFICATIONS)
+        PriceSyncPlanner.selectNotifications(drops, MAX_NOTIFICATIONS)
             .forEach { drop ->
                 priceDropCount++
                 val title = if (drop.targetReached) {
@@ -241,11 +229,13 @@ class PriceSyncWorker @AssistedInject constructor(
 
         // 全件失敗 (backend ダウン等の一過性障害) のときだけ retry し、指数バックオフに乗せる。
         // 一部成功時は upsert 済みのため再実行すると重複通知の恐れ → success で次回日次に委ねる。
-        return if (failureCount == watchlist.size && runAttemptCount < MAX_RETRY_ATTEMPTS) {
-            Result.retry()
-        } else {
-            Result.success()
-        }
+        val retry = PriceSyncPlanner.shouldRetry(
+            failureCount = failureCount,
+            totalCount = watchlist.size,
+            runAttemptCount = runAttemptCount,
+            maxRetryAttempts = MAX_RETRY_ATTEMPTS,
+        )
+        return if (retry) Result.retry() else Result.success()
     }
 
     companion object {

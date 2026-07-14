@@ -1,5 +1,6 @@
 package io.github.shizukutanaka.popcoon.worker
 
+import io.github.shizukutanaka.popcoon.data.db.WatchlistItem
 import io.github.shizukutanaka.popcoon.feature.notification.PriceAlertDebouncer
 import io.github.shizukutanaka.popcoon.feature.notification.PriceAlertEvaluator
 import io.kotest.core.spec.style.StringSpec
@@ -13,7 +14,13 @@ import io.kotest.matchers.shouldBe
  * evaluate() 直接呼び出しテスト群は、閾値・エッジトリガ等の判定ロジック自体の回帰検出
  * (PriceAlertDebouncer 越しでも判定基準は不変) を目的として残す。
  * デバウンス自体の状態遷移テストは PriceAlertDebouncerTest を参照。
- * Context 依存部分 (WorkManager 制約・バックオフ) は Instrumentation テストに委ねる。
+ *
+ * doWork() 自体は Context (通知送信・ウィジェット更新) と DataStore (UserPreferences) に
+ * 直接依存するため plain JVM ユニットテストで実行できず、以前は doWork() の分岐 (通知の
+ * 優先順位付け・retry 判定) が一切テストされていなかった (機能過不足監査で発見)。
+ * PriceSyncPlanner にその意思決定部分だけを純粋関数として切り出したので、下の
+ * PriceSyncPlanner テスト群がそれを検証する。Context に直接触れる残りの部分
+ * (WorkManager 制約・通知送信・ウィジェット更新) は Instrumentation テストに委ねる。
  */
 class PriceSyncWorkerLogicTest : StringSpec({
 
@@ -110,4 +117,65 @@ class PriceSyncWorkerLogicTest : StringSpec({
         day2.alert.kind shouldBe PriceAlertEvaluator.Kind.PRICE_DROP
         day2.alert.dropPercent shouldBe 20
     }
+
+    // ── PriceSyncPlanner (doWork() から切り出した純粋な意思決定ロジック) ──────────
+    "selectNotifications: 目標到達を最優先し、次に値下がり率降順で maxNotifications 件に絞る" {
+        val drops = listOf(
+            testDrop("a", pct = 5, targetReached = false),
+            testDrop("b", pct = 30, targetReached = false),
+            testDrop("c", pct = 10, targetReached = true),
+            testDrop("d", pct = 50, targetReached = false),
+            testDrop("e", pct = 1, targetReached = true),
+        )
+        val selected = PriceSyncPlanner.selectNotifications(drops, maxNotifications = 3)
+        selected.map { it.item.productKey } shouldBe listOf("c", "e", "d")
+    }
+
+    "selectNotifications: maxNotifications=0 は空リスト" {
+        val drops = listOf(testDrop("a", pct = 10, targetReached = false))
+        PriceSyncPlanner.selectNotifications(drops, maxNotifications = 0) shouldBe emptyList()
+    }
+
+    "selectNotifications: 入力が空でも例外なく空リスト" {
+        PriceSyncPlanner.selectNotifications(emptyList(), maxNotifications = 3) shouldBe emptyList()
+    }
+
+    "shouldRetry: 全件失敗かつ retry 上限未満なら true" {
+        PriceSyncPlanner.shouldRetry(
+            failureCount = 5, totalCount = 5, runAttemptCount = 0, maxRetryAttempts = 3,
+        ) shouldBe true
+    }
+
+    "shouldRetry: runAttemptCount が maxRetryAttempts に達したら false (無限リトライ防止)" {
+        PriceSyncPlanner.shouldRetry(
+            failureCount = 5, totalCount = 5, runAttemptCount = 3, maxRetryAttempts = 3,
+        ) shouldBe false
+    }
+
+    "shouldRetry: 一部成功時は再実行しない (upsert 済みのため重複通知を避ける)" {
+        PriceSyncPlanner.shouldRetry(
+            failureCount = 3, totalCount = 5, runAttemptCount = 0, maxRetryAttempts = 3,
+        ) shouldBe false
+    }
+
+    "shouldRetry: 全件成功時は再実行しない" {
+        PriceSyncPlanner.shouldRetry(
+            failureCount = 0, totalCount = 5, runAttemptCount = 0, maxRetryAttempts = 3,
+        ) shouldBe false
+    }
+
+    "shouldRetry: totalCount=0 は vacuous な「全滅」判定にならず false" {
+        PriceSyncPlanner.shouldRetry(
+            failureCount = 0, totalCount = 0, runAttemptCount = 0, maxRetryAttempts = 3,
+        ) shouldBe false
+    }
 })
+
+private fun testItem(key: String) = WatchlistItem(
+    productKey = key, sku = key, title = "title-$key", platform = "amazon",
+    realPrice = 1000, listPrice = 1000, url = "https://example.com/$key", imageUrl = null,
+)
+
+private fun testDrop(key: String, pct: Int, targetReached: Boolean) = PriceSyncPlanner.Drop(
+    item = testItem(key), latest = 1000, prev = 1200, pct = pct, targetReached = targetReached,
+)
