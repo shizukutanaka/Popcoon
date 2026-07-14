@@ -6,6 +6,9 @@ import androidx.lifecycle.viewModelScope
 import io.github.shizukutanaka.popcoon.core.Trie
 import io.github.shizukutanaka.popcoon.data.db.SearchHistoryDao
 import io.github.shizukutanaka.popcoon.data.db.SearchHistoryEntry
+import io.github.shizukutanaka.popcoon.data.db.WatchlistDao
+import io.github.shizukutanaka.popcoon.data.db.WatchlistItem
+import io.github.shizukutanaka.popcoon.data.model.Product
 import io.github.shizukutanaka.popcoon.data.repository.IProductRepository
 import io.github.shizukutanaka.popcoon.feature.darkpattern.DarkPatternDetector
 import io.github.shizukutanaka.popcoon.feature.matching.ProductMatcher
@@ -51,6 +54,7 @@ class SearchViewModel @Inject constructor(
     private val historyDao: SearchHistoryDao,
     private val savedStateHandle: SavedStateHandle,
     private val prefs: IUserPreferences,
+    private val watchlistDao: WatchlistDao,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
@@ -138,6 +142,39 @@ class SearchViewModel @Inject constructor(
         if (q.isBlank()) return
         searchJob?.cancel()
         searchJob = viewModelScope.launch { performSearch(q) }
+    }
+
+    /**
+     * 検索結果の長押しメニュー「ウォッチリストに追加」用。ProductDetailViewModel の
+     * toggleWatchlist() と異なり現在の在籍状態を問わないシンプルな追加のみ (Room の
+     * REPLACE 戦略により既に追加済みでも安全に冪等)。
+     * 以前は ProductRow の onAddWatchlist コールバックがどこからも供給されず、
+     * メニュー項目をタップしても常に無反応だった (機能過不足監査で発見)。
+     */
+    fun addToWatchlist(product: Product) {
+        viewModelScope.launch {
+            try {
+                watchlistDao.upsert(
+                    WatchlistItem(
+                        productKey = product.key,
+                        sku = product.sku,
+                        title = product.title,
+                        platform = product.platform.id,
+                        realPrice = product.realPrice,
+                        listPrice = product.listPrice,
+                        url = product.url,
+                        imageUrl = product.imageUrl,
+                        addedPrice = product.realPrice,
+                    ),
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                io.github.shizukutanaka.popcoon.core.PopcoonLogger.w(
+                    this@SearchViewModel, "addToWatchlist failed: ${e.message}", e,
+                )
+            }
+        }
     }
 
     private fun updateSuggestions(query: String) {

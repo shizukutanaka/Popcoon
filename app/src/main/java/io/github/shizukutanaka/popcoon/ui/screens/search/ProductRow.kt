@@ -159,9 +159,12 @@ internal fun ProductRow(
                 leadingIcon = { Icon(AppIcons.Save, stringResource(R.string.watchlist_add)) },
             )
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.share_received)) },
+                // 以前は R.string.share_received ("URLを受け取りました" — 共有インテスト受信時
+                // 専用の文言) を誤って流用していた。この項目は「この商品を共有する」操作なので
+                // R.string.action_share ("共有") が正しい (機能過不足監査で発見)。
+                text = { Text(stringResource(R.string.action_share)) },
                 onClick = { showMenu = false; onShare?.invoke() },
-                leadingIcon = { Icon(AppIcons.Share, stringResource(R.string.share_received)) },
+                leadingIcon = { Icon(AppIcons.Share, stringResource(R.string.action_share)) },
             )
         }
     }

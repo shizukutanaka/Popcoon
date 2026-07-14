@@ -1,5 +1,6 @@
 package io.github.shizukutanaka.popcoon.ui.screens.search
 
+import android.content.Intent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -20,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -178,7 +180,30 @@ fun SearchScreen(
                             }
                         }
                         Spacer(Modifier.height(Spacing.sm))
-                        ResultsList(items = displayed, onClick = onProductClick)
+                        val context = LocalContext.current
+                        val shareChooserTitle = stringResource(R.string.action_share)
+                        ResultsList(
+                            items = displayed,
+                            onClick = onProductClick,
+                            onAddWatchlist = { product -> viewModel.addToWatchlist(product) },
+                            onShare = { product ->
+                                // 長押しメニューの共有 (機能過不足監査で発見: 以前は
+                                // onAddWatchlist/onShare がどこからも供給されずメニュー項目が
+                                // 常に無反応だった)。ProductDetailScreen の「購入ページを開く」
+                                // ボタンとは異なりアフィリエイトタグは付与しない (SNS 等で共有される
+                                // 生 URL に自動でタグを乗せるのは景品表示法上の開示義務との整合が
+                                // 別途要検討のため、検索結果の簡易共有では素の URL に留める)。
+                                if (product.url.isNotBlank()) {
+                                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, "${product.title}\n${product.url}")
+                                    }
+                                    context.startActivity(
+                                        Intent.createChooser(sendIntent, shareChooserTitle),
+                                    )
+                                }
+                            },
+                        )
                     }
                 }
             }
@@ -193,6 +218,8 @@ private fun ResultsList(
     items: List<SearchRow>,
     onClick: (Product) -> Unit,
     onRefresh: () -> Unit = {},
+    onAddWatchlist: (Product) -> Unit = {},
+    onShare: (Product) -> Unit = {},
 ) {
     val refreshState = rememberPullToRefreshState()
     PullToRefreshBox(
@@ -207,6 +234,8 @@ private fun ResultsList(
                 ProductRow(
                     row = row,
                     onClick = { onClick(row.product) },
+                    onAddWatchlist = { onAddWatchlist(row.product) },
+                    onShare = { onShare(row.product) },
                 )
             }
         }

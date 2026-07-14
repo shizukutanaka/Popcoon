@@ -29,11 +29,12 @@ private fun makeViewModel(
     historyDao: SearchHistoryDao = FakeSearchHistoryDao(),
     barcodeQuery: String? = null,
     prefs: IUserPreferences = FakeUserPreferences(),
+    watchlistDao: FakeWatchlistDao = FakeWatchlistDao(),
 ): SearchViewModel {
     val state = SavedStateHandle(
         buildMap { barcodeQuery?.let { put("barcode_query", it) } }
     )
-    return SearchViewModel(repo, historyDao, state, prefs)
+    return SearchViewModel(repo, historyDao, state, prefs, watchlistDao)
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -199,6 +200,41 @@ class SearchViewModelTest : StringSpec({
             keys shouldBe keys.distinct()  // 重複キーが残っていないこと
         }
     }
+
+    // 回帰: ProductRow の長press メニュー「ウォッチリストに追加」が以前はどこからも
+    // 呼び出し元 (onAddWatchlist コールバック) を供給されておらず常に無反応だった
+    // (機能過不足監査で発見)。SearchViewModel.addToWatchlist() を追加して SearchScreen から
+    // 配線したので、その ViewModel メソッド自体の契約をここで固定する。
+    "addToWatchlist はウォッチリストに商品を追加する" {
+        runTest(testDispatcher) {
+            val dao = FakeWatchlistDao()
+            val vm = makeViewModel(watchlistDao = dao)
+            val product = Product(
+                sku = "B0ADD1", title = "テスト商品", platform = Platform.AMAZON,
+                realPrice = 3000, listPrice = 3500, url = "https://example.com/B0ADD1",
+            )
+            vm.addToWatchlist(product)
+            advanceTimeBy(1)
+            dao.items[product.key]?.title shouldBe "テスト商品"
+            dao.items[product.key]?.realPrice shouldBe 3000L
+            dao.items[product.key]?.addedPrice shouldBe 3000L  // 追加時価格を基準として固定
+        }
+    }
+
+    "addToWatchlist を同じ商品に2回呼んでも例外なく冪等 (Room REPLACE 相当)" {
+        runTest(testDispatcher) {
+            val dao = FakeWatchlistDao()
+            val vm = makeViewModel(watchlistDao = dao)
+            val product = Product(
+                sku = "B0ADD2", title = "テスト商品2", platform = Platform.RAKUTEN,
+                realPrice = 1000, listPrice = 1000, url = "https://example.com/B0ADD2",
+            )
+            vm.addToWatchlist(product)
+            vm.addToWatchlist(product)
+            advanceTimeBy(1)
+            dao.items.size shouldBe 1
+        }
+    }
 })
 
 // ── Fakes ─────────────────────────────────────────────────────────────────────
@@ -275,4 +311,41 @@ private class FakeSearchHistoryDao : SearchHistoryDao {
     }
 
     override suspend fun deleteAll() { entries.clear() }
+}
+
+private class FakeWatchlistDao : io.github.shizukutanaka.popcoon.data.db.WatchlistDao {
+    val items = mutableMapOf<String, io.github.shizukutanaka.popcoon.data.db.WatchlistItem>()
+    private val flow = MutableStateFlow<List<io.github.shizukutanaka.popcoon.data.db.WatchlistItem>>(emptyList())
+
+    private fun publish() { flow.value = items.values.sortedByDescending { it.addedAt } }
+
+    override fun observeAll(): Flow<List<io.github.shizukutanaka.popcoon.data.db.WatchlistItem>> = flow
+    override suspend fun get(key: String) = items[key]
+    override suspend fun upsert(item: io.github.shizukutanaka.popcoon.data.db.WatchlistItem) {
+        items[item.productKey] = item
+        publish()
+    }
+    override suspend fun delete(key: String) { items.remove(key); publish() }
+    override suspend fun setTargetPrice(key: String, target: Long?) {
+        items[key]?.let { items[key] = it.copy(targetPrice = target) }
+    }
+    override suspend fun updatePrice(key: String, price: Long) {
+        items[key]?.let { items[key] = it.copy(realPrice = price) }
+    }
+    override suspend fun updatePriceAndPending(key: String, price: Long, pendingPrice: Long?) {
+        items[key]?.let { items[key] = it.copy(realPrice = price, pendingPrice = pendingPrice) }
+    }
+    override suspend fun setStockAlertEnabled(key: String, enabled: Boolean) {
+        items[key]?.let { items[key] = it.copy(stockAlertEnabled = enabled) }
+    }
+    override suspend fun updateStockState(key: String, wasInStock: Boolean) {
+        items[key]?.let { items[key] = it.copy(previousInStock = wasInStock) }
+    }
+    override suspend fun setTag(key: String, tag: String?) {
+        items[key]?.let { items[key] = it.copy(tag = tag) }
+    }
+    override fun observeTags(): Flow<List<String>> =
+        MutableStateFlow(items.values.mapNotNull { it.tag }.distinct().sorted())
+    override suspend fun count(): Int = items.size
+    override suspend fun deleteAll() { items.clear(); publish() }
 }
