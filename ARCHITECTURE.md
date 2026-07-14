@@ -89,7 +89,10 @@ UI → ViewModel → Repository → Network. 逆流なし。StateFlow のみ。
 API 失敗でもアプリは動く。3 EC のうち1つでも成功すれば結果を返す。
 
 ### テレメトリゼロ
-分析 SDK なし。クラッシュレポート ([Google Play Vitals](https://developer.android.com/distribute/best-practices/develop/monitor-app-quality)) のみ (OS 標準、ユーザー同意済み)。
+分析 SDK なし。クラッシュレポートは二経路: OS 標準の [Google Play Vitals](https://developer.android.com/distribute/best-practices/develop/monitor-app-quality) (ユーザー操作不要)
+に加え、アプリ独自の `PrivacyCrashReporter` (opt-in、PII 自動除去、backend `/v1/crash` へ送信、
+90日 TTL で自動失効、third-party SDK 不使用) が実質的な主経路として動作する
+(`feature/crash/PrivacyCrashReporter.kt`)。
 
 ## Kotlin と Python の二重構造
 
@@ -129,7 +132,7 @@ Python は本番にデプロイされない。
   - アラート無制限 (無料 5件)
   - 価格履歴 CSV エクスポート
   - 詳細 CO2 データ
-- Google Play Billing Library 7.1 (`billing-ktx`)
+- Google Play Billing Library 8.3.0 (`billing-ktx`)
 - 業界統計: subscription ARPU = ad-only の 4.6 倍
 
 ## スケール予測 (無料枠内)
