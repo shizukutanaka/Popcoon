@@ -79,10 +79,10 @@
 - Dependabot (Gradle / npm / Actions / pip) — `.github/dependabot.yml` で実稼働
 
 #### 品質
-- 273 Python tests / 98% coverage
+- 405 Python tests / 99% coverage (popcoon_core.py)
 - 100% mutation score × 4 modules (41 mutants)
 - 11 階層防御
-- Kotlin unit tests (15 ファイル / property-based)
+- Kotlin unit tests (63 ファイル / property-based)
 - Room migration 安全性テスト
 - DatabaseIntegrity test
 

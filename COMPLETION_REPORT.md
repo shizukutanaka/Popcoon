@@ -9,11 +9,11 @@ Amazon / 楽天 / Yahoo! ショッピング横断の価格比較 Android アプ�
 
 | 区分 | 数量 |
 |---|---|
-| 総ファイル数 | ~155 |
-| Kotlin ファイル | ~105 |
-| ユニットテスト | ~28 |
+| 総ファイル数 | 346 |
+| Kotlin ファイル | 211 |
+| ユニットテスト | 63 |
 | Compose UI テスト | 2 |
-| Kotlin 行数 | ~10,000 |
+| Kotlin 行数 | ~16,400 |
 | 言語対応 | 4 (ja / en / zh-CN / ko-KR) |
 | CI ワークフロー | 4 |
 | ストアリスティング | 4 言語 |
@@ -23,9 +23,9 @@ Amazon / 楽天 / Yahoo! ショッピング横断の価格比較 Android アプ�
 
 | 指標 | 数値 |
 |---|---|
-| 行数 | 5,216 |
-| テスト数 | 273 |
-| カバレッジ | 98% |
+| 行数 | 6,858 |
+| テスト数 | 405 |
+| カバレッジ | 99% (popcoon_core.py) |
 | Mutation Score | 100% × 4 modules |
 | 防御階層 | 11 |
 
@@ -113,7 +113,7 @@ Amazon / 楽天 / Yahoo! ショッピング横断の価格比較 Android アプ�
 ## 品質指標
 
 - Python mutation score 100% × 4 modules
-- Kotlin ユニットテスト 28 ファイル
+- Kotlin ユニットテスト 63 ファイル
 - Compose UI テスト 2 ファイル
 - Detekt 静的解析設定済み
 - ProGuard/R8 ML Kit + CameraX ルール

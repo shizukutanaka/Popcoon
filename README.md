@@ -44,10 +44,10 @@ Amazon / 楽天 / Yahoo! ショッピング横断の価格比較 Android アプ�
 ## アーキテクチャ
 
 ```
-Python TDD 参照層 (5,216 行 / 273 tests / 100% mutation × 4 modules)
+Python TDD 参照層 (6,858 行 / 405 tests / 100% mutation × 4 modules)
   └─ Differential testing で Kotlin 本番実装と整合保証
      │
-     ├─ Android アプリ (8,900 行 / 88 Kotlin / 21 テスト)
+     ├─ Android アプリ (16,400 行 / 131 Kotlin / 63 テスト)
      │   ├─ Jetpack Compose Material 3
      │   ├─ Hilt DI (4 モジュール)
      │   ├─ Room DB (3 テーブル)
@@ -77,7 +77,7 @@ popcoon-android/
 │   │   ├── ui/                # Compose 画面 + コンポーネント
 │   │   ├── widget/            # Glance ウィジェット
 │   │   └── worker/            # WorkManager 価格同期
-│   └── src/test/              # 21 ユニットテスト
+│   └── src/test/              # 63 ユニットテスト
 ├── baselineprofile/          # Baseline Profile + Macrobenchmark
 ├── backend/                  # Cloudflare Workers
 ├── store-listing/            # 4 言語ストアリスティング

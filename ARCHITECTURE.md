@@ -100,7 +100,7 @@ API 失敗でもアプリは動く。3 EC のうち1つでも成功すれば結�
     [仕様]
        │
        ├──> Python (popcoon-tdd/)         仕様オラクル
-       │     ├─ 273 tests, 98% coverage
+       │     ├─ 405 tests, 99% coverage
        │     ├─ 100% mutation × 4 modules
        │     └─ 11 階層防御
        │
