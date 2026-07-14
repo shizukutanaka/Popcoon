@@ -380,6 +380,8 @@
     <string name="tco_total">総額</string>
     <string name="tco_years_chip">%1$d年</string>
     <string name="tco_per_month">月あたり %1$s</string>
+    <string name="tco_alt_ink_tank_label">インクタンク式</string>
+    <string name="tco_alt_savings">%1$sなら%2$d年で%3$sお得</string>
     <string name="prediction_margin_a11y">%1$s 誤差プラスマイナス%2$s</string>
     <string name="price_a11y_yen">%1$s円</string>
     <string name="review_trust_no_data">レビュー評価なし</string>

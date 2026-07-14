@@ -355,6 +355,8 @@
     <string name="tco_total">Total</string>
     <string name="tco_years_chip">%1$d yr</string>
     <string name="tco_per_month">%1$s / month</string>
+    <string name="tco_alt_ink_tank_label">Ink tank printer</string>
+    <string name="tco_alt_savings">Switching to %1$s could save %3$s over %2$d yr</string>
     <string name="prediction_margin_a11y">%1$s, margin plus or minus %2$s</string>
     <string name="price_a11y_yen">%1$s yen</string>
     <string name="review_trust_no_data">No review rating</string>

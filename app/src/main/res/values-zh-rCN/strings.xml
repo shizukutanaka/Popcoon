@@ -348,6 +348,8 @@
     <string name="tco_total">总额</string>
     <string name="tco_years_chip">%1$d年</string>
     <string name="tco_per_month">每月 %1$s</string>
+    <string name="tco_alt_ink_tank_label">墨仓式打印机</string>
+    <string name="tco_alt_savings">换成%1$s可在%2$d年内节省%3$s</string>
     <string name="prediction_margin_a11y">%1$s 误差正负%2$s</string>
     <string name="price_a11y_yen">%1$s日元</string>
     <string name="review_trust_no_data">无评价</string>

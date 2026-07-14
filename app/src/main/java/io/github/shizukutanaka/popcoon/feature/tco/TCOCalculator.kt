@@ -16,6 +16,21 @@ object TCOCalculator {
         val residualValue: Long,
         val totalTco: Long,
         val tcoPerMonth: Long,
+        val vsAlternative: Alternative? = null,
+    )
+
+    /**
+     * 代替製品との比較 (Python: `TCOResult.vs_alternative`)。
+     * 現状はインクジェットプリンター → インクタンク式のみ。カテゴリが増えたら
+     * kind を増やし、ラベルは呼び出し側 (UI) でローカライズする (生の日本語文字列を
+     * data class に持たせない — 既存の kind/label 分離パターンに合わせる)。
+     */
+    enum class AlternativeKind { INK_TANK_PRINTER }
+
+    data class Alternative(
+        val kind: AlternativeKind,
+        val altTco: Long,
+        val savings: Long,
     )
 
     private data class Energy(val watts: Int, val hoursPerDay: Double)
@@ -80,6 +95,14 @@ object TCOCalculator {
         val tco = purchasePrice + consumablesTotal + energyTotal + maintenance - residual
         val monthly = tco / (years * 12)
 
+        // インクジェット vs インクタンク式の代替比較 (Python: calculate_tco の vs_alt と同一式)。
+        val vsAlternative = if (category == "inkjet_printer") {
+            val altTco = purchasePrice * 3 + 10_000L + 3_000L * years
+            Alternative(kind = AlternativeKind.INK_TANK_PRINTER, altTco = altTco, savings = tco - altTco)
+        } else {
+            null
+        }
+
         return Result(
             purchasePrice = purchasePrice,
             consumablesTotal = consumablesTotal,
@@ -88,6 +111,7 @@ object TCOCalculator {
             residualValue = residual,
             totalTco = tco,
             tcoPerMonth = monthly,
+            vsAlternative = vsAlternative,
         )
     }
 

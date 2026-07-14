@@ -114,6 +114,28 @@ fun TCOCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+
+            // 代替製品との比較 (現状インクジェット→インクタンク式のみ)。
+            // 割高になるケース (高額プリンターで「3台分の本体価格」前提が崩れる) では
+            // 有用な助言にならないため savings > 0 のときのみ表示する。
+            result.vsAlternative?.takeIf { it.savings > 0 }?.let { alt ->
+                val altLabel = when (alt.kind) {
+                    TCOCalculator.AlternativeKind.INK_TANK_PRINTER ->
+                        stringResource(R.string.tco_alt_ink_tank_label)
+                }
+                Text(
+                    text = stringResource(
+                        R.string.tco_alt_savings,
+                        altLabel,
+                        years,
+                        CurrencyFormatter.yen(alt.savings),
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.padding(top = Spacing.sm),
+                )
+            }
         }
     }
 }

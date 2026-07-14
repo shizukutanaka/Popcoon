@@ -348,6 +348,8 @@
     <string name="tco_total">총액</string>
     <string name="tco_years_chip">%1$d년</string>
     <string name="tco_per_month">월 %1$s</string>
+    <string name="tco_alt_ink_tank_label">잉크탱크 방식</string>
+    <string name="tco_alt_savings">%1$s(으)로 바꾸면 %2$d년간 %3$s 절약</string>
     <string name="prediction_margin_a11y">%1$s 오차 플러스마이너스%2$s</string>
     <string name="price_a11y_yen">%1$s엔</string>
     <string name="review_trust_no_data">평가 없음</string>

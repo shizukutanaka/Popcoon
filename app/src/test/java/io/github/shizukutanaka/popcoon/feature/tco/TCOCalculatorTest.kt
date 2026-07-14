@@ -5,6 +5,7 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.longs.shouldBeGreaterThan
 import io.kotest.matchers.longs.shouldBeGreaterThanOrEqualTo
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.string
@@ -172,5 +173,33 @@ class TCOCalculatorTest : StringSpec({
         val r = TCOCalculator.calculate(200_000, "laptop", years = 3)
         // residualRate = max(0, 0.4 - 3*0.08) = 0.16 → residual = 200,000*0.16 = 32,000
         r.residualValue shouldBe 32_000L
+    }
+
+    // ── vsAlternative (Python: TCOResult.vs_alternative) ──────────────────
+    // 機能過不足監査で発見: Python oracle には既に存在した (calculate_tco の vs_alt)
+    // フィールドが Kotlin 実装に移植されておらず、インクジェット vs インクタンク式の
+    // 比較 (ダークパターン対抗の中核機能) が UI に一切表示されていなかった。
+    "インクジェットは vsAlternative を持ち、Python oracle と完全一致 (8000円/5年)" {
+        // Python: calculate_tco(8000, "inkjet_printer", years=5).vs_alternative
+        //   == ("インクタンク式", 49000, 66165)  (total_tco=115165)
+        val r = TCOCalculator.calculate(8_000, "inkjet_printer", years = 5)
+        r.totalTco shouldBe 115_165L
+        val alt = r.vsAlternative
+        alt shouldNotBe null
+        alt!!.kind shouldBe TCOCalculator.AlternativeKind.INK_TANK_PRINTER
+        alt.altTco shouldBe 49_000L
+        alt.savings shouldBe 66_165L
+        alt.savings shouldBeGreaterThan 10_000L
+    }
+
+    "インクジェット以外は vsAlternative が null" {
+        TCOCalculator.calculate(150_000, "laptop", years = 5).vsAlternative shouldBe null
+        TCOCalculator.calculate(25_000, "laser_printer", years = 5).vsAlternative shouldBe null
+        TCOCalculator.calculate(50_000, "unknown_device", years = 5).vsAlternative shouldBe null
+    }
+
+    "vsAlternative.altTco は購入価格×3 + 1万円 + 3千円×年数 (Python と同一式)" {
+        val r = TCOCalculator.calculate(15_000, "inkjet_printer", years = 3)
+        r.vsAlternative!!.altTco shouldBe 15_000L * 3 + 10_000L + 3_000L * 3
     }
 })
