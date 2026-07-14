@@ -208,3 +208,45 @@ describe("実ハンドラー: rate limit (KV フォールバック経路、bindi
     expect(statuses[5]).toBe(429);
   });
 });
+
+describe("実ハンドラー: POST /v1/crash (サイズ上限、機能過不足監査で追加)", () => {
+  it("正当な小さいペイロードは 200 で受理される", async () => {
+    const res = await call(req("/v1/crash", {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.50" },
+      body: JSON.stringify({
+        sanitized_stack: "com.example.Foo.bar(Foo.kt:42)",
+        app_version: "1.2.3", os: "Android 16",
+      }),
+    }));
+    expect(res.status).toBe(200);
+  });
+
+  it("上限を超える巨大ペイロードは 413 で拒否され KV に保存されない", async () => {
+    // MAX_CRASH_PAYLOAD_BYTES=16384 を超える sanitized_stack を送る。
+    const res = await call(req("/v1/crash", {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.51" },
+      body: JSON.stringify({ sanitized_stack: "x".repeat(20_000) }),
+    }));
+    expect(res.status).toBe(413);
+  });
+
+  it("PII を含むペイロードは 400 で拒否される (実ハンドラー越しの回帰確認)", async () => {
+    const res = await call(req("/v1/crash", {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.52" },
+      body: JSON.stringify({ sanitized_stack: "ok", device_id: "user@example.com" }),
+    }));
+    expect(res.status).toBe(400);
+  });
+
+  it("不正な JSON は 400 で拒否される", async () => {
+    const res = await call(req("/v1/crash", {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.53" },
+      body: "not json",
+    }));
+    expect(res.status).toBe(400);
+  });
+});

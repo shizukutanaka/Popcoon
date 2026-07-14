@@ -56,6 +56,11 @@ interface Alert {
   active: boolean;
 }
 
+// POST /v1/crash の受理上限 (バイト概算、JSON.stringify().length で判定)。クライアント
+// (PrivacyCrashReporter.kt) は sanitized_stack を 8000 文字に切り詰めて送るため、
+// 他のメタデータを含めても正当なペイロードはこれで十分。
+const MAX_CRASH_PAYLOAD_BYTES = 16_384;
+
 // ── ユーティリティ ───────────────────────────────────────────────────────────
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -302,8 +307,24 @@ async function handleRequest(req: Request, env: Env): Promise<Response> {
 
   // POST /v1/crash — 匿名クラッシュ受信
   if (req.method === "POST" && url.pathname === "/v1/crash") {
+    // 他の書き込みルート (product_key/condition/platform 等) は個々のフィールド長を
+    // 検証していたが、この経路だけはペイロード全体のサイズ上限が一切無かった。
+    // クライアント (PrivacyCrashReporter.kt) は sanitized_stack を 8000 文字に切り詰めて
+    // 送るため正当なペイロードは十分小さいが、サーバー側には何の強制も無く、認証も無い
+    // (匿名クラッシュ受信の設計上必須)。任意の巨大な JSON を送り続けられ、しかも
+    // 保存先が価格履歴/予測機能と同じ PRICE_HISTORY KV 名前空間 (無料枠 1GB 上限) のため、
+    // 無認証のストレージ枯渇攻撃になり得た (機能過不足監査で発見)。
+    // Content-Length ヘッダーがあれば req.json() でボディ全体をバッファする前に早期拒否する
+    // (chunked 転送等でヘッダーが無い/信頼できないケースは後段のシリアライズ後サイズ検査で拾う)。
+    const declaredLength = parseInt(req.headers.get("content-length") ?? "", 10);
+    if (!isNaN(declaredLength) && declaredLength > MAX_CRASH_PAYLOAD_BYTES) {
+      return bad("payload too large", 413);
+    }
     const body = await req.json().catch(() => null) as Record<string, unknown> | null;
     if (!body) return bad("invalid payload");
+    if (JSON.stringify(body).length > MAX_CRASH_PAYLOAD_BYTES) {
+      return bad("payload too large", 413);
+    }
     // 個人情報が含まれないことを payload 全体で確認 (保存対象は body 全体のため)。
     if (containsPotentialPii(body)) {
       return bad("payload contains potential PII");
