@@ -77,6 +77,25 @@ function bad(msg: string, status = 400): Response {
 }
 
 /**
+ * タイミングセーフな文字列比較。管理キー等の秘密値の照合に使う。
+ * 通常の `!==` は不一致箇所までの時間で長さ/内容が漏れうる (機能過不足監査で発見)。
+ * Node の `crypto.timingSafeEqual` は同じ長さのバッファしか受け付けないため、
+ * 長さ不一致の早期リターンもタイミング漏洩源になる — ここでは長さが違っても
+ * 常に一定回数の XOR 累積を行ってから false を返す (Workers ランタイムに依存しない
+ * 素朴な実装、nodejs_compat が無くても動く)。
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  const bufA = new TextEncoder().encode(a);
+  const bufB = new TextEncoder().encode(b);
+  const len = Math.max(bufA.length, bufB.length);
+  let diff = bufA.length ^ bufB.length;
+  for (let i = 0; i < len; i++) {
+    diff |= (bufA[i] ?? 0) ^ (bufB[i] ?? 0);
+  }
+  return diff === 0;
+}
+
+/**
  * レート制限。ネイティブ binding (per-PoP・アトミック・KV 消費なし) があればそれを使い、
  * 無ければ従来の KV 1分バケットカウンター (近似・レースあり) にフォールバックする。
  * binding 側の limit/period は wrangler.toml の [[ratelimits]] で宣言するため、
@@ -236,7 +255,9 @@ async function handleRequest(req: Request, env: Env): Promise<Response> {
   // どこからも参照されていなかった。
   if (req.method === "DELETE" && url.pathname === "/v1/history") {
     if (!env.ADMIN_API_KEY) return bad("admin operations unavailable", 503);
-    if (req.headers.get("x-admin-key") !== env.ADMIN_API_KEY) return bad("forbidden", 403);
+    if (!timingSafeEqual(req.headers.get("x-admin-key") ?? "", env.ADMIN_API_KEY)) {
+      return bad("forbidden", 403);
+    }
     const key = url.searchParams.get("key");
     if (!key) return bad("missing key");
     await env.PRICE_HISTORY.delete(key);
