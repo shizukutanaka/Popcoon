@@ -61,6 +61,15 @@ interface Alert {
 // 他のメタデータを含めても正当なペイロードはこれで十分。
 const MAX_CRASH_PAYLOAD_BYTES = 16_384;
 
+// アラート KV の TTL。以前は無期限で、アプリを再インストール/放棄したデバイスの
+// アラートも永遠に残り続け、毎時 cron (evaluateAlerts) が listAllKeys で全件を
+// 走査するたびに無駄な KV read を消費し続けていた (機能過不足監査で発見)。
+// - ACTIVE (未発火): 半年間何のアクションもなければ放棄デバイスとみなして良い長さ。
+//   ユーザーが引き続き使っていれば再登録等で自然に更新される想定。
+// - FIRED (発火済み・one-shot で active=false): 二度と発火しないため短い猶予のみ残す。
+const ALERT_TTL_ACTIVE_SECONDS = 180 * 24 * 60 * 60;
+const ALERT_TTL_FIRED_SECONDS = 30 * 24 * 60 * 60;
+
 // ── ユーティリティ ───────────────────────────────────────────────────────────
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -285,7 +294,9 @@ async function handleRequest(req: Request, env: Env): Promise<Response> {
       created_at: new Date().toISOString(),
       active: true,
     };
-    await env.ALERTS.put(`alert:${alertId}`, JSON.stringify(alert));
+    await env.ALERTS.put(`alert:${alertId}`, JSON.stringify(alert), {
+      expirationTtl: ALERT_TTL_ACTIVE_SECONDS,
+    });
     return json({ alert_id: alertId });
   }
 
@@ -602,8 +613,12 @@ async function evaluateAlerts(env: Env): Promise<void> {
 
       // 発火済みアラートを非アクティブ化 (one-shot)
       // 継続監視が必要な場合はクライアントが再登録する
+      // 二度と発火しないレコードなので TTL を短縮し、無期限の KV 滞留を防ぐ
+      // (機能過不足監査で発見)。
       const updated: Alert = { ...alert, active: false };
-      await env.ALERTS.put(name, JSON.stringify(updated));
+      await env.ALERTS.put(name, JSON.stringify(updated), {
+        expirationTtl: ALERT_TTL_FIRED_SECONDS,
+      });
     } catch (e) {
       console.error(`evaluateAlerts: skipping ${name} after error`, e);
     }
