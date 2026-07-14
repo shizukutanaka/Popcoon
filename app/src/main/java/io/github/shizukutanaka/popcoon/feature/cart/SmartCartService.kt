@@ -48,6 +48,23 @@ object SmartCartService {
     ): SmartCartResult? {
         if (items.isEmpty()) return null
 
+        // 会員特典による送料無料を反映する。userCtx は既にポイント計算 (PointSimulator) に
+        // 供給されているが、mallConfigs (送料) 側は常に DEFAULT_MALL_CONFIGS の静的値が
+        // 使われ、Amazon Prime 会員でも Amazon の送料が課金される計算のままだった
+        // (機能過不足監査で発見: PointSimulator 側には既に
+        // 「Prime 配送料無料 (送料が 0 になる効果は別途 shipping で扱う)」という
+        // コメントがあったが、実際に shipping 側で処理する実装がどこにも無かった)。
+        // 楽天/Yahoo! は SPU・LYPプレミアムがポイント還元率の会員特典であり、送料無料を
+        // 保証する全国一律の会員制度ではない (各ショップ設定に依存) ため対象外とする —
+        // 実在しない制度を捏造しないための意図的なスコープ限定。
+        val effectiveMallConfigs = if (userCtx.amazonPrime) {
+            mallConfigs + (Platform.AMAZON.id to CrossMallCartOptimizer.MallConfig(
+                shipping = 0.0, freeThreshold = 0.0,
+            ))
+        } else {
+            mallConfigs
+        }
+
         val products = items.map { it.toProduct() }
         val groups = ProductMatcher.groupByIdentity(products)
 
@@ -64,10 +81,10 @@ object SmartCartService {
             )
         }
 
-        val result = CrossMallCartOptimizer.optimize(cartItems, mallConfigs)
+        val result = CrossMallCartOptimizer.optimize(cartItems, effectiveMallConfigs)
 
         // 「現状プラン」: 各商品をウォッチ中のプラットフォームから購入した場合の単純合計
-        val naiveTotal = computeNaiveTotal(groups, mallConfigs, userCtx)
+        val naiveTotal = computeNaiveTotal(groups, effectiveMallConfigs, userCtx)
 
         return SmartCartResult(
             cartItems = cartItems,
