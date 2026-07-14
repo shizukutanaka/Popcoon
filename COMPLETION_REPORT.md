@@ -97,10 +97,18 @@ Amazon / 楽天 / Yahoo! ショッピング横断の価格比較 Android アプ�
 
 ## CI/CD
 
-1. `android.yml` — lint + test + assembleDebug
-2. `python-tdd.yml` — 273 tests + coverage≥97% + 4 mutation suites
-3. `codeql.yml` — Kotlin / JavaScript / Python 週次スキャン
-4. `release.yml` — 署名付き AAB + Play Console internal track 自動 upload
+※ 2026-07 の監査で訂正: 以下は当初「稼働中」として記載されていたが、実際に
+`.github/workflows/` に存在し稼働しているものは無い。`android.yml` のみ
+`ci/android.yml` に定義済み (detekt/lint/テスト/assembleDebug/assembleRelease) だが、
+生成エージェントの GitHub App が `workflows` 権限を持たず push できず未稼働
+(`ci/README.md` 参照、人間の push 権限での有効化待ち)。`python-tdd.yml` /
+`codeql.yml` / `release.yml` は一度も実装されたことがないアスピレーショナルな記載
+だった。`.github/dependabot.yml` (週次依存更新) のみこの制約と無関係に実稼働する。
+
+1. `android.yml` (未稼働、`ci/` に定義のみ) — lint + test + assembleDebug
+2. ~~`python-tdd.yml`~~ (未実装)
+3. ~~`codeql.yml`~~ (未実装)
+4. ~~`release.yml`~~ (未実装)
 
 ## 品質指標
 

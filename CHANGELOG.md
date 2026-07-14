@@ -68,11 +68,15 @@
 - ScheduledEvent (毎時アラート評価)
 
 #### CI/CD
-- android.yml (lint + test + assembleDebug)
-- python-tdd.yml (273 tests + coverage 97% + 4 mutation suites + 5x flaky)
-- codeql.yml (Kotlin / JS / Python 週次スキャン)
-- release.yml (署名付き AAB + Play Console internal track 自動アップロード)
-- Dependabot (Gradle / npm / Actions / pip)
+※ 2026-07 監査で訂正: android.yml 以外はコード自体が存在せず、当時から
+アスピレーショナルな (実装予定の) 記載だった。android.yml も `.github/workflows/`
+への配置が GitHub App の権限制約でできず `ci/android.yml` に留まり未稼働
+(README.md「CI について」参照)。
+- android.yml (未稼働、`ci/` に定義のみ) — lint + test + assembleDebug
+- ~~python-tdd.yml~~ (未実装)
+- ~~codeql.yml~~ (未実装)
+- ~~release.yml~~ (未実装)
+- Dependabot (Gradle / npm / Actions / pip) — `.github/dependabot.yml` で実稼働
 
 #### 品質
 - 273 Python tests / 98% coverage

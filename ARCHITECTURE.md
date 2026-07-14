@@ -108,7 +108,9 @@ API 失敗でもアプリは動く。3 EC のうち1つでも成功すれば結�
 ```
 
 Python は本番にデプロイされない。
-CI で常時テストし、**Kotlin 実装の正しさを守るオラクル**として機能する。
+**Kotlin 実装の正しさを守るオラクル**として機能する
+(手動実行 `python3 -m pytest -q`。CI での自動実行は `ci/android.yml` が
+`.github/workflows/` へ未移動のため現状未稼働 — README.md の「CI について」参照)。
 
 ## セキュリティ方針
 
@@ -116,8 +118,8 @@ CI で常時テストし、**Kotlin 実装の正しさを守るオラクル**と
 - HTTPS 強制 (`usesCleartextTraffic=false`)
 - Android Keystore で端末内データ保護
 - ProGuard/R8 full mode でコード難読化
-- CodeQL で週次セキュリティスキャン
-- Dependabot で週次依存更新
+- Dependabot で週次依存更新 (`.github/dependabot.yml`、稼働中)
+- ※ CodeQL 週次セキュリティスキャンは過去の記載だが未実装 (2026-07 監査で訂正)
 
 ## 収益化
 

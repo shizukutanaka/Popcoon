@@ -1,7 +1,5 @@
 # Popcoon
 
-[![CI](https://github.com/shizukutanaka/popcoon/actions/workflows/android.yml/badge.svg)](https://github.com/shizukutanaka/popcoon/actions/workflows/android.yml)
-[![CodeQL](https://github.com/shizukutanaka/popcoon/actions/workflows/codeql.yml/badge.svg)](https://github.com/shizukutanaka/popcoon/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-00C4CC.svg)](LICENSE)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF.svg?logo=kotlin)](https://kotlinlang.org)
 [![Min SDK](https://img.shields.io/badge/minSdk-26-3DDC84.svg?logo=android)](https://developer.android.com)
@@ -83,7 +81,8 @@ popcoon-android/
 ├── baselineprofile/          # Baseline Profile + Macrobenchmark
 ├── backend/                  # Cloudflare Workers
 ├── store-listing/            # 4 言語ストアリスティング
-└── .github/workflows/        # 4 CI ワークフロー
+├── .github/dependabot.yml    # 週次依存更新 (稼働中)
+└── ci/android.yml            # CI ワークフロー定義 (未稼働 — 下記「CI について」参照)
 ```
 
 ## ビルド / 実行
@@ -121,6 +120,22 @@ cd backend
 npm install
 npm run deploy   # wrangler deploy
 ```
+
+## CI について
+
+現時点で `.github/workflows/` にアクティブなワークフローは無い (2026-07 の監査で
+発見: README/CHANGELOG/COMPLETION_REPORT が過去に「4つのCIワークフロー稼働中」と
+誤って記載していたため訂正)。`ci/android.yml` に detekt/lint/ユニットテスト/
+assembleDebug/assembleRelease を実行するワークフロー定義が用意済みだが、これを
+生成したエージェントの GitHub App トークンに `workflows` 権限が無く
+`.github/workflows/` への push が拒否され続けている。有効化には人間の push 権限で
+`bash ci/enable.sh && git push` を実行する必要がある (詳細は `ci/README.md`)。
+
+`.github/dependabot.yml` (週次依存更新) はこの制約を受けない別機能のため実際に稼働する。
+
+`python-tdd.yml` / `codeql.yml` / `release.yml` という名前のワークフローは
+過去のドキュメントで存在するかのように記載されていたが、実装されたことは一度もない
+(アスピレーショナルな記載だった)。
 
 ## ライセンス
 
