@@ -44,11 +44,16 @@ fun BarcodeScreen(
     val context = LocalContext.current
     val scanner = remember { BarcodeScanner() }
     var scanState by remember { mutableStateOf<ScanState>(ScanState.Idle) }
+    // Retry ボタンを DisposableEffect の key に含めるためのカウンタ。scanner/activity は
+    // この画面が生きている間ずっと安定 (remember 済み/同一 Activity) なので、それだけを
+    // key にすると Retry で scanState を Idle に戻しても effect が再実行されず
+    // scanner.startScan() が二度と呼ばれなかった (押しても何も起きない — 機能過不足監査で発見)。
+    var retryGeneration by remember { mutableIntStateOf(0) }
 
     // Activity は非 null 前提
     val activity = context as? Activity
 
-    DisposableEffect(scanner, activity) {
+    DisposableEffect(scanner, activity, retryGeneration) {
         if (activity == null) {
             scanState = ScanState.Error(context.getString(R.string.barcode_camera_failed))
             return@DisposableEffect onDispose {}
@@ -121,6 +126,7 @@ fun BarcodeScreen(
         state = scanState,
         onRetry = {
             scanState = ScanState.Idle
+            retryGeneration++
         },
         onBack = onBack,
     )
