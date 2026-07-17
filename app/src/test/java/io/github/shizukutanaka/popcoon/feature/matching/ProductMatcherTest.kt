@@ -7,6 +7,7 @@ import io.kotest.matchers.collections.shouldExist
 import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.doubles.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.doubles.shouldBeLessThan
 
@@ -202,6 +203,38 @@ class ProductMatcherTest : StringSpec({
         val a = product("A1", "")
         val b = product("R1", "")
         ProductMatcher.similarity(a, b) // 例外が出なければOK
+    }
+
+    // ── 研究 2-2: 文字 2-gram Dice 併用ブレンド ──────────────────────────────
+    // 日本語 EC タイトルは分かち書きが無いことが多く、トークン Jaccard は
+    // 「タイトル全体が 1 トークン」に退化する。文字 2-gram Dice が空白非依存で救済する。
+    "分かち書きなし同一商品を名寄せできる (Jaccard 退化を 2-gram Dice で救済)" {
+        val a = product("A1", "明治おいしい牛乳900ml")
+        val b = product("R1", "明治 おいしい牛乳 900ml 送料無料", Platform.RAKUTEN)
+        ProductMatcher.isMatch(a, b) shouldBe true
+    }
+
+    "titleSimilarity: 分かち書き有無だけが違えば 0.75 (減衰係数 × dice 1.0)" {
+        ProductMatcher.titleSimilarity(
+            "明治おいしい牛乳900ml", "明治 おいしい牛乳 900ml 送料無料",
+        ) shouldBe (0.75 plusOrMinus 1e-9)
+    }
+
+    "titleSimilarity: 語順入替は Jaccard=1.0 が max() で勝つ" {
+        ProductMatcher.titleSimilarity(
+            "ソニー WH-1000XM5 ブラック", "ブラック WH-1000XM5 ソニー",
+        ) shouldBe (1.0 plusOrMinus 1e-9)
+    }
+
+    "ブランド+カテゴリ語だけ共有する別商品 (イヤホン vs ヘッドホン) は誤マッチしない" {
+        // raw dice は高い (共通接頭辞が長い) が、0.75 減衰で閾値 0.6 を下回る
+        val a = product("A1", "ソニー ワイヤレスイヤホン")
+        val b = product("R1", "ソニー ワイヤレスヘッドホン", Platform.RAKUTEN)
+        ProductMatcher.isMatch(a, b) shouldBe false
+    }
+
+    "charBigramDice: 1 文字は 2-gram を作れず 0" {
+        ProductMatcher.charBigramDice("あ", "あ") shouldBe 0.0
     }
 
     // ── 属性不一致ペナルティ (WDC ベンチマークの corner-case precision 知見、2026-07) ──

@@ -104,6 +104,38 @@ fun main() {
     check("extractColor multi-color listing -> null", null,
         ProductMatcher.extractColor("iPhone ケース ブラック ホワイト 選択可"))
 
+    // ── 研究 2-2: 文字 2-gram Dice 併用ブレンド ────────────────────────────────
+    // 分かち書きなし同一商品を Jaccard 退化から救済しつつ、別カテゴリ商品は弾く。
+    fun approx(name: String, expected: Double, actual: Double, tol: Double = 1e-9) {
+        if (kotlin.math.abs(expected - actual) > tol) {
+            println("MISMATCH [$name]: expected=$expected actual=$actual")
+            fails++
+        }
+    }
+    // 牛乳: 空白有無だけが違う同一商品 → 正規化後の 2-gram が完全一致 → 0.75×1.0
+    approx("titleSimilarity milk spaceless=0.75",
+        0.75, ProductMatcher.titleSimilarity("明治おいしい牛乳900ml", "明治 おいしい牛乳 900ml 送料無料"))
+    // イヤホン vs ヘッドホン: raw dice は高いが減衰後は閾値未満
+    check("earphone vs headphone titleSim < 0.6", true,
+        ProductMatcher.titleSimilarity("ソニー ワイヤレスイヤホン", "ソニー ワイヤレスヘッドホン") < 0.6)
+    // 語順入替: Jaccard=1.0 が max() で勝つ
+    approx("word reorder titleSim=1.0",
+        1.0, ProductMatcher.titleSimilarity("ソニー WH-1000XM5 ブラック", "ブラック WH-1000XM5 ソニー"))
+    // 全く別商品 → 0
+    approx("different products titleSim=0.0",
+        0.0, ProductMatcher.titleSimilarity("コーヒー豆 ブラジル 500g", "ゲーミングマウス ロジクール"))
+    // 空タイトルでも例外なし
+    approx("empty titles titleSim=0.0", 0.0, ProductMatcher.titleSimilarity("", ""))
+    // 1 文字は 2-gram を作れない
+    approx("single char no bigram dice=0.0", 0.0, ProductMatcher.charBigramDice("あ", "あ"))
+    // End-to-end: 分かち書きなし同一商品が isMatch=true になる (これが 2-2 の目的)
+    fun p(sku: String, platform: Platform, title: String) =
+        Product(sku = sku, title = title, platform = platform, realPrice = 500, listPrice = 500)
+    check("spaceless same product IS matched (2-2 core)", true,
+        ProductMatcher.isMatch(
+            p("A20", Platform.AMAZON, "明治おいしい牛乳900ml"),
+            p("R20", Platform.RAKUTEN, "明治 おいしい牛乳 900ml 送料無料")))
+
     if (fails == 0) {
         println("PRODUCT MATCHER: all assertions passed")
     } else {

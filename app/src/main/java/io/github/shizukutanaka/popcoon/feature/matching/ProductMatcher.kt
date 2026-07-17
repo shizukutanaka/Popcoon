@@ -30,6 +30,15 @@ object ProductMatcher {
     const val MATCH_THRESHOLD = 0.6
 
     /**
+     * 文字 2-gram Dice をブレンドする際の減衰係数 (研究 2-2)。
+     * 2-gram Dice はブランド+カテゴリ語を共有するだけの別商品 (イヤホン vs ヘッドホン、
+     * raw dice ≈ 0.73) を系統的に高く見積もるため、0.75 を掛けてから Jaccard と max() する。
+     * 0.75 × 0.73 ≈ 0.545 < 0.6 で誤マッチを回避しつつ、分かち書き有無だけが違う同一商品
+     * (dice = 1.0 → 0.75 ≥ 0.6) は救済できる、実測に基づく境界値。
+     */
+    const val BIGRAM_DICE_WEIGHT = 0.75
+
+    /**
      * 2商品の同一性スコア (0.0-1.0) を計算。
      */
     fun similarity(a: Product, b: Product): Double {
@@ -51,11 +60,13 @@ object ProductMatcher {
         // 異なる容量の iPhone を「同一商品」と誤って統合し、具体的な節約額を提示していた)。
         val modelMismatch = modelA != null && modelB != null && modelA != modelB
 
-        // 3. 正規化タイトルの Jaccard 類似度
-        val titleSim = jaccardSimilarity(
-            normalizeTitle(a.title),
-            normalizeTitle(b.title),
-        )
+        // 3. タイトル類似度 = トークン Jaccard と 文字 2-gram Dice のブレンド。
+        //    日本語 EC タイトルは分かち書きが無いことが多く、トークン Jaccard は
+        //    「タイトル全体が 1 トークン」に退化する (同一商品でも 0)。文字 2-gram Dice は
+        //    空白に依存しないためこれを救済する (研究 2-2)。ただし 2-gram Dice は
+        //    ブランド+カテゴリ語を共有するだけの別商品 (イヤホン vs ヘッドホン) を系統的に
+        //    高く見積もるため、BIGRAM_DICE_WEIGHT で減衰してから max() でブレンドする。
+        val titleSim = titleSimilarity(a.title, b.title)
 
         val base = when {
             modelMatch -> (0.7 + titleSim * 0.3).coerceAtMost(1.0)
@@ -173,6 +184,43 @@ object ProductMatcher {
         val intersection = a.intersect(b).size
         val union = a.union(b).size
         return intersection.toDouble() / union
+    }
+
+    /**
+     * ブレンド済みタイトル類似度 = max(トークン Jaccard, BIGRAM_DICE_WEIGHT × 文字2-gram Dice)。
+     * Python オラクル `proto_title_similarity.title_similarity()` と厳密一致 (研究 2-2)。
+     * - 空白区切りが機能するタイトル → 語順に頑健な Jaccard が支配
+     * - 分かち書きなしタイトル → Dice が救済 (同一内容なら 0.75×1.0 = 0.75 ≥ 閾値 0.6)
+     */
+    internal fun titleSimilarity(titleA: String, titleB: String): Double {
+        val jaccard = jaccardSimilarity(normalizeTitle(titleA), normalizeTitle(titleB))
+        val dice = BIGRAM_DICE_WEIGHT * charBigramDice(titleA, titleB)
+        return maxOf(jaccard, dice)
+    }
+
+    /**
+     * 正規化タイトルの文字 2-gram 集合 Dice 係数 (0.0-1.0)。2 文字未満は 0。
+     * normalizeTitle() と同じ前段正規化 (NFKC → 小文字 → ノイズ語/記号除去) を共有し、
+     * トークン化の代わりに空白を全除去した 1 本の文字列から 2-gram を作る。
+     */
+    internal fun charBigramDice(titleA: String, titleB: String): Double {
+        val a = charBigrams(normalizeForBigrams(titleA))
+        val b = charBigrams(normalizeForBigrams(titleB))
+        if (a.isEmpty() || b.isEmpty()) return 0.0
+        val intersection = a.intersect(b).size
+        return 2.0 * intersection / (a.size + b.size)
+    }
+
+    /** normalizeTitle() の前段正規化から空白を全除去した 1 本の文字列 (2-gram 用)。 */
+    private fun normalizeForBigrams(title: String): String =
+        nfkc(title).lowercase()
+            .replace(NOISE_REGEX, " ")
+            .replace(SYMBOL_REGEX, " ")
+            .replace(WHITESPACE_REGEX, "")
+
+    private fun charBigrams(s: String): Set<String> {
+        if (s.length < 2) return emptySet()
+        return (0 until s.length - 1).mapTo(HashSet()) { s.substring(it, it + 2) }
     }
 
     /**
