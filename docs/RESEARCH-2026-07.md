@@ -15,7 +15,7 @@
 - オンデバイス埋め込み: Model2Vec/potion (静的埋め込み、数MB、numpy のみ、多言語) が唯一 <20MB 制約に収まる候補。 <https://github.com/MinishLab/model2vec>
 
 **改善候補**
-- ⏸️ **文字 2-gram Dice 類似度の併用** — 日本語タイトルは分かち書きが無くトークン Jaccard が弱い。効果高・~50行。次スプリント候補 (要 oracle + parity 追加)。
+- ✅ **文字 2-gram Dice 類似度の併用** — 実装済: `titleSim = max(tokenJaccard, 0.75 × bigramDice)`。分かち書き無しタイトルの Jaccard 退化を Dice が救済し (「明治おいしい牛乳900ml」 vs 「明治 おいしい牛乳 900ml」が 0.0→0.75 でマッチ)、0.75 減衰でブランド+カテゴリ語共有の別商品 (イヤホン vs ヘッドホン、0.545<0.6) は弾く。oracle (`proto_title_similarity.py` +12 tests) 先行 → Kotlin 移植 → parity 実行照合。
 - ⏸️ **属性抽出+不一致ペナルティ拡張** — 容量 (実装済) に加え色・個数の矛盾を減点。WDC の corner-case precision 問題に直接対応。
 - ⏸️ **候補集合内 IDF-lite トークン重み付け**。
 - ⏸️ **Model2Vec 静的埋め込み re-ranker** — 効果不確実、優先度低。
@@ -103,6 +103,8 @@
 | ProductMatcher 属性不一致ペナルティ (個数/色) | feat | run_matcher 8件追加 全green |
 | 価格アラートのデバウンス (1サイクル遅延確認) | feat | run_alerts parity + Room v6→v7 migration test |
 | ReviewTrustScorer 中量域しきい値バグ修正 | fix | 手動検証12件全一致 (Kotest 実行不可のため throwaway harness) |
+| ProductMatcher 文字 2-gram Dice 併用 (分かち書き無し救済) | feat | oracle `proto_title_similarity` +12 tests → run_matcher parity 全green (oracle 416) |
+| Yahoo 期間限定PayPay 失効を設定画面に注記 | i18n | 4ロケール 398キー一致 + XML well-formed |
 
 ## 恒久的な環境制約
 
