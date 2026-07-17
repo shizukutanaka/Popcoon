@@ -234,7 +234,7 @@
     <string name="settings_rakuten_spu">楽天 SPU 倍率</string>
     <string name="settings_rakuten_spu_desc">楽天スーパーポイントアッププログラムの倍率を設定してください (1–18倍)。2025年以降、モバイル等の一部特典は毎月のエントリーが必須で、サービス毎にポイント上限があります。実際の付与額はこの試算を下回ることがあります。</string>
     <string name="settings_yahoo_premium">Yahoo!プレミアム会員</string>
-    <string name="settings_yahoo_premium_desc">Yahoo!プレミアム会員の場合、+2% PayPay 還元が適用されます</string>
+    <string name="settings_yahoo_premium_desc">Yahoo!プレミアム会員の場合、+2% PayPay 還元が適用されます（キャンペーン分は期間限定PayPayポイント／約30日で失効）</string>
     <string name="settings_paypay_softbank">SoftBank/Y!mobile 利用者</string>
     <string name="settings_paypay_softbank_desc">SoftBank または Y!mobile を利用している場合、+5% PayPay 還元が適用されます</string>
     <string name="settings_amazon_prime">Amazon Prime 会員</string>

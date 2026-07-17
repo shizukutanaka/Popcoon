@@ -101,7 +101,7 @@
     <string name="settings_rakuten_spu">라쿠텐 SPU 배율</string>
     <string name="settings_rakuten_spu_desc">라쿠텐 슈퍼 포인트 업 프로그램 배율을 설정하세요 (1–18배). 2025년부터 모바일 등 일부 혜택은 매월 응모가 필요하고 서비스별 포인트 상한이 있어, 실제 적립액은 이 추정보다 적을 수 있습니다.</string>
     <string name="settings_yahoo_premium">Yahoo! 프리미엄 회원</string>
-    <string name="settings_yahoo_premium_desc">Yahoo! 프리미엄 회원은 +2% PayPay 포인트가 적립됩니다</string>
+    <string name="settings_yahoo_premium_desc">Yahoo! 프리미엄 회원은 +2% PayPay 포인트가 적립됩니다 (캠페인 포인트는 기간 한정 PayPay 포인트로 약 30일 후 소멸)</string>
     <string name="settings_paypay_softbank">SoftBank/Y!mobile 이용자</string>
     <string name="settings_paypay_softbank_desc">SoftBank 또는 Y!mobile 이용자는 +5% PayPay 포인트가 적립됩니다</string>
     <string name="settings_amazon_prime">Amazon Prime 회원</string>

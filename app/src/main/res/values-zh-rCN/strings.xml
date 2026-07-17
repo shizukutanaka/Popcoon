@@ -101,7 +101,7 @@
     <string name="settings_rakuten_spu">乐天 SPU 倍率</string>
     <string name="settings_rakuten_spu_desc">请设置乐天超级积分提升计划的倍率 (1–18倍)。自2025年起，手机等部分权益需每月登记，且各服务均有积分上限，实际获得的积分可能低于此估算。</string>
     <string name="settings_yahoo_premium">Yahoo! 高级会员</string>
-    <string name="settings_yahoo_premium_desc">Yahoo! 高级会员可获得 +2% PayPay 积分返还</string>
+    <string name="settings_yahoo_premium_desc">Yahoo! 高级会员可获得 +2% PayPay 积分返还（活动积分为限时 PayPay 积分，约 30 天后失效）</string>
     <string name="settings_paypay_softbank">SoftBank/Y!mobile 用户</string>
     <string name="settings_paypay_softbank_desc">SoftBank 或 Y!mobile 用户可获得 +5% PayPay 积分返还</string>
     <string name="settings_amazon_prime">Amazon Prime 会员</string>

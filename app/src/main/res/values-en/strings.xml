@@ -101,7 +101,7 @@
     <string name="settings_rakuten_spu">Rakuten SPU rate</string>
     <string name="settings_rakuten_spu_desc">Set your Rakuten Super Point-Up Program multiplier (1–18x). Since 2025, some perks (mobile, etc.) require monthly opt-in and each service has a point cap, so actual points earned may be lower than this estimate.</string>
     <string name="settings_yahoo_premium">Yahoo! Premium</string>
-    <string name="settings_yahoo_premium_desc">Yahoo! Premium members earn +2% PayPay points</string>
+    <string name="settings_yahoo_premium_desc">Yahoo! Premium members earn +2% PayPay points (campaign points are limited-time PayPay, expiring in ~30 days)</string>
     <string name="settings_paypay_softbank">SoftBank/Y!mobile user</string>
     <string name="settings_paypay_softbank_desc">SoftBank or Y!mobile users earn +5% PayPay points</string>
     <string name="settings_amazon_prime">Amazon Prime</string>
