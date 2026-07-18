@@ -16,7 +16,7 @@
 
 **改善候補**
 - ✅ **文字 2-gram Dice 類似度の併用** — 実装済: `titleSim = max(tokenJaccard, 0.75 × bigramDice)`。分かち書き無しタイトルの Jaccard 退化を Dice が救済し (「明治おいしい牛乳900ml」 vs 「明治 おいしい牛乳 900ml」が 0.0→0.75 でマッチ)、0.75 減衰でブランド+カテゴリ語共有の別商品 (イヤホン vs ヘッドホン、0.545<0.6) は弾く。oracle (`proto_title_similarity.py` +12 tests) 先行 → Kotlin 移植 → parity 実行照合。
-- ⏸️ **属性抽出+不一致ペナルティ拡張** — 容量 (実装済) に加え色・個数の矛盾を減点。WDC の corner-case precision 問題に直接対応。
+- ✅ **属性抽出+不一致ペナルティ拡張** — 実装済: 色・個数 (実装済) に加え内容量/重量 (ml/L・g/kg) の矛盾を減点 (×0.5)。液体は ml、重量は mg 基準に正規化 (1L=1000ml, 1kg=1,000,000mg) し単位表記ゆれを吸収。素の「g」小文字限定で「5G」誤爆回避、「ミリ」単体除外で「5ミリ=長さ」誤爆回避。oracle `proto_volume_attr` +24 tests → run_matcher parity 全green。WDC の corner-case precision 問題に直接対応。
 - ⏸️ **候補集合内 IDF-lite トークン重み付け**。
 - ⏸️ **Model2Vec 静的埋め込み re-ranker** — 効果不確実、優先度低。
 
@@ -105,6 +105,7 @@
 | ReviewTrustScorer 中量域しきい値バグ修正 | fix | 手動検証12件全一致 (Kotest 実行不可のため throwaway harness) |
 | ProductMatcher 文字 2-gram Dice 併用 (分かち書き無し救済) | feat | oracle `proto_title_similarity` +12 tests → run_matcher parity 全green (oracle 416) |
 | Yahoo 期間限定PayPay 失効を設定画面に注記 | i18n | 4ロケール 398キー一致 + XML well-formed |
+| ProductMatcher 内容量/重量 不一致ペナルティ (ml/L・g/kg) | feat | oracle `proto_volume_attr` +24 tests → run_matcher parity 全green (oracle 440) |
 
 ## 恒久的な環境制約
 
