@@ -106,6 +106,8 @@
 | ProductMatcher 文字 2-gram Dice 併用 (分かち書き無し救済) | feat | oracle `proto_title_similarity` +12 tests → run_matcher parity 全green (oracle 416) |
 | Yahoo 期間限定PayPay 失効を設定画面に注記 | i18n | 4ロケール 398キー一致 + XML well-formed |
 | ProductMatcher 内容量/重量 不一致ペナルティ (ml/L・g/kg) | feat | oracle `proto_volume_attr` +24 tests → run_matcher parity 全green (oracle 440) |
+| ProductMatcher 色 recall 拡張 (カーキ/アイボリー/チャコール等8色) | feat | run_matcher parity 全green (最寄り正準色へ保守的写像、カーキのみ独立 KHAKI) |
+| ダークパターン SCARCITY カウンタ recall 拡張 (個/セット/台・あと) | feat | oracle `proto_darkpattern_signals` +5 tests → run.sh parity 109 matched (oracle 445) |
 
 ## 恒久的な環境制約
 
