@@ -213,6 +213,11 @@ fun main() {
         TX("残り３点", null),              // 全角数字 — 乖離検査 (n=3 HIGH)
         TX("残り５点", null),              // 全角数字 — parseUnicodeInt + severity (n=5 MEDIUM)
         TX("残り　3　点", null),           // 全角空白 U+3000 — 乖離検査
+        TX("残り3個", null),               // 在庫助数詞 個 (点以外) — recall 拡張
+        TX("あと2セット", null),            // 接頭辞 あと + 助数詞 セット
+        TX("残り1台", null),               // 助数詞 台 (n=1 HIGH)
+        TX("残り20個", null),              // 助数詞 個 (n=20 MEDIUM)
+        TX("あと5日で発送", null),          // 日 は在庫助数詞でない → SCARCITY にしない (誤検出検査)
         TX("在庫わずか", null),
         TX("Only 2 left", null),
         TX("low in stock", null),

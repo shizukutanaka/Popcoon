@@ -64,7 +64,10 @@ def _first_match(text: str, patterns: List[str]) -> Optional[str]:
 
 
 def _detect_scarcity(text: str, stock_count: Optional[int]) -> Optional[dict]:
-    m = re.search(r"残り\s*(\d+)\s*点", text)
+    # 在庫カウンタ: 「残り/あと N 点/個/セット/台」。以前は「点」限定で、同義の
+    # 「残り3個」「あと2セット」を取りこぼしていた (点以外の助数詞は法的に等価な
+    # 在庫煽り)。時間系 (残り3時間) は URGENCY 側で拾うため助数詞を在庫系に限定。
+    m = re.search(r"(?:残り|あと)\s*(\d+)\s*(?:点|個|セット|台)", text)
     if m:
         n = int(m.group(1))
         return {"category": SCARCITY, "evidence": m.group(0),

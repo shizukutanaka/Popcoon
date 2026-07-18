@@ -46,6 +46,35 @@ def test_no_scarcity_when_stock_ample():
     assert "SCARCITY" not in _cats("通常の商品説明", stock_count=50)
 
 
+def test_scarcity_counter_units_beyond_ten():
+    # 「点」以外の在庫助数詞 (個/セット/台) も同義の在庫煽りとして拾う
+    assert _sev("残り3個", "SCARCITY") == "HIGH"
+    assert _sev("あと2セット", "SCARCITY") == "HIGH"
+    assert _sev("残り1台", "SCARCITY") == "HIGH"
+    assert _sev("残り20個", "SCARCITY") == "MEDIUM"
+
+
+def test_scarcity_ato_prefix():
+    # 「あと」も「残り」と同義の接頭辞
+    assert _sev("あと3点", "SCARCITY") == "HIGH"
+
+
+def test_scarcity_evidence_preserves_matched_unit():
+    for w in detect_dark_patterns("残り2セット"):
+        if w["category"] == "SCARCITY":
+            assert w["evidence"] == "残り2セット"
+
+
+def test_time_counter_not_scarcity():
+    # 「残り3時間」は URGENCY、在庫系助数詞ではないので SCARCITY にしない
+    assert "SCARCITY" not in _cats("残り3時間")
+
+
+def test_days_counter_not_scarcity():
+    # 「あと5日で発送」の 日 は在庫助数詞ではない (誤検出しない)
+    assert "SCARCITY" not in _cats("あと5日で発送")
+
+
 def test_social_proof():
     assert "SOCIAL_PROOF" in _cats("いま12人がこの商品を見ています")
 

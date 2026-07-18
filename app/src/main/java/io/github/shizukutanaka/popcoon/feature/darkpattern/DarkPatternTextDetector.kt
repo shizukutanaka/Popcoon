@@ -120,7 +120,10 @@ object DarkPatternTextDetector {
     // 数字 → Int は kotlin の toInt() で十分: Character.digit ベースで全角数字 (３) も解釈する
     // (Python int() と同等)。取りこぼしの真因は regex の \d が ASCII 専用だった点で、(?U) で解消済み。
     private fun detectScarcity(text: String, stockCount: Int?): Signal? {
-        Regex("(?U)残り\\s*(\\d+)\\s*点").find(text)?.let { m ->
+        // 在庫カウンタ: 「残り/あと N 点/個/セット/台」。点以外の在庫助数詞も法的に
+        // 等価な在庫煽り。時間系 (残り3時間) は URGENCY 側なので助数詞を在庫系に限定。
+        // Python proto (_detect_scarcity) と厳密一致。
+        Regex("(?U)(?:残り|あと)\\s*(\\d+)\\s*(?:点|個|セット|台)").find(text)?.let { m ->
             val n = m.groupValues[1].toInt()
             return Signal(
                 Category.SCARCITY, m.value,

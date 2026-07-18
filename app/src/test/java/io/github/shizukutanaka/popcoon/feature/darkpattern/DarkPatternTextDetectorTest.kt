@@ -81,6 +81,30 @@ class DarkPatternTextDetectorTest : StringSpec({
         cats("通常の商品説明", stockCount = 50) shouldNotContain DarkPatternTextDetector.Category.SCARCITY
     }
 
+    // ── 在庫助数詞の recall 拡張 (点以外: 個/セット/台、接頭辞 あと) ────────────────
+    "SCARCITY: 「残り3個」も点と同義で HIGH" {
+        sev("残り3個", DarkPatternTextDetector.Category.SCARCITY) shouldBe
+            DarkPatternTextDetector.Severity.HIGH
+    }
+
+    "SCARCITY: 「あと2セット」(接頭辞あと + 助数詞セット) も HIGH" {
+        sev("あと2セット", DarkPatternTextDetector.Category.SCARCITY) shouldBe
+            DarkPatternTextDetector.Severity.HIGH
+    }
+
+    "SCARCITY: 「残り20個」は MEDIUM (4以上)" {
+        sev("残り20個", DarkPatternTextDetector.Category.SCARCITY) shouldBe
+            DarkPatternTextDetector.Severity.MEDIUM
+    }
+
+    "SCARCITY: 「あと5日で発送」の 日 は在庫助数詞でないので検出しない" {
+        cats("あと5日で発送") shouldNotContain DarkPatternTextDetector.Category.SCARCITY
+    }
+
+    "SCARCITY: 「残り3時間」は URGENCY であって SCARCITY ではない" {
+        cats("残り3時間") shouldNotContain DarkPatternTextDetector.Category.SCARCITY
+    }
+
     // ── 回帰: Python 参照との乖離を実行パリティで検出 → 修正済み ──────────────
     "SCARCITY: 全角数字「残り３点」も HIGH（Python \\d は Unicode、Kotlin 既定は ASCII の乖離を修正）" {
         sev("残り３点", DarkPatternTextDetector.Category.SCARCITY) shouldBe
