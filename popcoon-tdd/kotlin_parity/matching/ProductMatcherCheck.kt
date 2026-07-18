@@ -136,6 +136,36 @@ fun main() {
             p("A20", Platform.AMAZON, "明治おいしい牛乳900ml"),
             p("R20", Platform.RAKUTEN, "明治 おいしい牛乳 900ml 送料無料")))
 
+    // ── 内容量/重量 不一致ペナルティ (proto_volume_attr との parity) ──────────────
+    fun vol(title: String) = ProductMatcher.extractVolume(title)
+    check("extractVolume 500ml", ProductMatcher.Volume("ml", 500L), vol("洗剤 500ml"))
+    check("extractVolume 2L -> 2000ml", ProductMatcher.Volume("ml", 2000L), vol("お茶 2L"))
+    check("extractVolume 1リットル -> 1000ml", ProductMatcher.Volume("ml", 1000L), vol("洗剤 1リットル"))
+    check("extractVolume 500g -> 500000mg", ProductMatcher.Volume("g", 500_000L), vol("コーヒー豆 500g"))
+    check("extractVolume 1kg -> 1000000mg", ProductMatcher.Volume("g", 1_000_000L), vol("プロテイン 1kg"))
+    check("extractVolume 500mg precision", ProductMatcher.Volume("g", 500L), vol("サプリ 500mg"))
+    // 誤爆ガード
+    check("5G network not volume", null, vol("SIMフリー 5G スマホ"))
+    check("5ミリ length not volume", null, vol("ネジ 5ミリ 10本"))
+    check("1000mAh not volume", null, vol("モバイルバッテリー 1000mAh"))
+    check("model number not volume", null, vol("アイリスオーヤマ SB-2000 加湿フィルター"))
+    check("ambiguous multi-liquid null", null, vol("調味料 500ml×2本 計1L"))
+    // End-to-end: 内容量違いの同一ブランド商品を別 SKU として弾く
+    fun pv(sku: String, platform: Platform, title: String) =
+        Product(sku = sku, title = title, platform = platform, realPrice = 800, listPrice = 800)
+    check("detergent 500ml vs 1L NOT matched", false,
+        ProductMatcher.isMatch(
+            pv("A30", Platform.AMAZON, "花王 アタック 洗濯洗剤 液体 500ml"),
+            pv("R30", Platform.RAKUTEN, "花王 アタック 洗濯洗剤 液体 1L")))
+    check("coffee 200g vs 500g NOT matched", false,
+        ProductMatcher.isMatch(
+            pv("A31", Platform.AMAZON, "スターバックス コーヒー豆 ハウスブレンド 200g"),
+            pv("R31", Platform.RAKUTEN, "スターバックス コーヒー豆 ハウスブレンド 500g")))
+    check("detergent same 1L IS matched (control)", true,
+        ProductMatcher.isMatch(
+            pv("A32", Platform.AMAZON, "花王 アタック 洗濯洗剤 液体 1L"),
+            pv("Y32", Platform.YAHOO, "花王 アタック 洗濯洗剤 液体 1000ml")))
+
     if (fails == 0) {
         println("PRODUCT MATCHER: all assertions passed")
     } else {

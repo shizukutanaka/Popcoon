@@ -237,6 +237,38 @@ class ProductMatcherTest : StringSpec({
         ProductMatcher.charBigramDice("あ", "あ") shouldBe 0.0
     }
 
+    // ── 内容量/重量 不一致ペナルティ (個数/色に続く属性拡張) ─────────────────────
+    "内容量違い (洗剤 500ml vs 1L) は同一商品と判定しない" {
+        val a = product("A1", "花王 アタック 洗濯洗剤 液体 500ml")
+        val b = product("R1", "花王 アタック 洗濯洗剤 液体 1L", Platform.RAKUTEN)
+        ProductMatcher.isMatch(a, b) shouldBe false
+    }
+
+    "重量違い (コーヒー豆 200g vs 500g) は同一商品と判定しない" {
+        val a = product("A1", "スターバックス コーヒー豆 ハウスブレンド 200g")
+        val b = product("R1", "スターバックス コーヒー豆 ハウスブレンド 500g", Platform.RAKUTEN)
+        ProductMatcher.isMatch(a, b) shouldBe false
+    }
+
+    "同一内容量は単位表記が違っても同一商品 (1L == 1000ml、対照群)" {
+        val a = product("A1", "花王 アタック 洗濯洗剤 液体 1L")
+        val b = product("Y1", "花王 アタック 洗濯洗剤 液体 1000ml", Platform.YAHOO)
+        ProductMatcher.isMatch(a, b) shouldBe true
+    }
+
+    "extractVolume: kg は mg 基準に正規化 (1kg == 1000g)" {
+        ProductMatcher.extractVolume("プロテイン 1kg") shouldBe
+            ProductMatcher.extractVolume("プロテイン 1000g")
+    }
+
+    "extractVolume: ネットワーク 5G は重量として誤抽出しない" {
+        ProductMatcher.extractVolume("SIMフリー 5G スマホ") shouldBe null
+    }
+
+    "extractVolume: 5ミリ (長さ) は内容量として誤抽出しない" {
+        ProductMatcher.extractVolume("ネジ 5ミリ 10本") shouldBe null
+    }
+
     // ── 属性不一致ペナルティ (WDC ベンチマークの corner-case precision 知見、2026-07) ──
     // 個数・色の食い違いは型番一致でも別 SKU (別価格)。型番一致の 0.7 底上げだけでは
     // 閾値 0.6 を下回れないため、乗算ペナルティ (個数 0.5 / 色 0.6) で確実に落とす。

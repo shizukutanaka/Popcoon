@@ -87,6 +87,15 @@ object ProductMatcher {
         val colorA = extractColor(a.title)
         val colorB = extractColor(b.title)
         if (colorA != null && colorB != null && colorA != colorB) penalty *= 0.6
+        // 内容量/重量の食い違い (洗剤 500ml vs 1L、コーヒー 200g vs 500g) も別 SKU の
+        // 強いシグナル。個数/色と同じく両者から一意に取れて食い違う場合のみ減点する。
+        // 同ドメイン (液体 ml / 重量 mg) 同士で量が違うときだけ — ml と g の偶然の
+        // 数字一致は不一致とみなさない (保守的)。
+        val volA = extractVolume(a.title)
+        val volB = extractVolume(b.title)
+        if (volA != null && volB != null && volA.domain == volB.domain && volA.baseAmount != volB.baseAmount) {
+            penalty *= 0.5
+        }
 
         return base * penalty
     }
@@ -224,6 +233,48 @@ object ProductMatcher {
     }
 
     /**
+     * 内容量/重量属性。domain = "ml" (液体) / "g" (重量) のラベル。
+     * baseAmount の単位はそれぞれ ml / mg (重量は最小単位 mg で保持し小数丸め衝突を防ぐ)。
+     */
+    data class Volume(val domain: String, val baseAmount: Long)
+
+    /**
+     * 内容量/重量の抽出 (Python: proto_volume_attr.extract_volume と厳密一致)。
+     * - 液体: ml 基準 (1L / 1リットル / 1ℓ = 1000ml)
+     * - 重量: mg 基準 (1g = 1000mg, 1kg = 1,000,000mg)
+     * 誤爆対策: 素の「g」は小文字のみ (ネットワーク「5G」を拾わない)、素の「ミリ」は
+     * 拾わない (「5ミリ」は長さ mm)。液体と重量が両方一意に出た場合は曖昧なので null。
+     * 複数の異なる量が出た場合も null (extractQuantity/extractColor と同じ保守方針)。
+     */
+    internal fun extractVolume(title: String): Volume? {
+        val normalized = nfkc(title)
+        val liquids = VOLUME_LIQUID_REGEX.findAll(normalized)
+            .map { (it.groupValues[1].toDouble() * liquidFactor(it.groupValues[2])).toLong() }
+            .toSet()
+        val weights = VOLUME_WEIGHT_REGEX.findAll(normalized)
+            .map { (it.groupValues[1].toDouble() * weightFactor(it.groupValues[2])).toLong() }
+            .toSet()
+        val liquid = liquids.singleOrNull()
+        val weight = weights.singleOrNull()
+        return when {
+            liquid != null && weight == null -> Volume("ml", liquid)
+            weight != null && liquid == null -> Volume("g", weight)
+            else -> null  // 無し / 両ドメイン / 曖昧 → 中立
+        }
+    }
+
+    private fun liquidFactor(unit: String): Double = when (unit.lowercase()) {
+        "リットル", "l", "ℓ" -> 1000.0
+        else -> 1.0  // ミリリットル / ml / cc
+    }
+
+    private fun weightFactor(unit: String): Double = when (unit.lowercase()) {
+        "kg", "キロ" -> 1_000_000.0
+        "g", "グラム" -> 1000.0
+        else -> 1.0  // mg
+    }
+
+    /**
      * 個数属性の抽出: 「24本」「3個セット」等の数量+助数詞。
      * 複数の異なる数量が出る (「2個セット 合計4個」等) 場合は曖昧なので null (中立)。
      * NFKC 正規化で全角数字にも対応。
@@ -293,6 +344,16 @@ object ProductMatcher {
     // 個数属性: 数字 + 助数詞 (+任意の セット/入り/パック)。「500ml」等の単位は対象外。
     private val QUANTITY_REGEX =
         Regex("(\\d+)\\s*(?:個|本|枚|袋|包|錠|巻|組|足|着|缶|箱)(?:入り?|セット|パック)?")
+
+    // 液体量: 数字(小数可) + 単位。大小無視で安全 (5G のような一般的誤爆源が無い)。
+    // 長い単位を先に (ミリリットル を リットル より優先)。
+    private val VOLUME_LIQUID_REGEX =
+        Regex("(\\d+(?:\\.\\d+)?)\\s*(ミリリットル|リットル|ml|cc|ℓ|l)", RegexOption.IGNORE_CASE)
+
+    // 重量: 素の「g」はネットワーク「5G」誤爆を避けるため小文字のみ (IGNORE_CASE 不使用)。
+    // kg/mg は大小両方許容。長い単位を先に。
+    private val VOLUME_WEIGHT_REGEX =
+        Regex("(\\d+(?:\\.\\d+)?)\\s*(グラム|キロ|[kK][gG]|[mM][gG]|kg|g)")
 
     // 色属性: 長い語を先に (ネイビーブルー を ブルー より優先)。カタカナ色名は前後が
     // カタカナだと不採用 (ブルーレイ/マットブラック系の複合語誤爆防止)。英語は単語境界。
