@@ -166,6 +166,34 @@ fun main() {
             pv("A32", Platform.AMAZON, "花王 アタック 洗濯洗剤 液体 1L"),
             pv("Y32", Platform.YAHOO, "花王 アタック 洗濯洗剤 液体 1000ml")))
 
+    // ── 色抽出の recall 拡張 (カーキ/アイボリー/チャコール/ワインレッド/モスグリーン等) ──
+    check("extractColor カーキ -> KHAKI", "KHAKI", ProductMatcher.extractColor("ミリタリージャケット カーキ"))
+    check("extractColor アイボリー -> WHITE (保守的に白へ)", "WHITE", ProductMatcher.extractColor("トートバッグ アイボリー"))
+    check("extractColor チャコール -> GRAY", "GRAY", ProductMatcher.extractColor("ニット チャコール"))
+    check("extractColor ワインレッド -> RED", "RED", ProductMatcher.extractColor("財布 ワインレッド"))
+    check("extractColor モスグリーン -> GREEN", "GREEN", ProductMatcher.extractColor("チノパン モスグリーン"))
+    check("extractColor ターコイズ -> BLUE", "BLUE", ProductMatcher.extractColor("ピアス ターコイズ"))
+    check("extractColor キャメル -> BROWN", "BROWN", ProductMatcher.extractColor("コート キャメル"))
+    // 独立色 カーキ は他色との不一致でペナルティ (別カラバリ=別SKU)
+    fun pc(sku: String, platform: Platform, title: String) =
+        Product(sku = sku, title = title, platform = platform, realPrice = 6000, listPrice = 6000)
+    check("カーキ vs ブラック NOT matched (別カラバリ)", false,
+        ProductMatcher.isMatch(
+            pc("A40", Platform.AMAZON, "ユニクロ ミリタリージャケット カーキ M"),
+            pc("R40", Platform.RAKUTEN, "ユニクロ ミリタリージャケット ブラック M")))
+    // アイボリー と ホワイト は同一正準色 (WHITE)。canonical 一致=色ペナルティは発生しない
+    // (保守的: 同一商品の白系表記ゆれを別 SKU と誤判定しない)。
+    check("アイボリー と ホワイト は同一正準色 WHITE (色ペナルティ回避)",
+        ProductMatcher.extractColor("バッグ ホワイト"), ProductMatcher.extractColor("バッグ アイボリー"))
+    // recall の価値: アイボリー が WHITE として抽出されるので、他色との不一致を検出できる。
+    // 共有トークンが多く色以外は同一の 2 商品を、色ペナルティ (WHITE vs BLACK) で別 SKU に分離。
+    check("アイボリー vs ブラック NOT matched (色ペナルティが分離)", false,
+        ProductMatcher.isMatch(
+            pc("A41", Platform.AMAZON, "無印良品 撥水 トートバッグ 大容量 A4 通勤 アイボリー"),
+            pc("Y41", Platform.YAHOO, "無印良品 撥水 トートバッグ 大容量 A4 通勤 ブラック")))
+    // 既存の複合語誤爆防止は不変 (ブルーレイ の ブルー は色でない)
+    check("ブルーレイ は色でない (回帰)", null, ProductMatcher.extractColor("ソニー ブルーレイレコーダー 2TB"))
+
     if (fails == 0) {
         println("PRODUCT MATCHER: all assertions passed")
     } else {

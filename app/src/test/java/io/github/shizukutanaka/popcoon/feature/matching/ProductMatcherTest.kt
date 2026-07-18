@@ -269,6 +269,29 @@ class ProductMatcherTest : StringSpec({
         ProductMatcher.extractVolume("ネジ 5ミリ 10本") shouldBe null
     }
 
+    // ── 色抽出の recall 拡張 (カーキ/アイボリー/チャコール/ワインレッド/モスグリーン等) ──
+    "色抽出: カーキ は独立色 KHAKI" {
+        ProductMatcher.extractColor("ミリタリージャケット カーキ") shouldBe "KHAKI"
+    }
+
+    "色抽出: アイボリー/チャコール/ワインレッド/モスグリーン は最寄りの正準色へ" {
+        ProductMatcher.extractColor("バッグ アイボリー") shouldBe "WHITE"
+        ProductMatcher.extractColor("ニット チャコール") shouldBe "GRAY"
+        ProductMatcher.extractColor("財布 ワインレッド") shouldBe "RED"
+        ProductMatcher.extractColor("チノパン モスグリーン") shouldBe "GREEN"
+    }
+
+    "カーキ vs ブラック は別カラバリ (別 SKU) として同一商品と判定しない" {
+        val a = product("A1", "ユニクロ ミリタリージャケット カーキ M")
+        val b = product("R1", "ユニクロ ミリタリージャケット ブラック M", Platform.RAKUTEN)
+        ProductMatcher.isMatch(a, b) shouldBe false
+    }
+
+    "アイボリー と ホワイト は同一正準色 (白系表記ゆれを別 SKU と誤判定しない)" {
+        ProductMatcher.extractColor("バッグ アイボリー") shouldBe
+            ProductMatcher.extractColor("バッグ ホワイト")
+    }
+
     // ── 属性不一致ペナルティ (WDC ベンチマークの corner-case precision 知見、2026-07) ──
     // 個数・色の食い違いは型番一致でも別 SKU (別価格)。型番一致の 0.7 底上げだけでは
     // 閾値 0.6 を下回れないため、乗算ペナルティ (個数 0.5 / 色 0.6) で確実に落とす。
