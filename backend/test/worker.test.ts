@@ -26,7 +26,12 @@
  *    設定済みケースを検証する。
  */
 
-import { env, createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
+import {
+  env,
+  createExecutionContext,
+  waitOnExecutionContext,
+  createScheduledController,
+} from "cloudflare:test";
 import { describe, it, expect } from "vitest";
 import worker from "../src/index";
 
@@ -301,5 +306,63 @@ describe("実ハンドラー: OPTIONS (CORS preflight)", () => {
     expect(allowHeaders).toContain("x-admin-key");
     expect(allowHeaders).toContain("x-device-token");
     expect(res.headers.get("access-control-allow-methods")).toContain("DELETE");
+  });
+});
+
+describe("実ハンドラー: scheduled() 毎時 cron (evaluateAlerts の one-shot 発火)", () => {
+  // アラート KV を直接読んで active フラグを検証する (観測用エンドポイントが無いため)。
+  async function readAlertActive(alertId: string): Promise<boolean | null> {
+    const raw = await env.ALERTS.get(`alert:${alertId}`);
+    if (!raw) return null;
+    return (JSON.parse(raw) as { active: boolean }).active;
+  }
+
+  async function createAlert(token: string, productKey: string, value: number, ip: string): Promise<string> {
+    const res = await call(req("/v1/alerts", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-device-token": token, "cf-connecting-ip": ip },
+      body: JSON.stringify({ product_key: productKey, condition: JSON.stringify({ type: "price_below", value }) }),
+    }));
+    expect(res.status).toBe(200);
+    return (await res.json() as { alert_id: string }).alert_id;
+  }
+
+  async function seedHistory(productKey: string, realPrice: number, ip: string): Promise<void> {
+    const res = await call(req("/v1/history", {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": ip },
+      body: JSON.stringify({
+        product_key: productKey, platform: "amazon",
+        list_price: 1000, real_price: realPrice, recorded_at: "2026-01-01T00:00:00Z",
+      }),
+    }));
+    expect(res.status).toBe(200);
+  }
+
+  async function runCron(): Promise<void> {
+    const ctrl = createScheduledController({ scheduledTime: 0, cron: "0 * * * *" });
+    const ctx = createExecutionContext();
+    await worker.scheduled!(ctrl, env, ctx);
+    await waitOnExecutionContext(ctx);
+  }
+
+  it("条件を満たすアラートは cron 後に非アクティブ化される (one-shot)", async () => {
+    const id = await createAlert("cron-fire", "amazon:B0CRONFIRE", 1000, "203.0.113.60");
+    await seedHistory("amazon:B0CRONFIRE", 800, "203.0.113.60");  // 800 <= 1000 → 発火
+    expect(await readAlertActive(id)).toBe(true);
+
+    await runCron();
+
+    expect(await readAlertActive(id)).toBe(false);
+  });
+
+  it("条件を満たさないアラートは cron 後もアクティブなまま", async () => {
+    const id = await createAlert("cron-nofire", "amazon:B0CRONNOFIRE", 500, "203.0.113.61");
+    await seedHistory("amazon:B0CRONNOFIRE", 800, "203.0.113.61");  // 800 <= 500 は偽 → 不発火
+    expect(await readAlertActive(id)).toBe(true);
+
+    await runCron();
+
+    expect(await readAlertActive(id)).toBe(true);
   });
 });
