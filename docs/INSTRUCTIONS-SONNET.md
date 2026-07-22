@@ -76,7 +76,7 @@ await waitOnExecutionContext(ctx);
 未カバー経路 (異常系ヘッダ・CORS preflight・巨大 payload 境界値・admin ゲート) を追加。
 ratelimit binding は miniflare で undefined になり KV フォールバック経路を通る点に注意
 (理由は worker.test.ts 冒頭コメント)。検証: `cd backend && npx tsc --noEmit && npx vitest run`
-(現 68 tests から増える)。
+(現 70 tests から増える)。
 
 ---
 

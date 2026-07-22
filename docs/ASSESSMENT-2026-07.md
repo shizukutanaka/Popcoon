@@ -23,7 +23,7 @@
 6. **i18n 規律** — 4 ロケール × 398 キー完全一致 + kind/label 分離パターンでオラクル結合と
    ローカライズを両立。TalkBack 対応 (チャート要約読み上げ・mergeDescendants) も監査済み
 7. **backend の実ランタイムテスト** — vitest-pool-workers で本物の `src/index.ts` を miniflare 上で
-   実行 (68 tests)。レート制限はネイティブ binding + KV フォールバックの漸進移行、
+   実行 (70 tests)。レート制限はネイティブ binding + KV フォールバックの漸進移行、
    タイミングセーフ比較・ペイロード上限・KV TTL まで監査済み
 8. **ドキュメントの誠実さ** — 「CI 4 本稼働」等の虚偽記載を全て実態に訂正済み。見送った
    改善案も理由・出典つきで `docs/RESEARCH-2026-07.md` に記録 (再検討可能性を保存)
@@ -83,7 +83,7 @@
 | C1 | ダークパターン regex 追加 | 消費者庁 32 類型のうち未対応の文言パターンを 1 カテゴリずつ。誤爆ガードの負ケース必須 | proto+test → Kotlin → ParityHarness (現 109 ケース) |
 | C2 | 属性 recall 追加 | 色 (現: カタカナ 27 色名 → 正準 16 色)・助数詞・単位の追加。「最寄り正準色へ保守的写像」原則を維持 | run_matcher.sh |
 | C3 | parity ケース増強 | 既存ハーネスに境界ケース追加 (全角/半角・空文字・巨大値) | run_all.sh 全 green 維持 |
-| C4 | backend テスト追加 | 未カバー経路 (異常系ヘッダ・巨大 payload 境界値・cron 評価等) を worker.test.ts に | vitest 68+ / tsc |
+| C4 | backend テスト追加 | 未カバー経路 (異常系ヘッダ・巨大 payload 境界値・cron 評価等) を worker.test.ts に | vitest 70+ / tsc |
 | C5 | ドキュメント保守 | 実装変更時の README/ARCHITECTURE/RESEARCH ログ同期。数値は必ず実測 | 記載コマンドを実行して一致確認 |
 | C6 | ViewModel テスト追加 | 未カバーの ViewModel に FakeDao/IUserPreferences パターンでテスト | brace バランス + 既存パターン照合 |
 
@@ -91,7 +91,7 @@
 
 - Python: **445 passed / 1 skipped** (`popcoon-tdd/`)
 - Kotlin parity: **run_all.sh 全 14 ハーネス pass** (run.sh 109 matched / 0 mismatched)
-- backend: **tsc 0 errors / vitest 68 tests pass**
+- backend: **tsc 0 errors / vitest 70 tests pass**
 - i18n: **4 ロケール × 398 strings** (+3 plurals) 完全一致
 - ファイル数: Kotlin main 130 / unit test 63 / androidTest 4、Python 38
 
