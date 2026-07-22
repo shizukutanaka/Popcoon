@@ -66,3 +66,7 @@ ci/           android.yml (未稼働 — workflows 権限が無く人手で ci/e
 OAuth 資格情報等) はエージェントでは完了できない — 着手せずユーザーへ案内する。
 設計判断を伴う項目 (スキーマ変更・golden 移行・API 変更) は着手前に計画を提示して承認を得る。
 機械的で検証可能な項目 (regex/recall 追加・parity 増強・docs 保守) は oracle 先行 TDD で直接進めてよい。
+
+タスクごとの実行手順書 (前提・触るファイル・手順・承認ゲート・模範コミット):
+- **Opus** (設計判断 B1-B5): `docs/INSTRUCTIONS-OPUS.md`
+- **Sonnet** (機械的 C1-C6): `docs/INSTRUCTIONS-SONNET.md`
