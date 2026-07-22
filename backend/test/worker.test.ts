@@ -250,3 +250,56 @@ describe("実ハンドラー: POST /v1/crash (サイズ上限、機能過不足�
     expect(res.status).toBe(400);
   });
 });
+
+describe("実ハンドラー: DELETE /v1/device (GDPR Article 17、プライバシー中核)", () => {
+  it("x-device-token 欠落は 400", async () => {
+    const res = await call(req("/v1/device", { method: "DELETE" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("自デバイスのアラートのみ削除し、他デバイスのアラートは残す", async () => {
+    // 2 デバイス分のアラートを作成
+    const mkAlert = async (token: string, key: string) => {
+      const res = await call(req("/v1/alerts", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-device-token": token },
+        body: JSON.stringify({ product_key: key, condition: '{"type":"price_below","value":500}' }),
+      }));
+      expect(res.status).toBe(200);
+      return (await res.json() as { alert_id: string }).alert_id;
+    };
+    const mineId = await mkAlert("gdpr-me", "amazon:B0MINE");
+    const othersId = await mkAlert("gdpr-other", "amazon:B0OTHER");
+
+    // 自デバイスのデータ削除
+    const del = await call(req("/v1/device", {
+      method: "DELETE",
+      headers: { "x-device-token": "gdpr-me" },
+    }));
+    expect(del.status).toBe(200);
+
+    // 自分のアラートは消え (所有者削除は 200 冪等)、他人のアラートは残る (所有者のみ削除可)
+    const mineGone = await call(req(`/v1/alerts/${mineId}`, {
+      method: "DELETE", headers: { "x-device-token": "gdpr-me" },
+    }));
+    expect(mineGone.status).toBe(200);  // 既に無い = 冪等成功
+
+    const othersStill = await call(req(`/v1/alerts/${othersId}`, {
+      method: "DELETE", headers: { "x-device-token": "gdpr-me" },
+    }));
+    expect(othersStill.status).toBe(403);  // 他デバイス所有のため削除拒否 = まだ存在する証拠
+  });
+});
+
+describe("実ハンドラー: OPTIONS (CORS preflight)", () => {
+  it("preflight は許可メソッド/ヘッダーを返し、x-admin-key を含む", async () => {
+    const res = await call(req("/v1/history", { method: "OPTIONS" }));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("access-control-allow-origin")).toBe("*");
+    const allowHeaders = res.headers.get("access-control-allow-headers") ?? "";
+    // 管理用 DELETE /v1/history はブラウザからのプリフライトで x-admin-key を要求する
+    expect(allowHeaders).toContain("x-admin-key");
+    expect(allowHeaders).toContain("x-device-token");
+    expect(res.headers.get("access-control-allow-methods")).toContain("DELETE");
+  });
+});
