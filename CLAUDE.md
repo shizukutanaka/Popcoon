@@ -11,8 +11,8 @@ Amazon / 楽天 / Yahoo!ショッピング横断の日本市場向け価格比�
 プライバシー第一 (テレメトリゼロ、オンデバイス推論のみ、opt-in クラッシュレポートは PII 除去済み)。
 
 ```
-app/          Android アプリ (Kotlin 130 ファイル / Compose / Hilt / Room)
-  src/test/       plain JVM ユニットテスト (kotest, 63 ファイル)
+app/          Android アプリ (Kotlin 131 ファイル / Compose / Hilt / Room)
+  src/test/       plain JVM ユニットテスト (kotest, 64 ファイル)
   src/androidTest instrumentation テスト (4 ファイル — 本環境では実行不可)
 popcoon-tdd/  Python 仕様オラクル (38 ファイル) + kotlin_parity/ 実行照合ハーネス
 backend/      Cloudflare Workers (TypeScript, vitest-pool-workers で実ランタイムテスト)

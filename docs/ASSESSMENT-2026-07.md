@@ -45,7 +45,7 @@
 5. **価格履歴 KV の lost-update** — read→merge→put の後勝ち。per-product Durable Objects への
    移行設計は `backend/README.md` に文書化済みだが、wrangler 実行検証不可のため未実装
 6. **UI 自動テストが薄い** — Compose UI テスト 2 件 + androidTest 4 ファイルは本環境で実行不可。
-   ユニットテスト 63 ファイルはロジック層に偏る (構造上やむを得ないが偏りは事実)
+   ユニットテスト 64 ファイルはロジック層に偏る (構造上やむを得ないが偏りは事実)
 7. **Yahoo 会員ランク未モデル化** — 感謝デー (+4〜5%) はランク条件つきで、UserContext に
    ランク次元が無いためシミュレーション対象外 (注記のみ)。設定 UI + スキーマ設計が必要
 8. **名寄せの残課題** — groupByIdentity は JAN なし商品で O(m²)。IDF-lite トークン重み付けは
@@ -93,6 +93,6 @@
 - Kotlin parity: **run_all.sh 全 14 ハーネス pass** (run.sh 109 matched / 0 mismatched)
 - backend: **tsc 0 errors / vitest 70 tests pass**
 - i18n: **4 ロケール × 398 strings** (+3 plurals) 完全一致
-- ファイル数: Kotlin main 130 / unit test 63 / androidTest 4、Python 38
+- ファイル数: Kotlin main 131 / unit test 64 / androidTest 4、Python 38
 
 この基準線を下回る変更は原因を特定するまで push しない。

@@ -11,11 +11,11 @@ Amazon / 楽天 / Yahoo! ショッピング横断の価格比較 Android アプ�
 |---|---|
 | 総ファイル数 | 346 |
 | Kotlin ファイル | 211 |
-| ユニットテスト | 63 |
+| ユニットテスト | 64 |
 | Compose UI テスト | 2 |
 | Kotlin 行数 | ~16,400 |
 | 言語対応 | 4 (ja / en / zh-CN / ko-KR) |
-| CI ワークフロー | 4 |
+| CI ワークフロー | 0 稼働 (`ci/android.yml` に定義のみ — 下記「CI/CD」参照) |
 | ストアリスティング | 4 言語 |
 | ドキュメント | 8 (README / CHANGELOG / ARCHITECTURE / SECURITY / CONTRIBUTING / LICENSE / PRIVACY / COMPLETION_REPORT) |
 
@@ -113,7 +113,7 @@ Amazon / 楽天 / Yahoo! ショッピング横断の価格比較 Android アプ�
 ## 品質指標
 
 - Python mutation score 100% × 4 modules
-- Kotlin ユニットテスト 63 ファイル
+- Kotlin ユニットテスト 64 ファイル
 - Compose UI テスト 2 ファイル
 - Detekt 静的解析設定済み
 - ProGuard/R8 ML Kit + CameraX ルール
