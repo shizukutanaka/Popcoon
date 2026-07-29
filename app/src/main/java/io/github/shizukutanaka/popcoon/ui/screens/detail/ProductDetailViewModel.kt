@@ -359,34 +359,17 @@ class ProductDetailViewModel @Inject constructor(
         }
     }
 
-    /** タイトルに含まれるエコ認証ワードを抽出 (CO2 スコアの加点判定に使う)。 */
-    private fun extractCertifications(title: String): List<String> {
-        val out = mutableListOf<String>()
-        if (title.contains("エコ")) out += "エコマーク"
-        if (title.lowercase().contains("green") || title.contains("オーガニック")) out += "green"
-        return out
-    }
+    // 純ロジック (エコ認証抽出・予測トレンド整形・productKey 検証) は ProductDetailLogic へ
+    // 切り出し済み。ViewModel 本体は Context 依存で plain JVM テストが不可能なため、
+    // 分岐が濃い部分をテスト可能な純関数に分離する (PriceSyncPlanner と同方針)。
+    private fun extractCertifications(title: String): List<String> =
+        ProductDetailLogic.extractCertifications(title)
 
-    /**
-     * PricePredictionEngine の予測を BuyingAdvisor の userContext 用テキストに変換する。
-     * AI の自然文助言が、同画面の PricePredictionCard の数値予測と矛盾しないようにする。
-     */
-    private fun predictionContext(prediction: PricePredictionEngine.Prediction?): String {
-        if (prediction == null) return ""
-        val trend = when {
-            prediction.predicted30d < prediction.currentPrice -> "下降傾向"
-            prediction.predicted30d > prediction.currentPrice -> "上昇傾向"
-            else -> "横ばい"
-        }
-        return "価格予測 (統計モデル): 30日後 ${CurrencyFormatter.yen(prediction.predicted30d)} ($trend)"
-    }
+    private fun predictionContext(prediction: PricePredictionEngine.Prediction?): String =
+        ProductDetailLogic.predictionContext(prediction)
 
-    /** productKey の形式検証: "platform:sku" (スキップ不可、空文字列不可) */
-    private fun isValidProductKey(key: String): Boolean {
-        if (key.isBlank()) return false
-        val parts = key.split(":", limit = 2)
-        return parts.size == 2 && parts[0].isNotEmpty() && parts[1].isNotEmpty()
-    }
+    private fun isValidProductKey(key: String): Boolean =
+        ProductDetailLogic.isValidProductKey(key)
 
     /** productKey だけで最小 Product を構築するフォールバック */
     private fun buildProductFromKey(productKey: String, history: List<PriceRecord>): Product {
