@@ -6,7 +6,7 @@
 
 ## 長所
 
-1. **二重言語 TDD アーキテクチャ** — Python 仕様オラクル (461 tests) が真実の源、Kotlin 本番実装を
+1. **二重言語 TDD アーキテクチャ** — Python 仕様オラクル (470 tests) が真実の源、Kotlin 本番実装を
    `kotlin_parity/` の 13 ハーネスが**実コンパイル・実行**で照合 (run.sh 126 ケース 0 乖離)。
    Android SDK 無しの環境でもロジックの実行検証ができる、この規模のアプリでは希少な体制
 2. **テスト防御の深さ** — 11 階層 (unit/integration/golden/metamorphic/mutation/perf/fuzz/
@@ -48,8 +48,8 @@
    ユニットテスト 64 ファイルはロジック層に偏る (構造上やむを得ないが偏りは事実)
 7. **Yahoo 会員ランク未モデル化** — 感謝デー (+4〜5%) はランク条件つきで、UserContext に
    ランク次元が無いためシミュレーション対象外 (注記のみ)。設定 UI + スキーマ設計が必要
-8. **名寄せの残課題** — groupByIdentity は JAN なし商品で O(m²)。IDF-lite トークン重み付けは
-   corpus を渡す API 変更が必要で見送り中。Model2Vec 等の埋め込みは効果不確実で見送り
+8. **名寄せの残課題** — groupByIdentity は JAN なし商品で O(m²) (粗ブロッキング B5 は未着手)。
+   IDF-lite トークン重み付けは 2026-08 に実装済み。Model2Vec 等の埋め込みは効果不確実で見送り
 9. **レビュー信頼度の入力が浅い** — rating + reviewCount のみ (星分布・レビュー履歴が
    API から取れない)。二峰性検出などの v2 はデータ源が増えるまで実装不能
 
@@ -72,9 +72,9 @@
 |---|---|---|---|---|
 | B1 | 予測アンサンブル | 高 | predicted7d を Holt/damped-trend ETS/seasonal-naive の中央値に。**golden vector とBuyTimingScorer の数値が変わる製品挙動変更** — oracle 先行 + 全 golden の手計算再導出必須 | pytest + run.sh parity + golden 根拠をコミットに明記 |
 | B2 | Durable Objects 移行 | 高 | `backend/README.md` の設計どおり実装。**wrangler dev / デプロイ検証が可能な環境が前提** | `npx wrangler dev` + vitest + 段階ロールアウト |
-| B3 | IDF-lite トークン重み | 中 | groupByIdentity に corpus 文脈を渡す API 変更込み。頻出トークン (ブランド名等) の寄与を減衰 | 新 oracle + run_matcher.sh + 既存 27+ ケース無回帰 |
+| ~~B3~~ | ~~IDF-lite トークン重み~~ | — | **実装済 (2026-08)**。`tokenIdfWeights` + weighted Jaccard、weights=null は素の Jaccard へ委譲し後方互換。詳細は `docs/RESEARCH-2026-08.md` 3-1 | 完了 |
 | B4 | Yahoo ランク次元 | 中 | UserPreferences + 設定 UI + PointSimulator.UserContext にランク追加、感謝デーを実計算へ。4 ロケール文字列同時 | run_points.sh + oracle + キー数一致 |
-| B5 | groupByIdentity の粗ブロッキング | 中 | O(m²) を先頭トークン/型番プレフィクスでバケット化して削減。順序安定性を壊さないこと | run_matcher.sh + 大規模入力の perf 確認 |
+| B5 | groupByIdentity の粗ブロッキング | 中 | O(m²) を先頭トークン/型番プレフィクスでバケット化して削減。順序安定性を壊さないこと。**B3 の df 表を転置すれば自然に実装できる** | run_matcher.sh + 大規模入力の perf 確認 |
 
 ### C. Sonnet 向け (機械的・検証容易 — CLAUDE.md の oracle 先行 TDD でそのまま着手可)
 
@@ -89,7 +89,7 @@
 
 ## 検証基準線 (2026-07 実測)
 
-- Python: **461 passed / 1 skipped** (`popcoon-tdd/`)
+- Python: **470 passed / 1 skipped** (`popcoon-tdd/`)
 - Kotlin parity: **run_all.sh 全 13 ハーネス pass** (run.sh 126 matched / 0 mismatched)
 - backend: **tsc 0 errors / vitest 70 tests pass**
 - i18n: **4 ロケール × 399 strings** (+3 plurals) 完全一致

@@ -105,14 +105,29 @@
   (Block-SCL, arXiv:2207.02008)。
 
 **改善候補**
-- ⏳ **候補集合内 IDF-lite トークン重み付け (ASSESSMENT B3)** — 設計判断を伴うためユーザー承認待ち。
-  現行の `titleSimilarity` は素の Jaccard で、ブランド名やカテゴリ語 (「ソニー」「ワイヤレス」
-  「イヤホン」) が希少な識別トークン (型番・シリーズ名) と等価に効く。Sparkly の知見に沿って
+- ✅ **候補集合内 IDF-lite トークン重み付け (ASSESSMENT B3)** — 実装済。
+  現行の `titleSimilarity` は素の Jaccard で、ブランド名やカテゴリ語が希少な識別トークンと
+  等価に効いていた。**型番・容量・色・個数のいずれも取れない一般商品** (食品・日用品) では
+  既存の属性ペナルティが全て中立になるため、共有語だけが多い別 SKU が閾値 0.6 ちょうどに
+  達して統合され、味違い・メーカー違いに誤った「最安値」を提示していた:
+
+  | ペア (corpus = はちみつ 4 件) | 素の Jaccard | IDF 重み付き | ブレンド後 titleSim |
+  |---|---|---|---|
+  | 山田養蜂場 アカシア vs れんげ | **0.600** (統合) | 0.452 | **0.500** (分離) |
+  | 山田養蜂場 アカシア vs そば | **0.600** (統合) | 0.452 | **0.519** (分離) |
+  | 山田養蜂場 vs 杉養蜂園 アカシア | **0.600** (統合) | 0.503 | **0.556** (分離) |
+  | 山田養蜂場 れんげ vs そば | **0.600** (統合) | 0.410 | **0.540** (分離) |
+
   候補集合を corpus とみなし `idf(t) = ln(1 + N/df(t))` で重み付けした Jaccard
-  (`Σ_{t∈A∩B} idf(t) / Σ_{t∈A∪B} idf(t)`) に置き換える案。
-  **全トークンの idf が等しいとき素の Jaccard に数学的に一致する**ため、corpus を渡さない
-  `similarity(a, b)` の出力はビット単位で不変にできる (既存 parity/golden は無回帰)。
-  変わるのは corpus を渡す `groupByIdentity` の grouping 結果 = 製品挙動。
+  (`Σ_{t∈A∩B} idf(t) / Σ_{t∈A∪B} idf(t)`) を採用。corpus 外トークンは df=1 相当の
+  `ln(1+N)` (最も識別的)。**weights を渡さない経路は素の Jaccard へ委譲**するため
+  `similarity(a, b)` の出力はビット単位で不変で、既存 parity/golden は無回帰
+  (一様重みなら数学的には一致するが、浮動小数の丸めを避けるため委譲で厳密に保証した)。
+  2-gram Dice の腕は不変なので、識別語が 1 つ違うだけの同一商品の表記ゆれは Dice 側で
+  救済される (recall 非退行を parity と Kotest で固定)。
+- ⏸️ **粗ブロッキング (ASSESSMENT B5)** — groupByIdentity の O(m²) 削減。今回の IDF 重みは
+  df 表を作る過程で全トークンを走査済みなので、その表を転置してバケット化する実装が自然。
+  ただし順序安定性を壊さない設計が要るため分離した。
 
 ## 4. 日本 EC のポイント制度 (更新確認)
 
@@ -147,10 +162,12 @@
 | conformal margin の較正 horizon 一致 (7d/30d 分離) | fix | oracle +8 → run.sh parity 117 → 126 matched / 被覆 53.8%→91.8%, 20.5%→90.5% を実測 |
 | 残差生成器 (HOLTRES) を parity 対象に追加 | test | 境界 9 ケース、実 Kotlin コンパイル・実行で 0 乖離 |
 | 基準線数値と 32 類型記載の訂正 | docs | 記載コマンドを実行して一致確認 |
+| ProductMatcher IDF-lite トークン重み付け (B3) | feat | oracle +9 → run_matcher 全 assertion pass / 別SKU 4 ペアを 0.600→0.5 台へ分離 |
+| backend の npm install 復旧 (workers-types v5) | fix | tsc 0 errors / vitest 70 tests pass |
 
 ## 検証基準線 (2026-08 実測)
 
-- Python: **461 passed / 1 skipped** (`popcoon-tdd/`)
+- Python: **470 passed / 1 skipped** (`popcoon-tdd/`)
 - Kotlin parity: **run_all.sh 13 ハーネス全 pass** (run.sh 126 matched / 0 mismatched)
 - backend: **tsc 0 errors / vitest 70 tests pass** (本セッションで変更なし)
 - i18n: **4 ロケール × 399 strings** (+3 plurals) 完全一致

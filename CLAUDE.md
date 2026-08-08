@@ -24,7 +24,7 @@ ci/           android.yml (未稼働 — workflows 権限が無く人手で ci/e
 
 | 対象 | コマンド | 基準線 (2026-07 時点) |
 |---|---|---|
-| Python オラクル全体 | `cd popcoon-tdd && python3 -m pytest -q` | **461 passed, 1 skipped** |
+| Python オラクル全体 | `cd popcoon-tdd && python3 -m pytest -q` | **470 passed, 1 skipped** |
 | Kotlin 実行 parity 全体 | `bash popcoon-tdd/kotlin_parity/run_all.sh` | 全 13 ハーネス pass (`run.sh` は 126 matched / 0 mismatched) |
 | 個別 parity | `bash popcoon-tdd/kotlin_parity/run_matcher.sh` 等 | "all assertions passed" |
 | backend 型検査 | `cd backend && npx tsc --noEmit` | エラー 0 |
