@@ -194,6 +194,63 @@ fun main() {
     // 既存の複合語誤爆防止は不変 (ブルーレイ の ブルー は色でない)
     check("ブルーレイ は色でない (回帰)", null, ProductMatcher.extractColor("ソニー ブルーレイレコーダー 2TB"))
 
+    // ── 研究 3-1: IDF-lite トークン重み付け (Sparkly, PVLDB vol.16 2023) ─────────
+    // 型番・容量・色・個数のいずれも取れない一般食品。既存の属性ペナルティが全て中立で、
+    // タイトル類似度だけが名寄せの可否を決める領域。素の Jaccard は共有語 (山田養蜂場/
+    // 国産/はちみつ) を識別語 (アカシア/れんげ) と等価に扱うため、別 SKU が閾値 0.6
+    // ちょうどに達して統合されていた。
+    // 期待値は Python オラクル proto_title_similarity から導出 (手で通すための改変は不可)。
+    val honey = listOf(
+        "山田養蜂場 国産 アカシア はちみつ",
+        "山田養蜂場 国産 れんげ はちみつ",
+        "山田養蜂場 国産 そば はちみつ",
+        "杉養蜂園 国産 アカシア はちみつ",
+    )
+    val hw = ProductMatcher.tokenIdfWeights(honey)!!
+    // idf(t) = ln(1 + N/df(t))、N=4。全件に出る 国産/はちみつ が最小、1件のみの語が最大。
+    approx("idf 国産 = ln(2)", 0.6931471805599453, hw.of("国産"))
+    approx("idf はちみつ = ln(2)", 0.6931471805599453, hw.of("はちみつ"))
+    approx("idf 山田養蜂場 (df=3)", 0.8472978603872034, hw.of("山田養蜂場"))
+    approx("idf アカシア (df=2)", 1.0986122886681098, hw.of("アカシア"))
+    approx("idf れんげ (df=1) = ln(5)", 1.6094379124341003, hw.of("れんげ"))
+    // corpus 外のトークンは df=1 相当 = 最も稀な語と同じ重み
+    approx("idf 未知語 = ln(5)", 1.6094379124341003, hw.of("corpusに無い語"))
+
+    // 素の Jaccard では 4 ペアとも 0.6 (= 閾値) だが、重み付けで全て閾値未満に落ちる。
+    approx("honey acacia vs renge jaccard=0.6", 0.6,
+        ProductMatcher.titleSimilarity(honey[0], honey[1]))
+    approx("honey acacia vs renge weighted titleSim", 0.5,
+        ProductMatcher.titleSimilarity(honey[0], honey[1], hw))
+    approx("honey acacia vs soba weighted titleSim", 0.5192307692307692,
+        ProductMatcher.titleSimilarity(honey[0], honey[2], hw))
+    approx("honey yamada vs sugi weighted titleSim", 0.5555555555555556,
+        ProductMatcher.titleSimilarity(honey[0], honey[3], hw))
+    approx("honey renge vs soba weighted titleSim", 0.54,
+        ProductMatcher.titleSimilarity(honey[1], honey[2], hw))
+    approx("honey acacia vs renge weightedJaccard", 0.4519938980788708,
+        ProductMatcher.weightedJaccard(honey[0], honey[1], hw))
+
+    // 後方互換の要: weights=null は重み導入前と厳密一致 (委譲による保証)。
+    for (a in honey) for (b in honey) {
+        approx("weights=null identical to plain jaccard",
+            ProductMatcher.titleSimilarity(a, b), ProductMatcher.titleSimilarity(a, b, null), 0.0)
+    }
+    // 一様 corpus (全トークン df 等しい) なら重み付きでも素の Jaccard と一致 (数学的性質)。
+    val uniform = ProductMatcher.tokenIdfWeights(listOf("あか あお みどり", "きいろ しろ くろ"))!!
+    approx("uniform weights reduce to plain jaccard", 0.5,
+        ProductMatcher.weightedJaccard("あか あお みどり", "きいろ あお みどり", uniform))
+    // 空 corpus → null (素の Jaccard へフォールバック)
+    check("empty corpus -> null weights", null, ProductMatcher.tokenIdfWeights(emptyList()))
+
+    // End-to-end: groupByIdentity が別 SKU を統合しなくなる (これが 3-1 の目的)。
+    val honeyProducts = honey.mapIndexed { i, t -> pc("H$i", Platform.RAKUTEN, t) }
+    check("groupByIdentity separates honey variants", 4,
+        ProductMatcher.groupByIdentity(honeyProducts).size)
+    // 同一商品の表記ゆれ (ノイズ語の有無) は重み付けでも統合されたまま。
+    val dupes = honeyProducts + pc("H9", Platform.YAHOO, "山田養蜂場 国産 アカシア はちみつ 送料無料")
+    check("groupByIdentity still merges true duplicates", 4,
+        ProductMatcher.groupByIdentity(dupes).size)
+
     if (fails == 0) {
         println("PRODUCT MATCHER: all assertions passed")
     } else {

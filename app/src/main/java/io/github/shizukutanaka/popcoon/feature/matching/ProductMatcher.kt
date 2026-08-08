@@ -2,6 +2,7 @@ package io.github.shizukutanaka.popcoon.feature.matching
 
 import io.github.shizukutanaka.popcoon.data.model.Product
 import java.text.Normalizer
+import kotlin.math.ln
 
 /**
  * クロスプラットフォーム商品名寄せ (Product Matching)。
@@ -39,9 +40,50 @@ object ProductMatcher {
     const val BIGRAM_DICE_WEIGHT = 0.75
 
     /**
-     * 2商品の同一性スコア (0.0-1.0) を計算。
+     * トークン → IDF 重みの表と、corpus 外トークンに使う既定重み (研究 3-1)。
+     *
+     * 出典: Sparkly — A Simple yet Surprisingly Strong TF/IDF Blocker for Entity Matching
+     * (Paulsen, Govind, Doan — PVLDB vol.16, 2023)。エンティティ解決のブロッキングに
+     * tf/idf を素直に使うと state-of-the-art な 8 手法を上回る、という結果に対応する。
+     *
+     * 既定重みは df=1 相当 (= corpus 中で最も稀) の `ln(1 + N)`。語彙数ではなく
+     * **文書数 N** から決まる (語彙が増えるだけで未知語の重みが動いてはならない)。
+     * Python 参照 (proto_title_similarity.TokenWeights) と完全一致。
      */
-    fun similarity(a: Product, b: Product): Double {
+    class TokenWeights internal constructor(
+        private val weights: Map<String, Double>,
+        private val default: Double,
+    ) {
+        fun of(token: String): Double = weights[token] ?: default
+    }
+
+    /**
+     * 候補集合を corpus とみなしたトークン IDF 重み表。`idf(t) = ln(1 + N / df(t))`。
+     * 候補集合の全件に出るトークン (ブランド名・カテゴリ語) は ln(2) ≈ 0.69 で最小、
+     * 1 件にしか出ない識別語は ln(1+N) で最大になる。
+     *
+     * corpus が空なら null (= 重み無し = 素の Jaccard へフォールバック)。
+     * Python 参照 (proto_title_similarity.token_idf_weights) と完全一致。
+     */
+    fun tokenIdfWeights(corpusTitles: List<String>): TokenWeights? {
+        if (corpusTitles.isEmpty()) return null
+        val n = corpusTitles.size
+        val df = HashMap<String, Int>()
+        for (title in corpusTitles) {
+            for (t in normalizeTitle(title)) df[t] = (df[t] ?: 0) + 1
+        }
+        val weights = HashMap<String, Double>(df.size)
+        for ((t, c) in df) weights[t] = ln(1.0 + n.toDouble() / c)
+        return TokenWeights(weights, ln(1.0 + n))
+    }
+
+    /**
+     * 2商品の同一性スコア (0.0-1.0) を計算。
+     *
+     * @param weights 候補集合から作った IDF 重み ([tokenIdfWeights])。null なら
+     *   トークン類似度は従来どおり素の Jaccard で、**出力は重み導入前とビット単位で不変**。
+     */
+    fun similarity(a: Product, b: Product, weights: TokenWeights? = null): Double {
         // 1. JAN コード一致 → 確実
         val janA = a.janCode
         val janB = b.janCode
@@ -66,7 +108,8 @@ object ProductMatcher {
         //    空白に依存しないためこれを救済する (研究 2-2)。ただし 2-gram Dice は
         //    ブランド+カテゴリ語を共有するだけの別商品 (イヤホン vs ヘッドホン) を系統的に
         //    高く見積もるため、BIGRAM_DICE_WEIGHT で減衰してから max() でブレンドする。
-        val titleSim = titleSimilarity(a.title, b.title)
+        //    さらに weights があればトークン側を IDF 重み付き Jaccard にする (研究 3-1)。
+        val titleSim = titleSimilarity(a.title, b.title, weights)
 
         val base = when {
             modelMatch -> (0.7 + titleSim * 0.3).coerceAtMost(1.0)
@@ -101,7 +144,8 @@ object ProductMatcher {
     }
 
     /** 同一商品とみなせるか */
-    fun isMatch(a: Product, b: Product): Boolean = similarity(a, b) >= MATCH_THRESHOLD
+    fun isMatch(a: Product, b: Product, weights: TokenWeights? = null): Boolean =
+        similarity(a, b, weights) >= MATCH_THRESHOLD
 
     /**
      * 商品リストを同一商品グループにまとめる。
@@ -113,6 +157,13 @@ object ProductMatcher {
      */
     fun groupByIdentity(products: List<Product>): List<List<Product>> {
         val groups = mutableListOf<MutableList<Product>>()
+
+        // 候補集合そのものを corpus とみなした IDF 重み (研究 3-1, Sparkly PVLDB 2023)。
+        // 素の Jaccard はブランド名・カテゴリ語 (「山田養蜂場」「国産」「はちみつ」) を
+        // 識別語 (「アカシア」「れんげ」) と等価に扱うため、型番も容量も色も個数も
+        // 取れない一般商品では別 SKU が閾値 0.6 ちょうどに達して統合されていた。
+        // 重み付けで共有語の寄与を減衰させるとこの誤マッチが解消する。
+        val weights = tokenIdfWeights(products.map { it.title })
 
         // 1. JAN コードで確実にバケット化
         val byJan = HashMap<String, MutableList<Product>>()
@@ -132,7 +183,7 @@ object ProductMatcher {
         //    g.any: JAN-less 商品が作ったグループでは g.first() だけでなく
         //    全メンバーと照合しないと、後発の JAN-less 商品を取り込み損ねる。
         for (p in noJan) {
-            val group = groups.firstOrNull { g -> g.any { isMatch(it, p) } }
+            val group = groups.firstOrNull { g -> g.any { isMatch(it, p, weights) } }
             if (group != null) {
                 group += p
             } else {
@@ -200,11 +251,44 @@ object ProductMatcher {
      * Python オラクル `proto_title_similarity.title_similarity()` と厳密一致 (研究 2-2)。
      * - 空白区切りが機能するタイトル → 語順に頑健な Jaccard が支配
      * - 分かち書きなしタイトル → Dice が救済 (同一内容なら 0.75×1.0 = 0.75 ≥ 閾値 0.6)
+     *
+     * weights を渡すとトークン側が IDF 重み付き Jaccard になる (研究 3-1)。2-gram Dice の
+     * 腕はそのまま残るため、識別語が1つ違うだけの「同一商品の表記ゆれ」は Dice 側で
+     * 救済され、IDF による減点は「共有語が凡庸で相違語が識別的」なペアに集中する。
      */
-    internal fun titleSimilarity(titleA: String, titleB: String): Double {
-        val jaccard = jaccardSimilarity(normalizeTitle(titleA), normalizeTitle(titleB))
+    internal fun titleSimilarity(
+        titleA: String,
+        titleB: String,
+        weights: TokenWeights? = null,
+    ): Double {
+        val jaccard = weightedJaccard(titleA, titleB, weights)
         val dice = BIGRAM_DICE_WEIGHT * charBigramDice(titleA, titleB)
         return maxOf(jaccard, dice)
+    }
+
+    /**
+     * IDF 重み付き Jaccard: `Σ_{t∈A∩B} w(t) / Σ_{t∈A∪B} w(t)`。
+     *
+     * weights が null なら素の [jaccardSimilarity] へ **委譲** する。全 w(t) が等しければ
+     * 数学的には素の Jaccard と一致するが、浮動小数の丸めで最下位ビットがずれ得るため、
+     * 委譲によって重み導入前との厳密一致を保証する (既存ゴールデン/parity の無回帰要件)。
+     * Python 参照 (proto_title_similarity.weighted_jaccard) と完全一致。
+     */
+    internal fun weightedJaccard(
+        titleA: String,
+        titleB: String,
+        weights: TokenWeights?,
+    ): Double {
+        val a = normalizeTitle(titleA)
+        val b = normalizeTitle(titleB)
+        if (weights == null) return jaccardSimilarity(a, b)
+        if (a.isEmpty() || b.isEmpty()) return 0.0
+        var union = 0.0
+        for (t in a.union(b)) union += weights.of(t)
+        if (union <= 0.0) return 0.0
+        var inter = 0.0
+        for (t in a.intersect(b)) inter += weights.of(t)
+        return inter / union
     }
 
     /**

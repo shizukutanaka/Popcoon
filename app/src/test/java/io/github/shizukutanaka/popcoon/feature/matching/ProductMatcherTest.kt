@@ -152,6 +152,58 @@ class ProductMatcherTest : StringSpec({
         groups.size shouldBe 1  // 全て同一グループに入るはず
     }
 
+    // ── 研究 3-1: IDF-lite トークン重み付け (Sparkly, PVLDB vol.16 2023) ─────
+    // 型番・容量・色・個数のいずれも取れない一般食品では既存の属性ペナルティが全て
+    // 中立で、素の Jaccard は共有語 (山田養蜂場/国産/はちみつ) を識別語 (アカシア/
+    // れんげ) と等価に扱う。結果として別 SKU が閾値 0.6 ちょうどで統合されていた。
+    "IDF 重みは頻出トークンを減衰し、一意なトークンを最大にする" {
+        val corpus = listOf(
+            "山田養蜂場 国産 アカシア はちみつ",
+            "山田養蜂場 国産 れんげ はちみつ",
+            "山田養蜂場 国産 そば はちみつ",
+            "杉養蜂園 国産 アカシア はちみつ",
+        )
+        val w = ProductMatcher.tokenIdfWeights(corpus)!!
+        w.of("国産") shouldBeLessThan w.of("山田養蜂場")
+        w.of("山田養蜂場") shouldBeLessThan w.of("アカシア")
+        w.of("アカシア") shouldBeLessThan w.of("れんげ")
+        // corpus 外は df=1 相当 = 最も稀な語と同じ重み
+        w.of("corpusに無い語") shouldBe w.of("れんげ")
+    }
+
+    "重み無しの similarity は重み導入前と厳密に一致する (後方互換)" {
+        val a = product("A1", "山田養蜂場 国産 アカシア はちみつ")
+        val b = product("R1", "山田養蜂場 国産 れんげ はちみつ")
+        ProductMatcher.similarity(a, b, null) shouldBe ProductMatcher.similarity(a, b)
+        ProductMatcher.titleSimilarity(a.title, b.title, null) shouldBe
+            ProductMatcher.titleSimilarity(a.title, b.title)
+    }
+
+    "属性が取れない一般商品の別 SKU を統合しない (IDF 重み付けの目的)" {
+        val products = listOf(
+            product("H0", "山田養蜂場 国産 アカシア はちみつ", Platform.RAKUTEN, 2000),
+            product("H1", "山田養蜂場 国産 れんげ はちみつ", Platform.RAKUTEN, 2100),
+            product("H2", "山田養蜂場 国産 そば はちみつ", Platform.RAKUTEN, 2200),
+            product("H3", "杉養蜂園 国産 アカシア はちみつ", Platform.YAHOO, 1900),
+        )
+        // 素の Jaccard ではいずれのペアも 0.6 (= 閾値) で 1 グループに潰れていた
+        ProductMatcher.titleSimilarity(products[0].title, products[1].title) shouldBe
+            (0.6 plusOrMinus 1e-9)
+        ProductMatcher.groupByIdentity(products).size shouldBe 4
+    }
+
+    "同一商品の表記ゆれは IDF 重み付けでも統合されたまま (recall 非退行)" {
+        val products = listOf(
+            product("H0", "山田養蜂場 国産 アカシア はちみつ", Platform.RAKUTEN, 2000),
+            product("H1", "山田養蜂場 国産 れんげ はちみつ", Platform.RAKUTEN, 2100),
+            product("H2", "山田養蜂場 国産 そば はちみつ", Platform.RAKUTEN, 2200),
+            product("H3", "杉養蜂園 国産 アカシア はちみつ", Platform.YAHOO, 1900),
+            product("H9", "山田養蜂場 国産 アカシア はちみつ 送料無料", Platform.AMAZON, 1950),
+        )
+        // H9 は H0 のノイズ語違い → 統合される。グループ数は 4 のまま。
+        ProductMatcher.groupByIdentity(products).size shouldBe 4
+    }
+
     // ── 異なる商品 ────────────────────────────────────────────────────────
     "全く異なる商品は低類似度" {
         val a = product("A1", "コーヒー豆 ブラジル 500g")

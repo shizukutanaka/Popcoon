@@ -19,8 +19,10 @@ Kotlin 実装 (app/.../feature/matching/ProductMatcher.kt) と正規化パイプ
 
 from __future__ import annotations
 
+import math
 import re
 import unicodedata
+from typing import NamedTuple
 
 # Kotlin ProductMatcher の各 Regex と一致させる (文字集合・順序とも)
 NOISE_RE = re.compile(
@@ -73,6 +75,80 @@ def token_jaccard(title_a: str, title_b: str) -> float:
     return len(a & b) / len(a | b)
 
 
-def title_similarity(title_a: str, title_b: str) -> float:
-    """ブレンド済みタイトル類似度 (Kotlin ProductMatcher.similarity() の titleSim 相当)."""
-    return max(token_jaccard(title_a, title_b), BIGRAM_DICE_WEIGHT * bigram_dice(title_a, title_b))
+class TokenWeights(NamedTuple):
+    """トークン → IDF 重みの表と、corpus 外トークンに使う既定重み。
+
+    既定重みは df=1 相当 (= corpus で最も稀) の `ln(1 + N)`。`weights` の要素数ではなく
+    **文書数 N** から決まる点が重要 (語彙数を使うと corpus の語彙が増えるだけで
+    未知語の重みが動いてしまう)。
+    """
+
+    weights: dict[str, float]
+    default: float
+
+    def of(self, token: str) -> float:
+        return self.weights.get(token, self.default)
+
+
+def token_idf_weights(corpus_titles: list[str]) -> TokenWeights | None:
+    """候補集合を corpus とみなしたトークン IDF 重み表 (研究 3-1)。
+
+    出典: Sparkly — A Simple yet Surprisingly Strong TF/IDF Blocker for Entity Matching
+    (Paulsen, Govind, Doan — PVLDB vol.16, 2023)。エンティティ解決のブロッキングに
+    tf/idf を素直に使うと state-of-the-art な 8 手法を上回る、という結果に対応する。
+
+    重みは平滑化つき `idf(t) = ln(1 + N / df(t))`:
+      - 候補集合の全件に出るトークン (ブランド名・カテゴリ語) → ln(2) ≈ 0.69 で最小
+      - 1 件にしか出ないトークン (花の種類・シリーズ名等の識別語) → ln(1+N) で最大
+    df=0 (corpus 外のトークン) は df=1 として扱い、未知語を最も識別的とみなす。
+
+    corpus が空なら None を返す (= 重み無し = 素の Jaccard へフォールバック)。
+    """
+    if not corpus_titles:
+        return None
+    docs = [normalize_tokens(t) for t in corpus_titles]
+    n = len(docs)
+    df: dict[str, int] = {}
+    for d in docs:
+        for tok in d:
+            df[tok] = df.get(tok, 0) + 1
+    return TokenWeights(
+        weights={tok: math.log(1.0 + n / c) for tok, c in df.items()},
+        default=math.log(1.0 + n),
+    )
+
+
+def weighted_jaccard(
+    title_a: str, title_b: str, weights: TokenWeights | None
+) -> float:
+    """IDF 重み付き Jaccard。`Σ_{t∈A∩B} w(t) / Σ_{t∈A∪B} w(t)`。
+
+    weights=None なら素の [token_jaccard] に **完全に委譲** する。全 w(t) が等しい場合は
+    数学的に素の Jaccard と一致するが、浮動小数の丸めで最下位ビットがずれ得るため
+    委譲で厳密一致を保証する (既存のゴールデン/parity を無回帰にするための設計)。
+    """
+    if weights is None:
+        return token_jaccard(title_a, title_b)
+    a = normalize_tokens(title_a)
+    b = normalize_tokens(title_b)
+    if not a or not b:
+        return 0.0
+    union = sum(weights.of(t) for t in a | b)
+    if union <= 0.0:
+        return 0.0
+    return sum(weights.of(t) for t in a & b) / union
+
+
+def title_similarity(
+    title_a: str, title_b: str, weights: TokenWeights | None = None
+) -> float:
+    """ブレンド済みタイトル類似度 (Kotlin ProductMatcher.similarity() の titleSim 相当).
+
+    weights を渡すとトークン側が IDF 重み付き Jaccard になる。2-gram Dice の腕は
+    そのまま残るため、識別語が 1 つだけ違う「同一商品の表記ゆれ」は Dice 側で救済され、
+    IDF による減点は「共有語が凡庸で相違語が識別的」なペアに集中する。
+    """
+    return max(
+        weighted_jaccard(title_a, title_b, weights),
+        BIGRAM_DICE_WEIGHT * bigram_dice(title_a, title_b),
+    )
