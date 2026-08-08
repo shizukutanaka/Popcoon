@@ -1,8 +1,8 @@
 # INSTRUCTIONS-OPUS.md — 設計判断タスクの手順書 (B1–B5)
 
 対象: Claude Opus クラスのセッション。設計判断・横断変更・golden 移行を伴うタスク集。
-**共通ルール: 着手前に `CLAUDE.md` の検証コマンドで基準線 (oracle 445 / parity 14 ハーネス /
-backend 65 / 4×398 キー) を確認 → 実装計画を提示しユーザー承認を得てから実装 → 完了後に同じ
+**共通ルール: 着手前に `CLAUDE.md` の検証コマンドで基準線 (oracle 461 / parity 13 ハーネス /
+backend 70 / 4×399 キー) を確認 → 実装計画を提示しユーザー承認を得てから実装 → 完了後に同じ
 基準線+新規テストで検証。** 番号は `docs/ASSESSMENT-2026-07.md` の改善案テーブルに対応。
 
 ---
@@ -81,7 +81,7 @@ IDF は corpus (検索結果セット) 文脈が要る。案: `groupByIdentity(p
 2. `SettingsViewModel.kt` / `SettingsScreen.kt` に設定 UI (既存 EC 会員設定ブロックに追従)
 3. `feature/points/PointSimulator.kt::UserContext` にランク追加 → 感謝デー計算を実装
    (oracle 先行 → `run_points.sh` 照合)
-4. 文字列は 4 ロケール同時追加 → キー数一致検証 (現 398)
+4. 文字列は 4 ロケール同時追加 → キー数一致検証 (現 399)
 5. **`SearchViewModelTest.kt` / `WatchlistViewModelTest.kt` の FakeUserPreferences に
    新フィールド実装を追加** (インタフェース拡張はテストの Fake を必ず壊す — 忘れがち)
 

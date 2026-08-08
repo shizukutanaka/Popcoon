@@ -38,7 +38,10 @@
 
 **主な知見**
 - arXiv 2411.07441 以降: AppRay (2024, モバイルUI 2185件/18類型)、DECEPTICON (2025)、LLM 監査エージェント (2026)。
-- 日本: 消費者庁 2025-04 実態調査が **32類型** + 事例集を公開 (最頻出=事前選択・偽りの階層表示)。 <https://www.caa.go.jp/policies/future/icprc/research_010>
+- 日本: 消費者庁 2025-04 実態調査が **OECD (2022) 分類 + Hidaka et al. (2023) の日本固有分類**で
+  102 サイトを調査 (最頻出=事前選択・偽りの階層表示)。 <https://www.caa.go.jp/policies/future/icprc/research_010>
+  ※ 当初「32類型」と記載していたが 2026-08 の再調査で一次情報の裏付けが取れず訂正
+  (経緯は `docs/RESEARCH-2026-08.md` の「前回ログの訂正」)。
 - ダークパターン対策協会 (NDD): 認証制度 2025-10-15 開始、Bronze/Silver/Gold。 <https://www.ndda.net/>
 - 特商法: 2026-01 検討会設置、解約妨害の明文禁止を審議、~2027 施行見込み。
 - FTC: Amazon Prime ダークパターン **$2.5B 和解 (2025-09)**。

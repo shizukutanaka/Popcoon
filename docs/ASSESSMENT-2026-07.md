@@ -6,8 +6,8 @@
 
 ## 長所
 
-1. **二重言語 TDD アーキテクチャ** — Python 仕様オラクル (445 tests) が真実の源、Kotlin 本番実装を
-   `kotlin_parity/` の 14 ハーネスが**実コンパイル・実行**で照合 (run.sh 109 ケース 0 乖離)。
+1. **二重言語 TDD アーキテクチャ** — Python 仕様オラクル (461 tests) が真実の源、Kotlin 本番実装を
+   `kotlin_parity/` の 13 ハーネスが**実コンパイル・実行**で照合 (run.sh 126 ケース 0 乖離)。
    Android SDK 無しの環境でもロジックの実行検証ができる、この規模のアプリでは希少な体制
 2. **テスト防御の深さ** — 11 階層 (unit/integration/golden/metamorphic/mutation/perf/fuzz/
    stateful/concurrency/differential/chaos)。mutation score 100% × 4 モジュール。
@@ -20,7 +20,7 @@
    クロスモールカート最適化 (Prime 会員反映)
 5. **名寄せ精度の多層防御** — JAN → 型番+容量 → タイトル (Jaccard + 文字 2-gram Dice ブレンド)
    → 属性ペナルティ (個数 / 色 27 名→16 正準 / 内容量 ml・mg 正規化)。各層に誤爆ガードと oracle 裏付け
-6. **i18n 規律** — 4 ロケール × 398 キー完全一致 + kind/label 分離パターンでオラクル結合と
+6. **i18n 規律** — 4 ロケール × 399 キー完全一致 + kind/label 分離パターンでオラクル結合と
    ローカライズを両立。TalkBack 対応 (チャート要約読み上げ・mergeDescendants) も監査済み
 7. **backend の実ランタイムテスト** — vitest-pool-workers で本物の `src/index.ts` を miniflare 上で
    実行 (70 tests)。レート制限はネイティブ binding + KV フォールバックの漸進移行、
@@ -80,7 +80,7 @@
 
 | # | 項目 | 内容 | 検証 |
 |---|---|---|---|
-| C1 | ダークパターン regex 追加 | 消費者庁 32 類型のうち未対応の文言パターンを 1 カテゴリずつ。誤爆ガードの負ケース必須 | proto+test → Kotlin → ParityHarness (現 109 ケース) |
+| C1 | ダークパターン regex 追加 | 消費者庁実態調査 (OECD 2022 分類 + Hidaka 2023) のうち未対応の文言パターンを 1 カテゴリずつ。誤爆ガードの負ケース必須 | proto+test → Kotlin → ParityHarness (現 126 ケース) |
 | C2 | 属性 recall 追加 | 色 (現: カタカナ 27 色名 → 正準 16 色)・助数詞・単位の追加。「最寄り正準色へ保守的写像」原則を維持 | run_matcher.sh |
 | C3 | parity ケース増強 | 既存ハーネスに境界ケース追加 (全角/半角・空文字・巨大値) | run_all.sh 全 green 維持 |
 | C4 | backend テスト追加 | 未カバー経路 (異常系ヘッダ・巨大 payload 境界値・cron 評価等) を worker.test.ts に | vitest 70+ / tsc |
@@ -89,10 +89,10 @@
 
 ## 検証基準線 (2026-07 実測)
 
-- Python: **445 passed / 1 skipped** (`popcoon-tdd/`)
-- Kotlin parity: **run_all.sh 全 14 ハーネス pass** (run.sh 109 matched / 0 mismatched)
+- Python: **461 passed / 1 skipped** (`popcoon-tdd/`)
+- Kotlin parity: **run_all.sh 全 13 ハーネス pass** (run.sh 126 matched / 0 mismatched)
 - backend: **tsc 0 errors / vitest 70 tests pass**
-- i18n: **4 ロケール × 398 strings** (+3 plurals) 完全一致
+- i18n: **4 ロケール × 399 strings** (+3 plurals) 完全一致
 - ファイル数: Kotlin main 131 / unit test 64 / androidTest 4、Python 38
 
 この基準線を下回る変更は原因を特定するまで push しない。
