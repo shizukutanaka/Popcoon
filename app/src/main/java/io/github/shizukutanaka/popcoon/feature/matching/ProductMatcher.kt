@@ -23,7 +23,11 @@ import kotlin.math.ln
  * 重量級 ML を避けることで:
  *  - ネットワーク送信なし (I5 プライバシー準拠)
  *  - 決定的で再現性あり (誤検出のデバッグが容易)
- *  - 低レイテンシ (p99 < 1ms)
+ *  - 低レイテンシ: 1 ペアの [similarity] は特徴量を渡せば集合演算のみ。
+ *    [groupByIdentity] は比較回数が O(m²) なので候補数に依存する
+ *    (2026-08 実測: 20 件 5ms / 80 件 14ms / 320 件 112ms。特徴量メモ化前は
+ *    それぞれ 16.6ms / 203ms / 2.5 秒だった。以前ここに書かれていた
+ *    「p99 < 1ms」は実測の裏付けが無く、実際には成立していなかった)
  */
 object ProductMatcher {
 
@@ -83,15 +87,54 @@ object ProductMatcher {
      * @param weights 候補集合から作った IDF 重み ([tokenIdfWeights])。null なら
      *   トークン類似度は従来どおり素の Jaccard で、**出力は重み導入前とビット単位で不変**。
      */
-    fun similarity(a: Product, b: Product, weights: TokenWeights? = null): Double {
+    fun similarity(a: Product, b: Product, weights: TokenWeights? = null): Double =
+        similarity(a, b, featuresOf(a.title), featuresOf(b.title), weights)
+
+    /**
+     * タイトルから 1 回だけ導出しておく比較用の特徴量。
+     *
+     * [similarity] は 1 回の比較あたり NFKC 正規化を 6 系統 × 2 タイトル (トークン /
+     * 2-gram / 型番 / 個数 / 色 / 内容量) 実行していた。[groupByIdentity] は総当たりで
+     * 比較するため、この派生が O(n²) 回 走っていた (実測: 商品 20 件で 16.6ms、
+     * 80 件で 203ms、320 件で 2.5 秒 — docstring の「p99 < 1ms」は成立していなかった)。
+     * 商品ごとに 1 回 (O(n)) だけ導出して使い回せば、比較そのものは集合演算だけになる。
+     *
+     * 純粋なメモ化であり **出力は 1 ビットも変わらない** (parity で等価性を固定)。
+     */
+    class Features internal constructor(
+        internal val tokens: Set<String>,
+        internal val bigrams: Set<String>,
+        internal val model: String?,
+        internal val quantity: Int?,
+        internal val color: String?,
+        internal val volume: Volume?,
+    )
+
+    /** タイトルから [Features] を導出する (商品あたり 1 回だけ呼ぶこと)。 */
+    fun featuresOf(title: String): Features = Features(
+        tokens = normalizeTitle(title),
+        bigrams = charBigrams(normalizeForBigrams(title)),
+        model = extractModelNumber(title),
+        quantity = extractQuantity(title),
+        color = extractColor(title),
+        volume = extractVolume(title),
+    )
+
+    internal fun similarity(
+        a: Product,
+        b: Product,
+        fa: Features,
+        fb: Features,
+        weights: TokenWeights? = null,
+    ): Double {
         // 1. JAN コード一致 → 確実
         val janA = a.janCode
         val janB = b.janCode
         if (!janA.isNullOrBlank() && janA == janB) return 1.0
 
         // 2. 型番抽出して一致するか
-        val modelA = extractModelNumber(a.title)
-        val modelB = extractModelNumber(b.title)
+        val modelA = fa.model
+        val modelB = fb.model
         val modelMatch = modelA != null && modelA == modelB
         // 両方から型番が取れたのに値が食い違う = 「別モデル/別世代」の確定情報
         // (例: WH-1000XM4 vs WH-1000XM5、iPhone 15 128GB vs 256GB — extractModelNumber は
@@ -109,7 +152,7 @@ object ProductMatcher {
         //    ブランド+カテゴリ語を共有するだけの別商品 (イヤホン vs ヘッドホン) を系統的に
         //    高く見積もるため、BIGRAM_DICE_WEIGHT で減衰してから max() でブレンドする。
         //    さらに weights があればトークン側を IDF 重み付き Jaccard にする (研究 3-1)。
-        val titleSim = titleSimilarity(a.title, b.title, weights)
+        val titleSim = titleSimilarityOf(fa, fb, weights)
 
         val base = when {
             modelMatch -> (0.7 + titleSim * 0.3).coerceAtMost(1.0)
@@ -124,18 +167,18 @@ object ProductMatcher {
         // 下回らないため、乗算ペナルティで確実に落とす (0.9 × 0.5 = 0.45 < 0.6)。
         // 両者から属性が取れて食い違う場合のみ減点 (どちらかが不明なら中立 — 保守的)。
         var penalty = 1.0
-        val qtyA = extractQuantity(a.title)
-        val qtyB = extractQuantity(b.title)
+        val qtyA = fa.quantity
+        val qtyB = fb.quantity
         if (qtyA != null && qtyB != null && qtyA != qtyB) penalty *= 0.5
-        val colorA = extractColor(a.title)
-        val colorB = extractColor(b.title)
+        val colorA = fa.color
+        val colorB = fb.color
         if (colorA != null && colorB != null && colorA != colorB) penalty *= 0.6
         // 内容量/重量の食い違い (洗剤 500ml vs 1L、コーヒー 200g vs 500g) も別 SKU の
         // 強いシグナル。個数/色と同じく両者から一意に取れて食い違う場合のみ減点する。
         // 同ドメイン (液体 ml / 重量 mg) 同士で量が違うときだけ — ml と g の偶然の
         // 数字一致は不一致とみなさない (保守的)。
-        val volA = extractVolume(a.title)
-        val volB = extractVolume(b.title)
+        val volA = fa.volume
+        val volB = fb.volume
         if (volA != null && volB != null && volA.domain == volB.domain && volA.baseAmount != volB.baseAmount) {
             penalty *= 0.5
         }
@@ -154,9 +197,17 @@ object ProductMatcher {
      * 2段階 (arXiv 2512.07232 Rough Filtering):
      *  1. JAN コードがある商品は JAN でバケット化 (確実 & 高速 O(n))
      *  2. JAN がない商品のみタイトル類似度で照合 (O(m²), m = JAN なし件数)
+     *
+     * 比較回数は O(m²) のままだが、タイトル由来の特徴量 ([Features]) は商品ごとに
+     * 1 回だけ導出して使い回す。以前は 1 比較ごとに NFKC + 正規表現の派生を
+     * 6 系統 × 2 タイトル 実行しており、それが O(m²) 回 走っていた。
+     * 出力は不変 (純粋なメモ化)。
      */
     fun groupByIdentity(products: List<Product>): List<List<Product>> {
-        val groups = mutableListOf<MutableList<Product>>()
+        // 添字で扱い、最後に Product へ戻す。グループの順序 (JAN グループ → 生成順の
+        // JAN-less グループ) と HashMap の反復順は従来と同一に保つ。
+        val feats = products.map { featuresOf(it.title) }
+        val groups = mutableListOf<MutableList<Int>>()
 
         // 候補集合そのものを corpus とみなした IDF 重み (研究 3-1, Sparkly PVLDB 2023)。
         // 素の Jaccard はブランド名・カテゴリ語 (「山田養蜂場」「国産」「はちみつ」) を
@@ -166,14 +217,14 @@ object ProductMatcher {
         val weights = tokenIdfWeights(products.map { it.title })
 
         // 1. JAN コードで確実にバケット化
-        val byJan = HashMap<String, MutableList<Product>>()
-        val noJan = mutableListOf<Product>()
-        for (p in products) {
+        val byJan = HashMap<String, MutableList<Int>>()
+        val noJan = mutableListOf<Int>()
+        for ((i, p) in products.withIndex()) {
             val jan = p.janCode
             if (!jan.isNullOrBlank()) {
-                byJan.getOrPut(jan) { mutableListOf() } += p
+                byJan.getOrPut(jan) { mutableListOf() } += i
             } else {
-                noJan += p
+                noJan += i
             }
         }
         groups += byJan.values
@@ -182,16 +233,21 @@ object ProductMatcher {
         //    既存 JAN グループにも合流できるなら合流 (型番一致など)
         //    g.any: JAN-less 商品が作ったグループでは g.first() だけでなく
         //    全メンバーと照合しないと、後発の JAN-less 商品を取り込み損ねる。
-        for (p in noJan) {
-            val group = groups.firstOrNull { g -> g.any { isMatch(it, p, weights) } }
+        for (i in noJan) {
+            val group = groups.firstOrNull { g ->
+                g.any {
+                    similarity(products[it], products[i], feats[it], feats[i], weights) >=
+                        MATCH_THRESHOLD
+                }
+            }
             if (group != null) {
-                group += p
+                group += i
             } else {
-                groups += mutableListOf(p)
+                groups += mutableListOf(i)
             }
         }
 
-        return groups.map { g -> g.sortedBy { it.totalPrice } }
+        return groups.map { g -> g.map { products[it] }.sortedBy { it.totalPrice } }
     }
 
     /**
@@ -260,9 +316,12 @@ object ProductMatcher {
         titleA: String,
         titleB: String,
         weights: TokenWeights? = null,
-    ): Double {
-        val jaccard = weightedJaccard(titleA, titleB, weights)
-        val dice = BIGRAM_DICE_WEIGHT * charBigramDice(titleA, titleB)
+    ): Double = titleSimilarityOf(featuresOf(titleA), featuresOf(titleB), weights)
+
+    /** [titleSimilarity] の特徴量版 (再正規化なし)。 */
+    internal fun titleSimilarityOf(fa: Features, fb: Features, weights: TokenWeights?): Double {
+        val jaccard = weightedJaccardOf(fa.tokens, fb.tokens, weights)
+        val dice = BIGRAM_DICE_WEIGHT * diceOf(fa.bigrams, fb.bigrams)
         return maxOf(jaccard, dice)
     }
 
@@ -278,9 +337,14 @@ object ProductMatcher {
         titleA: String,
         titleB: String,
         weights: TokenWeights?,
+    ): Double = weightedJaccardOf(normalizeTitle(titleA), normalizeTitle(titleB), weights)
+
+    /** [weightedJaccard] のトークン集合版 (再正規化なし)。 */
+    private fun weightedJaccardOf(
+        a: Set<String>,
+        b: Set<String>,
+        weights: TokenWeights?,
     ): Double {
-        val a = normalizeTitle(titleA)
-        val b = normalizeTitle(titleB)
         if (weights == null) return jaccardSimilarity(a, b)
         if (a.isEmpty() || b.isEmpty()) return 0.0
         var union = 0.0
@@ -296,9 +360,11 @@ object ProductMatcher {
      * normalizeTitle() と同じ前段正規化 (NFKC → 小文字 → ノイズ語/記号除去) を共有し、
      * トークン化の代わりに空白を全除去した 1 本の文字列から 2-gram を作る。
      */
-    internal fun charBigramDice(titleA: String, titleB: String): Double {
-        val a = charBigrams(normalizeForBigrams(titleA))
-        val b = charBigrams(normalizeForBigrams(titleB))
+    internal fun charBigramDice(titleA: String, titleB: String): Double =
+        diceOf(charBigrams(normalizeForBigrams(titleA)), charBigrams(normalizeForBigrams(titleB)))
+
+    /** [charBigramDice] の 2-gram 集合版 (再正規化なし)。 */
+    private fun diceOf(a: Set<String>, b: Set<String>): Double {
         if (a.isEmpty() || b.isEmpty()) return 0.0
         val intersection = a.intersect(b).size
         return 2.0 * intersection / (a.size + b.size)

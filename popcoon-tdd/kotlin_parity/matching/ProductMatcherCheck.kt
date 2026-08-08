@@ -251,6 +251,48 @@ fun main() {
     check("groupByIdentity still merges true duplicates", 4,
         ProductMatcher.groupByIdentity(dupes).size)
 
+    // ── 特徴量メモ化の等価性 (2026-08 perf 修正) ────────────────────────────────
+    // similarity は 1 比較ごとに NFKC + 正規表現の派生を 6 系統 × 2 タイトル 実行しており、
+    // groupByIdentity の総当たりでそれが O(m²) 回 走っていた。商品ごとに 1 回だけ導出して
+    // 使い回すよう変更したが、これは純粋なメモ化で **出力は 1 ビットも変わらない** ことを
+    // 文字列経路と特徴量経路の突き合わせで固定する。
+    val titleSamples = listOf(
+        "明治おいしい牛乳900ml", "明治 おいしい牛乳 900ml 送料無料",
+        "ソニー WH-1000XM5 ブラック", "SONY WH-1000XM4 ブラック Bluetooth",
+        "山田養蜂場 国産 アカシア はちみつ", "杉養蜂園 国産 れんげ はちみつ 300g",
+        "アタック 洗剤 詰替 1L", "アタック 洗剤 詰替 500ml",
+        "ユニクロ ジャケット カーキ M", "ユニクロ ジャケット ブラック M",
+        "コーヒー豆 ブラジル 500g", "ゲーミングマウス ロジクール",
+        "りんご 5個セット", "りんご 3個セット", "", "あ",
+        "ＳＯＮＹ　ＷＦ－１０００ＸＭ４　イヤホン",
+    )
+    val sampleWeights = ProductMatcher.tokenIdfWeights(titleSamples)!!
+    for (ta in titleSamples) for (tb in titleSamples) {
+        val fa = ProductMatcher.featuresOf(ta)
+        val fb = ProductMatcher.featuresOf(tb)
+        approx("memoized titleSimilarity == string path [$ta|$tb]",
+            ProductMatcher.titleSimilarity(ta, tb),
+            ProductMatcher.titleSimilarityOf(fa, fb, null), 0.0)
+        // 重み付き経路も一致する
+        approx("memoized weighted titleSim == string path [$ta|$tb]",
+            ProductMatcher.titleSimilarity(ta, tb, sampleWeights),
+            ProductMatcher.titleSimilarityOf(fa, fb, sampleWeights), 0.0)
+    }
+    // featuresOf の各成分が個別 API と一致する
+    for (t in titleSamples) {
+        val f = ProductMatcher.featuresOf(t)
+        check("featuresOf model [$t]", ProductMatcher.extractModelNumber(t), f.model)
+        check("featuresOf quantity [$t]", ProductMatcher.extractQuantity(t), f.quantity)
+        check("featuresOf color [$t]", ProductMatcher.extractColor(t), f.color)
+        check("featuresOf volume [$t]", ProductMatcher.extractVolume(t), f.volume)
+        check("featuresOf tokens [$t]", ProductMatcher.normalizeTitle(t), f.tokens)
+    }
+    // groupByIdentity の順序安定性: 同じ入力なら同じ分割・同じ並び
+    val stability = titleSamples.mapIndexed { i, t -> pc("S$i", Platform.entries[i % 3], t) }
+    val g1 = ProductMatcher.groupByIdentity(stability).map { g -> g.map { it.sku } }
+    val g2 = ProductMatcher.groupByIdentity(stability).map { g -> g.map { it.sku } }
+    check("groupByIdentity is deterministic", g1, g2)
+
     if (fails == 0) {
         println("PRODUCT MATCHER: all assertions passed")
     } else {
