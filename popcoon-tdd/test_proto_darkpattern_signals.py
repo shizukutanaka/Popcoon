@@ -198,3 +198,52 @@ def test_obstruction_sort_order():
     cats = [w["category"] for w in detect_dark_patterns(text)]
     assert cats == ["MISDIRECTION", "OBSTRUCTION", "SCARCITY", "URGENCY"]
     assert cats == sorted(cats)
+
+
+# ── URGENCY recall 拡張 (消費者庁 2026-06-18 意識調査: 経験した類型の最多) ──────
+
+
+def test_urgency_ato_prefix_time_counter():
+    # 「あと」は「残り」と同義。従来は URGENCY 側が 残り のみで取りこぼしていた。
+    assert _sev("あと3時間で終了", "URGENCY") == "MEDIUM"
+    assert _sev("あと30分", "URGENCY") == "MEDIUM"
+    assert _sev("あと45秒", "URGENCY") == "MEDIUM"
+    # 既存の 残り も不変
+    assert _sev("残り3時間", "URGENCY") == "MEDIUM"
+
+
+def test_urgency_deadline_imminent_phrases():
+    for text in ["終了間近", "締切間近", "締め切り間近", "セール終了間近です"]:
+        assert "URGENCY" in _cats(text), text
+
+
+def test_urgency_sellout_and_final_day():
+    for text in ["売り切れ次第終了", "本日最終日", "セール最終日", "販売最終日"]:
+        assert "URGENCY" in _cats(text), text
+
+
+def test_urgency_english_recall():
+    for text in ["Last chance!", "Don't miss out", "Dont miss out",
+                 "Offer ends tonight", "Final hours", "Final hour",
+                 "While supplies last"]:
+        assert "URGENCY" in _cats(text), text
+
+
+def test_urgency_does_not_fire_on_legitimate_product_attributes():
+    # 「期間限定」は商品属性 (限定フレーバー等) を指す用法が多く、意図的に非対象。
+    assert "URGENCY" not in _cats("期間限定フレーバー いちご味")
+    assert "URGENCY" not in _cats("期間限定パッケージ")
+    # 裸の「最終日」は配送文脈を拾うため非対象 (本日/セール/販売 で限定している)。
+    assert "URGENCY" not in _cats("最終日までにお届けします")
+    # 日単位は納期であって煽りではない (時間/分/秒に限定)。
+    assert "URGENCY" not in _cats("あと5日で発送")
+    assert "URGENCY" not in _cats("残り3日で入荷")
+    # 終了済みの事実表明は煽りではない
+    assert "URGENCY" not in _cats("キャンペーンは終了しました")
+    # 通常の商品説明
+    assert "URGENCY" not in _cats("オーガニックコットン100%のタオルです。送料無料。")
+
+
+def test_urgency_time_counter_still_not_scarcity():
+    # 回帰: 時間系カウンタは URGENCY であって SCARCITY ではない。
+    assert "SCARCITY" not in _cats("あと3時間で終了")

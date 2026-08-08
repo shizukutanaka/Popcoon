@@ -21,16 +21,32 @@ FORCED_ACTION = "FORCED_ACTION"
 HIDDEN_SUBSCRIPTION = "HIDDEN_SUBSCRIPTION"
 OBSTRUCTION = "OBSTRUCTION"
 
+# 緊急性の煽り。消費者庁 2026-06-18 意識調査で「過去1年に経験した」類型の **最多** が
+# 緊急性の強調 (回答者の 76.2% が何らかのダークパターンを目撃、37.5% が経験)。
+# recall を広げる一方、正当な販促表示との重なりが大きい語は意図的に **入れない**:
+#  - 「期間限定」: 「期間限定フレーバー」のように商品属性を指す用法が多く誤爆源。
+#  - 裸の「最終日」: 「最終日までにお届け」等の配送文脈を拾う。本日/セール/販売で限定する。
+#  - 日単位のカウンタ: 「あと5日で発送」は納期であって煽りではない (時間/分/秒に限定)。
 _URGENCY_PATTERNS = [
-    r"残り\s*\d+\s*(?:時間|分|秒)",
+    # 「あと」は「残り」と同義の接頭辞。従来は残りのみで「あと3時間」を取りこぼしていた
+    # (SCARCITY 側は在庫助数詞で あと に対応済みだったが URGENCY 側は未対応だった)。
+    r"(?:残り|あと)\s*\d+\s*(?:時間|分|秒)",
     r"本日限り",
     r"今だけ",
     r"まもなく(?:終了|締切)",
+    r"(?:終了|締切|締め切り)間近",
+    r"売り切れ次第終了",
+    r"(?:本日|セール|販売)最終日",
     r"(?i)ending soon",
     r"(?i)limited[- ]time",
     r"(?i)\bhurry\b",
     r"(?i)act now",
     r"(?i)today only",
+    r"(?i)last chance",
+    r"(?i)don'?t miss out",
+    r"(?i)offer ends",
+    r"(?i)final hours?",
+    r"(?i)while supplies last",
 ]
 _SOCIAL_PROOF_PATTERNS = [
     r"\d+\s*人が[^。\n]{0,15}(?:見て|閲覧|カート|購入)",

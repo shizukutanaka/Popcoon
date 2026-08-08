@@ -157,6 +157,48 @@ class DarkPatternTextDetectorTest : StringSpec({
             DarkPatternTextDetector.Category.HIDDEN_SUBSCRIPTION
     }
 
+    // ── URGENCY recall 拡張 (消費者庁 2026-06-18 意識調査: 経験した類型の最多) ──
+    "URGENCY: 「あと」接頭辞の時間カウンタを拾う" {
+        listOf("あと3時間で終了", "あと30分", "あと45秒", "残り3時間").forEach { text ->
+            sev(text, DarkPatternTextDetector.Category.URGENCY) shouldBe
+                DarkPatternTextDetector.Severity.MEDIUM
+        }
+    }
+
+    "URGENCY: 締切迫る・売り切れ次第・限定つき最終日を拾う" {
+        listOf(
+            "終了間近", "締切間近", "締め切り間近", "セール終了間近です",
+            "売り切れ次第終了", "本日最終日", "セール最終日", "販売最終日",
+        ).forEach { text ->
+            cats(text) shouldContain DarkPatternTextDetector.Category.URGENCY
+        }
+    }
+
+    "URGENCY: 英語の煽り表現を拾う" {
+        listOf(
+            "Last chance!", "Don't miss out", "Dont miss out",
+            "Offer ends tonight", "Final hours", "Final hour", "While supplies last",
+        ).forEach { text ->
+            cats(text) shouldContain DarkPatternTextDetector.Category.URGENCY
+        }
+    }
+
+    "URGENCY: 正当な商品属性・配送文脈は誤検出しない" {
+        // 「期間限定」は商品属性を指す用法が多いため意図的に非対象。
+        // 裸の「最終日」は配送文脈を拾うため非対象。日単位は納期であって煽りではない。
+        listOf(
+            "期間限定フレーバー いちご味", "期間限定パッケージ",
+            "最終日までにお届けします", "あと5日で発送", "残り3日で入荷",
+            "キャンペーンは終了しました",
+        ).forEach { text ->
+            cats(text) shouldNotContain DarkPatternTextDetector.Category.URGENCY
+        }
+    }
+
+    "URGENCY: 時間カウンタは SCARCITY にしない (回帰)" {
+        cats("あと3時間で終了") shouldNotContain DarkPatternTextDetector.Category.SCARCITY
+    }
+
     // ── OBSTRUCTION (解約妨害) ───────────────────────────────────────────────
     "OBSTRUCTION: 解約手段を電話に限定する表現は HIGH" {
         listOf(

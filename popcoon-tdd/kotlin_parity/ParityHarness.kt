@@ -253,6 +253,16 @@ fun main() {
         TX("自動更新されます", null),          // HIDDEN_SUBSCRIPTION (自動継続)
         TX("Subscription automatically renews", null),  // HIDDEN_SUBSCRIPTION (英語)
         TX("本日限り 定期購入コース", null),   // URGENCY + HIDDEN_SUBSCRIPTION → ソート順検査
+        TX("あと3時間で終了", null),                     // URGENCY あと接頭辞 (従来は非検出)
+        TX("あと30分", null),                            // URGENCY 分
+        TX("終了間近", null),                            // URGENCY 締切迫る系
+        TX("売り切れ次第終了", null),                     // URGENCY 売り切れ次第
+        TX("本日最終日", null),                          // URGENCY 限定つき最終日
+        TX("Last chance! Offer ends tonight", null),     // URGENCY 英語
+        TX("期間限定フレーバー いちご味", null),           // 商品属性 → 非検出 (誤爆ガード)
+        TX("最終日までにお届けします", null),              // 配送文脈 → 非検出 (誤爆ガード)
+        TX("残り3日で入荷", null),                        // 日単位 → 非検出 (誤爆ガード)
+        TX("キャンペーンは終了しました", null),            // 終了済み → 非検出 (誤爆ガード)
         TX("解約はお電話のみで承ります", null),          // OBSTRUCTION 電話限定 (HIGH)
         TX("定期の停止はお電話のみ", null),              // OBSTRUCTION 定期停止の電話限定
         TX("お電話のみでの解約受付となります", null),      // OBSTRUCTION 語順逆 (電話→解約)

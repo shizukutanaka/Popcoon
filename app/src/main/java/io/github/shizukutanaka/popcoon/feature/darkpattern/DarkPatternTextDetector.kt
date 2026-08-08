@@ -35,16 +35,32 @@ object DarkPatternTextDetector {
     // (?U) = UNICODE_CHARACTER_CLASS。\d \s \b を Unicode 対応にし、全角数字 (３) や
     // 全角空白 (U+3000) を Python (str 既定で Unicode) と同様に検出する。ASCII 専用の
     // Java/Kotlin 既定だと「残り３点」「残り　3　点」を取りこぼし、Python 参照と乖離する。
+    // 緊急性の煽り。消費者庁 2026-06-18 意識調査で「過去1年に経験した」類型の **最多** が
+    // 緊急性の強調 (76.2% が目撃、37.5% が経験) — recall を優先的に広げる価値が高い。
+    // ただし正当な販促表示との重なりが大きい語は意図的に **入れない** (2026-08 リサーチ):
+    //  - 「期間限定」: 「期間限定フレーバー」のように商品属性を指す用法が多く誤爆源。
+    //  - 裸の「最終日」: 「最終日までにお届け」等の配送文脈を拾う。本日/セール/販売で限定。
+    //  - 日単位のカウンタ: 「あと5日で発送」は納期であって煽りではない (時間/分/秒に限定)。
     private val URGENCY = listOf(
-        Regex("(?U)残り\\s*\\d+\\s*(?:時間|分|秒)"),
+        // 「あと」は「残り」と同義の接頭辞。従来は 残り のみで「あと3時間」を取りこぼして
+        // いた (SCARCITY 側は在庫助数詞で あと 対応済みだが URGENCY 側は未対応だった)。
+        Regex("(?U)(?:残り|あと)\\s*\\d+\\s*(?:時間|分|秒)"),
         Regex("本日限り"),
         Regex("今だけ"),
         Regex("まもなく(?:終了|締切)"),
+        Regex("(?:終了|締切|締め切り)間近"),
+        Regex("売り切れ次第終了"),
+        Regex("(?:本日|セール|販売)最終日"),
         Regex("ending soon", RegexOption.IGNORE_CASE),
         Regex("limited[- ]time", RegexOption.IGNORE_CASE),
         Regex("(?U)\\bhurry\\b", RegexOption.IGNORE_CASE),
         Regex("act now", RegexOption.IGNORE_CASE),
         Regex("today only", RegexOption.IGNORE_CASE),
+        Regex("last chance", RegexOption.IGNORE_CASE),
+        Regex("don'?t miss out", RegexOption.IGNORE_CASE),
+        Regex("offer ends", RegexOption.IGNORE_CASE),
+        Regex("final hours?", RegexOption.IGNORE_CASE),
+        Regex("while supplies last", RegexOption.IGNORE_CASE),
     )
 
     private val SOCIAL_PROOF = listOf(
