@@ -4,8 +4,9 @@ CATEGORY_RESEARCH.md cat1 / RESEARCH_IMPROVEMENTS.md A6 で洗い出した改善
 - 出典: 軽量オンライン Conformal Prediction (arXiv:2505.08158)、
         時系列CP入門 (arXiv:2511.13608)。
 
-現状 `PricePredictionEngine.predictionMargin` は RMSE ベースで被覆保証がない。
 Split-conformal で **分布フリーの被覆保証付き区間**（「(1-alpha) の確率で ±margin」）を返す。
+`PricePredictionEngine.predictionMargin` は RMSE ベースから本モジュール由来の
+conformal margin へ移行済み (較正 horizon は `holt_multistep_residuals` で予測 horizon に一致させる)。
 ゼロ依存・決定的でオンデバイス実装可能。
 
 理論: 交換可能なキャリブレーション残差に対し、
@@ -112,3 +113,44 @@ def adaptive_conformal_margin(
         err = 1.0 if r > q else 0.0
         q = max(0.0, q + eta * (err - alpha))
     return q
+
+
+def holt_multistep_residuals(
+    data: List[float],
+    horizon: int = 1,
+    alpha_s: float = 0.3,
+    beta_s: float = 0.1,
+) -> List[float]:
+    """Holt 線形平滑の **horizon ステップ先** 予測残差列。
+
+    conformal の被覆保証は「キャリブレーション残差と本番の予測誤差が同分布」を前提とする。
+    つまり h 日先の区間には h ステップ先残差で較正した margin が必要で、1 ステップ先残差の
+    分位点を h 日先に流用すると系統的に過小被覆する (多段先の誤差は累積するため)。
+    出典: Conformal Prediction Algorithms for Time Series Forecasting: Methods and
+    Benchmarking (arXiv:2601.18509, 2026-01) — multi-step split conformal が
+    90% 被覆を満たしつつ最良の効率を示す、というベンチマーク結果に対応する。
+
+    アルゴリズム: 各原点 i (data[:i] まで吸収した状態) の (level, trend) から
+    h ステップ先を `level + trend * h` で予測し、実測 data[i+h-1] との差を取る。
+    状態更新は `_holt_linear` / Kotlin `holtLinear` と同一の再帰。
+
+    horizon=1 のとき従来の 1 ステップ先残差列と厳密に一致する (後方互換)。
+    data が 3 点未満、または h ステップ先の実測が 1 つも取れない場合は空リスト。
+    """
+    if horizon < 1:
+        raise ValueError("horizon must be >= 1")
+    if len(data) < 3:
+        return []
+
+    level = data[0]
+    trend = data[1] - data[0]
+    out: List[float] = []
+    for i in range(1, len(data)):
+        target = i + horizon - 1
+        if target < len(data):
+            out.append(data[target] - (level + trend * horizon))
+        y = data[i]
+        prev_level = level
+        level = alpha_s * y + (1 - alpha_s) * (level + trend)
+        trend = beta_s * (level - prev_level) + (1 - beta_s) * trend
+    return out

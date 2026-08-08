@@ -142,6 +142,30 @@ fun main() {
         println("ADAPTIVE_CONFORMAL\t${c.residuals.joinToString(";")}\t${c.alpha}\t${"%.10f".format(m)}")
     }
 
+    // ── HOLTRES: Holt の horizon ステップ先残差列 ───────────────────────────────
+    // conformal margin の入力そのもの。従来ここが未照合で、7/30 日先の区間を 1 ステップ先
+    // 残差で較正していた過小被覆バグが両言語で検出できなかった (2026-08 リサーチ)。
+    // proto_conformal_interval.holt_multistep_residuals と照合。
+    data class HR(val data: List<Double>, val horizon: Int)
+    val trending = listOf(1000.0, 1010.0, 990.0, 1030.0, 1005.0, 1040.0, 995.0,
+                          1050.0, 1020.0, 1060.0, 1010.0, 1070.0, 1030.0, 1080.0)
+    val holtRes = listOf(
+        HR(trending, 1),                        // 後方互換: 従来の 1 期先残差
+        HR(trending, 7),                        // 7 日先 (predicted7d の較正)
+        HR(trending, 13),                       // 残差 1 件だけ残る境界
+        HR(trending, 14),                       // 実測が取れない → 空
+        HR(trending, 30),                       // 30 日先だが履歴不足 → 空
+        HR(List(20) { 1000.0 }, 7),             // 定数列 → 全て 0
+        HR(List(20) { 1000.0 + 5.0 * it }, 7),  // 完全直線 → 誤差ゼロで外挿
+        HR(listOf(1000.0, 1100.0), 1),          // 3 点未満 → 空
+        HR(emptyList(), 1),                     // 空入力 → 空
+    )
+    for (h in holtRes) {
+        val r = PricePredictionEngine.holtResiduals(h.data, h.horizon)
+        val enc = r.joinToString(";") { "%.10f".format(it) }
+        println("HOLTRES\t${h.data.joinToString(";")}\t${h.horizon}\t$enc")
+    }
+
     // ── SEASONAL: trend+seasonal 分解予測 (中心移動平均 + 最小二乗線形) ──────────
     // 価格列・horizon・period → 予測列。proto_seasonal_decomp_forecast と照合。
     data class SC(val prices: List<Double>, val horizon: Int, val period: Int)

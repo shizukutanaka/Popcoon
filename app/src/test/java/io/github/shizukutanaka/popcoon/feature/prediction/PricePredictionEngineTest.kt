@@ -2,6 +2,8 @@ package io.github.shizukutanaka.popcoon.feature.prediction
 
 import io.github.shizukutanaka.popcoon.data.model.PriceRecord
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -128,8 +130,33 @@ class PricePredictionEngineTest : StringSpec({
     "予測区間は常に非負" {
         checkAll(Arb.list(Arb.int(0..5000), 14..40)) { prices ->
             val p = PricePredictionEngine.predict(fixedHistory(prices.map { it.toLong() }))
-            if (p != null) p.predictionMargin shouldBeGreaterThanOrEqualTo 0L
+            if (p != null) {
+                p.predictionMargin shouldBeGreaterThanOrEqualTo 0L
+                p.predictionMargin30d shouldBeGreaterThanOrEqualTo 0L
+            }
         }
+    }
+
+    // ── horizon 一致較正 (arXiv:2601.18509 multi-step split conformal) ──────
+    "30日先の margin は 7日先より広い (多段先の誤差は累積する)" {
+        // 十分な履歴 (61点) で 30 ステップ先残差が取れるボラティリティのある系列。
+        val volatile = (0 until 61).map { 1000L + (it % 5) * 200L }
+        val p = PricePredictionEngine.predict(fixedHistory(volatile))!!
+        p.predictionMargin30d shouldBeGreaterThan p.predictionMargin
+    }
+
+    "履歴が30ステップ先の実測を含まないとき margin30d は 0 (算出不能を偽らない)" {
+        // 30点では 30 ステップ先の実測が 1 つも取れない → 0。
+        // 7日先の margin を流用して「区間がある」ように見せてはならない。
+        val p = PricePredictionEngine.predict(fixedHistory((0 until 30).map { 1000L + it * 7L }))!!
+        p.predictionMargin30d shouldBe 0L
+    }
+
+    "holtResiduals: horizon=1 は 1期先残差、horizon を上げると件数が減る" {
+        val data = (0 until 14).map { 1000.0 + it * 3.0 }
+        PricePredictionEngine.holtResiduals(data, 1) shouldHaveSize 13
+        PricePredictionEngine.holtResiduals(data, 7) shouldHaveSize 7
+        PricePredictionEngine.holtResiduals(data, 14).shouldBeEmpty()
     }
 
     // ── Confidence 判定 (履歴日数ベース) ──────────────────────────────────

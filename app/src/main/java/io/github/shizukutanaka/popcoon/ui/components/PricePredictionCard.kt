@@ -68,10 +68,12 @@ fun PricePredictionCard(
                 price = prediction.predicted7d,
                 margin = prediction.predictionMargin,
             )
+            // 30日先は 30 ステップ先残差で較正した専用 margin を使う。7日先の margin を
+            // 流用していた頃は、30 日先の不確実性を大幅に過小表示していた (実測被覆 20.5%)。
             PredictionRow(
                 label = stringResource(R.string.prediction_30d),
                 price = prediction.predicted30d,
-                margin = prediction.predictionMargin,
+                margin = prediction.predictionMargin30d,
             )
             // A1: 季節分解予測（週次パターンがある商品で精度向上、PORTING_SPEC.md A1）
             if (prediction.seasonalForecast7d > 0L) {

@@ -6,6 +6,7 @@ from proto_conformal_interval import (
     adaptive_conformal_margin,
     conformal_margin,
     empirical_coverage,
+    holt_multistep_residuals,
     predict_interval,
 )
 
@@ -121,3 +122,74 @@ def test_adaptive_deterministic():
     m1 = adaptive_conformal_margin(RESIDUALS, alpha=0.1)
     m2 = adaptive_conformal_margin(RESIDUALS, alpha=0.1)
     assert m1 == m2
+
+
+# ── horizon 一致 (multi-step) 残差 ────────────────────────────────────────
+# 出典: arXiv:2601.18509 (2026-01) — h 日先の区間は h ステップ先残差で較正する。
+
+_SERIES = [1000.0, 1010.0, 990.0, 1030.0, 1005.0, 1040.0, 995.0,
+           1050.0, 1020.0, 1060.0, 1010.0, 1070.0, 1030.0, 1080.0]
+
+
+def _holt_1step_reference(data, alpha_s=0.3, beta_s=0.1):
+    """従来の 1 ステップ先残差 (Kotlin holtResiduals の元実装と同一)。"""
+    if len(data) < 3:
+        return []
+    level, trend = data[0], data[1] - data[0]
+    out = []
+    for i in range(1, len(data)):
+        out.append(data[i] - (level + trend))
+        y = data[i]
+        prev = level
+        level = alpha_s * y + (1 - alpha_s) * (level + trend)
+        trend = beta_s * (level - prev) + (1 - beta_s) * trend
+    return out
+
+
+def test_horizon_one_matches_legacy_one_step_residuals():
+    # 後方互換: horizon=1 は従来の 1 ステップ先残差列と厳密一致する。
+    assert holt_multistep_residuals(_SERIES, 1) == _holt_1step_reference(_SERIES)
+
+
+def test_residual_count_shrinks_with_horizon():
+    # h ステップ先の実測が要るので、残差は h-1 件ずつ減る。
+    n = len(_SERIES)
+    assert len(holt_multistep_residuals(_SERIES, 1)) == n - 1
+    assert len(holt_multistep_residuals(_SERIES, 7)) == n - 7
+    assert holt_multistep_residuals(_SERIES, len(_SERIES)) == []
+    assert holt_multistep_residuals(_SERIES, 99) == []
+
+
+def test_multistep_residuals_are_larger_on_a_trending_series():
+    # トレンドのある系列では多段先の誤差が累積し、margin が広がる。
+    # これが 1 ステップ残差流用による過小被覆の正体。
+    m1 = adaptive_conformal_margin(holt_multistep_residuals(_SERIES, 1))
+    m7 = adaptive_conformal_margin(holt_multistep_residuals(_SERIES, 7))
+    assert m7 > m1
+
+
+def test_constant_series_has_zero_residuals_at_any_horizon():
+    flat = [1000.0] * 20
+    for h in (1, 7, 30):
+        assert all(abs(r) < 1e-9 for r in holt_multistep_residuals(flat, h))
+
+
+def test_perfect_linear_trend_is_predicted_exactly_at_any_horizon():
+    # Holt は初期 trend を data[1]-data[0] で置くため完全直線は誤差ゼロで外挿できる。
+    linear = [1000.0 + 5.0 * i for i in range(20)]
+    for h in (1, 3, 7):
+        assert all(abs(r) < 1e-6 for r in holt_multistep_residuals(linear, h))
+
+
+def test_short_series_returns_empty():
+    assert holt_multistep_residuals([], 1) == []
+    assert holt_multistep_residuals([1.0, 2.0], 1) == []
+
+
+def test_invalid_horizon_raises():
+    with pytest.raises(ValueError):
+        holt_multistep_residuals(_SERIES, 0)
+
+
+def test_deterministic():
+    assert holt_multistep_residuals(_SERIES, 7) == holt_multistep_residuals(_SERIES, 7)
