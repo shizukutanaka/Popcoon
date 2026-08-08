@@ -2,7 +2,8 @@ package io.github.shizukutanaka.popcoon.feature.darkpattern
 
 /**
  * UIテキスト系ダークパターン検出
- * （URGENCY / SCARCITY / SOCIAL_PROOF / MISDIRECTION / FORCED_ACTION / HIDDEN_SUBSCRIPTION）。
+ * （URGENCY / SCARCITY / SOCIAL_PROOF / MISDIRECTION / FORCED_ACTION / HIDDEN_SUBSCRIPTION /
+ * OBSTRUCTION）。
  * 価格・数値系は既存 DarkPatternDetector が担当。
  *
  * 学術根拠: Mathur CSCW2019 / AidUI ICSE'23 / arXiv:2211.06543。
@@ -17,7 +18,9 @@ package io.github.shizukutanaka.popcoon.feature.darkpattern
 object DarkPatternTextDetector {
 
     /** カテゴリを Python 名（＝アルファベット順）で定義。ordinal がソートキーになる。 */
-    enum class Category { FORCED_ACTION, HIDDEN_SUBSCRIPTION, MISDIRECTION, SCARCITY, SOCIAL_PROOF, URGENCY }
+    enum class Category {
+        FORCED_ACTION, HIDDEN_SUBSCRIPTION, MISDIRECTION, OBSTRUCTION, SCARCITY, SOCIAL_PROOF, URGENCY,
+    }
 
     enum class Severity { LOW, MEDIUM, HIGH }
 
@@ -72,6 +75,33 @@ object DarkPatternTextDetector {
         Regex("(?U)recurring\\s+(?:billing|charge|payment|subscription)", RegexOption.IGNORE_CASE),
     )
 
+    // 解約妨害 (OECD 2022 taxonomy の "Obstruction" / いわゆるローチモーテル)。
+    // HIDDEN_SUBSCRIPTION が「契約が継続することを隠す」類型なのに対し、こちらは
+    // 「契約後に抜けにくくする」類型で規制上も別物 (2026-08 リサーチ):
+    // 消費者庁「デジタル取引・特定商取引法等検討会」第4回 (2026-04) が「契約・解約場面に
+    // おける規律の在り方」を独立論点として審議 (中間とりまとめ 2026 夏)。特商法 2022-06 施行の
+    // 最終確認画面義務の下でも「いつでも解約可能」と表示しつつ実際は「次回発送の N 日前までに
+    // 電話で連絡」を課す相談が継続している。
+    //
+    // 深刻度2段階: 電話限定 = HIGH (「電話が繋がらない」が相談事例の最頻出の実害)、
+    // 次回発送日起点の事前連絡期限 = MEDIUM (実効的な解約可能期間を圧縮する条件)。
+    // 誤爆ガード: 限定語 (のみ/だけ/に限) を必須にし複数手段の提示は拾わない。期限側は
+    // 後続に解約文脈語を要求し「次回お届け日の変更は3日前まで」を除外する。
+    private val OBSTRUCTION_PHONE_ONLY = listOf(
+        Regex("(?:解約|退会|定期[^。\\n]{0,4}(?:停止|解除))[^。\\n]{0,12}(?:お)?電話[^。\\n]{0,6}(?:のみ|だけ|に限)"),
+        Regex("(?:お)?電話[^。\\n]{0,6}(?:のみ|だけ)[^。\\n]{0,12}(?:解約|退会)"),
+        Regex("(?U)cancel(?:lation)?[^.\\n]{0,20}by\\s+phone\\s+only", RegexOption.IGNORE_CASE),
+        Regex("(?U)call\\s+(?:us\\s+)?to\\s+cancel", RegexOption.IGNORE_CASE),
+    )
+
+    private val OBSTRUCTION_DEADLINE = listOf(
+        Regex(
+            "(?U)次回[^。\\n]{0,10}(?:発送|お届け|配送)[^。\\n]{0,10}\\d+\\s*日前まで" +
+                "[^。\\n]{0,12}(?:解約|退会|停止|キャンセル|連絡|申し出|申出)",
+        ),
+        Regex("(?U)cancel[^.\\n]{0,40}\\d+\\s*days?\\s+before", RegexOption.IGNORE_CASE),
+    )
+
     // ── 公開 API ────────────────────────────────────────────────────────────
 
     /**
@@ -107,6 +137,8 @@ object DarkPatternTextDetector {
             warnings += Signal(Category.HIDDEN_SUBSCRIPTION, ev, Severity.HIGH)
         }
 
+        detectObstruction(text)?.let { warnings += it }
+
         return warnings.sortedBy { it.category }
     }
 
@@ -114,6 +146,17 @@ object DarkPatternTextDetector {
 
     private fun firstMatch(text: String, patterns: List<Regex>): String? {
         for (p in patterns) p.find(text)?.let { return it.value }
+        return null
+    }
+
+    /** 解約妨害。電話限定 (HIGH) を事前連絡期限 (MEDIUM) より優先する。 */
+    private fun detectObstruction(text: String): Signal? {
+        firstMatch(text, OBSTRUCTION_PHONE_ONLY)?.let { ev ->
+            return Signal(Category.OBSTRUCTION, ev, Severity.HIGH)
+        }
+        firstMatch(text, OBSTRUCTION_DEADLINE)?.let { ev ->
+            return Signal(Category.OBSTRUCTION, ev, Severity.MEDIUM)
+        }
         return null
     }
 

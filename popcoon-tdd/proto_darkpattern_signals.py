@@ -19,6 +19,7 @@ SOCIAL_PROOF = "SOCIAL_PROOF"
 MISDIRECTION = "MISDIRECTION"
 FORCED_ACTION = "FORCED_ACTION"
 HIDDEN_SUBSCRIPTION = "HIDDEN_SUBSCRIPTION"
+OBSTRUCTION = "OBSTRUCTION"
 
 _URGENCY_PATTERNS = [
     r"残り\s*\d+\s*(?:時間|分|秒)",
@@ -52,6 +53,33 @@ _HIDDEN_SUBSCRIPTION_PATTERNS = [
     r"(?i)auto[-\s]?renew(?:s|al|ing)?",
     r"(?i)automatically\s+renews?",
     r"(?i)recurring\s+(?:billing|charge|payment|subscription)",
+]
+
+# 解約妨害 (OECD 2022 taxonomy の "Obstruction" / いわゆるローチモーテル)。
+# HIDDEN_SUBSCRIPTION が「契約が継続すること自体を隠す」類型なのに対し、こちらは
+# 「契約後に抜けにくくする」類型で、規制上も別物として扱われる (2026-08 リサーチ):
+#  - 消費者庁「デジタル取引・特定商取引法等検討会」第4回 (2026-04) が
+#    「契約・解約場面における規律の在り方」を独立論点として審議。中間とりまとめは 2026 夏。
+#  - 特商法 2022-06 施行の最終確認画面義務の下でも、「いつでも解約可能」と表示しつつ
+#    実際は「次回発送の N 日前までに電話で連絡」を課す相談が国民生活センター等に継続。
+#
+# 二段階の深刻度:
+#  HIGH   = 解約手段を電話に限定 (相談事例で「電話が繋がらない」が最頻出の実害)
+#  MEDIUM = 次回発送日起点の事前連絡期限 (実効的な解約可能期間を圧縮する条件)
+#
+# 誤爆ガード: 「のみ/だけ/に限」等の限定語を必須にし、「解約は電話またはマイページから」
+# のような複数手段の提示は拾わない。期限側も「解約/連絡/申し出」等の解約文脈語を
+# 後続に要求し、「次回お届け日の変更は3日前まで」のような無関係な期限を除外する。
+_OBSTRUCTION_PHONE_ONLY_PATTERNS = [
+    r"(?:解約|退会|定期[^。\n]{0,4}(?:停止|解除))[^。\n]{0,12}(?:お)?電話[^。\n]{0,6}(?:のみ|だけ|に限)",
+    r"(?:お)?電話[^。\n]{0,6}(?:のみ|だけ)[^。\n]{0,12}(?:解約|退会)",
+    r"(?i)cancel(?:lation)?[^.\n]{0,20}by\s+phone\s+only",
+    r"(?i)call\s+(?:us\s+)?to\s+cancel",
+]
+_OBSTRUCTION_DEADLINE_PATTERNS = [
+    r"次回[^。\n]{0,10}(?:発送|お届け|配送)[^。\n]{0,10}\d+\s*日前まで"
+    r"[^。\n]{0,12}(?:解約|退会|停止|キャンセル|連絡|申し出|申出)",
+    r"(?i)cancel[^.\n]{0,40}\d+\s*days?\s+before",
 ]
 
 
@@ -89,6 +117,17 @@ def _detect_scarcity(text: str, stock_count: Optional[int]) -> Optional[dict]:
     return None
 
 
+def _detect_obstruction(text: str) -> Optional[dict]:
+    """解約妨害。電話限定 (HIGH) を事前連絡期限 (MEDIUM) より優先する。"""
+    ev = _first_match(text, _OBSTRUCTION_PHONE_ONLY_PATTERNS)
+    if ev:
+        return {"category": OBSTRUCTION, "evidence": ev, "severity": "HIGH"}
+    ev = _first_match(text, _OBSTRUCTION_DEADLINE_PATTERNS)
+    if ev:
+        return {"category": OBSTRUCTION, "evidence": ev, "severity": "MEDIUM"}
+    return None
+
+
 def detect_dark_patterns(text: str, stock_count: Optional[int] = None) -> List[dict]:
     """UIテキスト系ダークパターンの警告リストを返す（category 昇順、各カテゴリ最大1件）。"""
     t = text or ""
@@ -117,6 +156,10 @@ def detect_dark_patterns(text: str, stock_count: Optional[int] = None) -> List[d
     ev = _first_match(t, _HIDDEN_SUBSCRIPTION_PATTERNS)
     if ev:
         warnings.append({"category": HIDDEN_SUBSCRIPTION, "evidence": ev, "severity": "HIGH"})
+
+    obs = _detect_obstruction(t)
+    if obs:
+        warnings.append(obs)
 
     warnings.sort(key=lambda w: w["category"])
     return warnings

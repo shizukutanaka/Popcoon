@@ -39,6 +39,7 @@
     <string name="dp_text_category_misdirection">Misdirection (pre-selection, etc.)</string>
     <string name="dp_text_category_forced_action">Forced-action pressure</string>
     <string name="dp_text_category_hidden_subscription">Hidden subscription</string>
+    <string name="dp_text_category_obstruction">Cancellation obstruction</string>
 
     <string name="detail_ai_advice">AI Advice</string>
     <string name="detail_confidence">Confidence</string>

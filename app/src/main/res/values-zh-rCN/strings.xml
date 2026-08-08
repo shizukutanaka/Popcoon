@@ -39,6 +39,7 @@
     <string name="dp_text_category_misdirection">误导 (默认勾选等)</string>
     <string name="dp_text_category_forced_action">强制行动诱导</string>
     <string name="dp_text_category_hidden_subscription">隐藏定期购买</string>
+    <string name="dp_text_category_obstruction">阻挠取消订阅</string>
 
     <string name="detail_ai_advice">AI 建议</string>
     <string name="detail_confidence">可信度</string>

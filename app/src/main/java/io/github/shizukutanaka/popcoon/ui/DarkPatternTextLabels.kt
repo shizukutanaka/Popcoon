@@ -18,6 +18,7 @@ fun DarkPatternTextDetector.Category.toLabelResource(): Int = when (this) {
     DarkPatternTextDetector.Category.MISDIRECTION -> R.string.dp_text_category_misdirection
     DarkPatternTextDetector.Category.FORCED_ACTION -> R.string.dp_text_category_forced_action
     DarkPatternTextDetector.Category.HIDDEN_SUBSCRIPTION -> R.string.dp_text_category_hidden_subscription
+    DarkPatternTextDetector.Category.OBSTRUCTION -> R.string.dp_text_category_obstruction
 }
 
 /**

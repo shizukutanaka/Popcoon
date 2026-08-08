@@ -157,6 +157,64 @@ class DarkPatternTextDetectorTest : StringSpec({
             DarkPatternTextDetector.Category.HIDDEN_SUBSCRIPTION
     }
 
+    // ── OBSTRUCTION (解約妨害) ───────────────────────────────────────────────
+    "OBSTRUCTION: 解約手段を電話に限定する表現は HIGH" {
+        listOf(
+            "解約はお電話のみで承ります",
+            "解約のご連絡はお電話に限ります",
+            "退会は電話だけの受付です",
+            "定期の停止はお電話のみ",
+            "お電話のみでの解約受付となります",
+            "Cancellation is accepted by phone only",
+            "Call us to cancel your subscription",
+        ).forEach { text ->
+            sev(text, DarkPatternTextDetector.Category.OBSTRUCTION) shouldBe
+                DarkPatternTextDetector.Severity.HIGH
+        }
+    }
+
+    "OBSTRUCTION: 次回発送日起点の事前連絡期限は MEDIUM" {
+        listOf(
+            "解約は次回お届け予定日の10日前までにご連絡ください",
+            "次回発送日の5日前までにお申し出ください",
+            "次回の配送の7日前までに解約手続きが必要です",
+            "You must cancel at least 10 days before the next shipment",
+        ).forEach { text ->
+            sev(text, DarkPatternTextDetector.Category.OBSTRUCTION) shouldBe
+                DarkPatternTextDetector.Severity.MEDIUM
+        }
+    }
+
+    "OBSTRUCTION: 電話限定 (HIGH) が期限 (MEDIUM) より優先" {
+        sev(
+            "解約は次回発送の10日前までにご連絡ください。お手続きは解約専用のお電話のみ",
+            DarkPatternTextDetector.Category.OBSTRUCTION,
+        ) shouldBe DarkPatternTextDetector.Severity.HIGH
+    }
+
+    "OBSTRUCTION: 複数手段の提示・無関係な電話案内/期限は誤検出しない" {
+        listOf(
+            "解約は電話またはマイページからいつでも可能です",
+            "解約はマイページからいつでも手続きできます",
+            "解約はマイページから可能ですがお問い合わせはお電話のみ",
+            "お問い合わせはお電話のみ受け付けています",
+            "次回お届け日の変更は3日前まで可能です",
+            "高品質なワイヤレスイヤホン 送料無料",
+        ).forEach { text ->
+            cats(text) shouldNotContain DarkPatternTextDetector.Category.OBSTRUCTION
+        }
+    }
+
+    "OBSTRUCTION: MISDIRECTION と SCARCITY の間に並ぶ (アルファベット順)" {
+        val out = DarkPatternTextDetector.detect("本日限り 残り2点 デフォルトでチェック 解約はお電話のみ")
+        out.map { it.category } shouldBe listOf(
+            DarkPatternTextDetector.Category.MISDIRECTION,
+            DarkPatternTextDetector.Category.OBSTRUCTION,
+            DarkPatternTextDetector.Category.SCARCITY,
+            DarkPatternTextDetector.Category.URGENCY,
+        )
+    }
+
     "英語パターン: SCARCITY + URGENCY + SOCIAL_PROOF" {
         val c = cats("Only 1 left, hurry! 5 people are viewing this")
         DarkPatternTextDetector.Category.SCARCITY in c shouldBe true

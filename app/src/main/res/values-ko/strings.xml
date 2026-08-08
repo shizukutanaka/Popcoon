@@ -39,6 +39,7 @@
     <string name="dp_text_category_misdirection">잘못된 유도 (기본 선택 등)</string>
     <string name="dp_text_category_forced_action">강제적 행동 유도</string>
     <string name="dp_text_category_hidden_subscription">숨겨진 정기구독</string>
+    <string name="dp_text_category_obstruction">해지 방해</string>
 
     <string name="detail_ai_advice">AI 조언</string>
     <string name="detail_confidence">신뢰도</string>

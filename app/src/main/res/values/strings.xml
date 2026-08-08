@@ -45,6 +45,7 @@
     <string name="dp_text_category_misdirection">誤誘導 (デフォルト選択等)</string>
     <string name="dp_text_category_forced_action">強制的な行動誘導</string>
     <string name="dp_text_category_hidden_subscription">隠れ定期購入</string>
+    <string name="dp_text_category_obstruction">解約の妨害</string>
 
     <string name="detail_price_history">価格履歴</string>
     <string name="detail_more_info">詳細情報</string>

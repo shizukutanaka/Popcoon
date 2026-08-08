@@ -229,6 +229,14 @@ fun main() {
         TX("自動更新されます", null),          // HIDDEN_SUBSCRIPTION (自動継続)
         TX("Subscription automatically renews", null),  // HIDDEN_SUBSCRIPTION (英語)
         TX("本日限り 定期購入コース", null),   // URGENCY + HIDDEN_SUBSCRIPTION → ソート順検査
+        TX("解約はお電話のみで承ります", null),          // OBSTRUCTION 電話限定 (HIGH)
+        TX("定期の停止はお電話のみ", null),              // OBSTRUCTION 定期停止の電話限定
+        TX("お電話のみでの解約受付となります", null),      // OBSTRUCTION 語順逆 (電話→解約)
+        TX("Call us to cancel your subscription", null), // OBSTRUCTION 英語
+        TX("解約は次回お届け予定日の10日前までにご連絡ください", null),  // OBSTRUCTION 期限 (MEDIUM)
+        TX("解約はマイページから可能ですがお問い合わせはお電話のみ", null),  // 12文字超 → 非検出
+        TX("次回お届け日の変更は3日前まで可能です", null),  // 解約文脈なし → 非検出
+        TX("本日限り 残り2点 デフォルトでチェック 解約はお電話のみ", null),  // 4カテゴリ → ソート順
         TX("", 2),                          // 空テキスト + stock=2
         TX("普通の商品説明です", 2),         // テキスト無 + stock=2 → SCARCITY
         TX("送料無料の良い商品", null),       // 何も無し
