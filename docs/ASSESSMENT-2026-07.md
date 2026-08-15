@@ -6,8 +6,8 @@
 
 ## 長所
 
-1. **二重言語 TDD アーキテクチャ** — Python 仕様オラクル (476 tests) が真実の源、Kotlin 本番実装を
-   `kotlin_parity/` の 13 ハーネスが**実コンパイル・実行**で照合 (run.sh 136 ケース 0 乖離)。
+1. **二重言語 TDD アーキテクチャ** — Python 仕様オラクル (490 tests) が真実の源、Kotlin 本番実装を
+   `kotlin_parity/` の 13 ハーネスが**実コンパイル・実行**で照合 (run.sh 155 ケース 0 乖離)。
    Android SDK 無しの環境でもロジックの実行検証ができる、この規模のアプリでは希少な体制
 2. **テスト防御の深さ** — 11 階層 (unit/integration/golden/metamorphic/mutation/perf/fuzz/
    stateful/concurrency/differential/chaos)。mutation score 100% × 4 モジュール。
@@ -70,7 +70,7 @@
 
 | # | 項目 | 難易度 | 内容と注意 | 検証 |
 |---|---|---|---|---|
-| B1 | 予測アンサンブル | 高 | predicted7d を Holt/damped-trend ETS/seasonal-naive の中央値に。**golden vector とBuyTimingScorer の数値が変わる製品挙動変更** — oracle 先行 + 全 golden の手計算再導出必須 | pytest + run.sh parity + golden 根拠をコミットに明記 |
+| ~~B1~~ | ~~予測アンサンブル~~ | — | **h=7 のみ実装済 (2026-08)**。h=30 は予測区間を較正できない (被覆 78〜85%) ため意図的に見送り、BuyTimingScorer も Holt 据え置きで不変。詳細と実測は `docs/RESEARCH-2026-08.md` §1 | 完了 |
 | B2 | Durable Objects 移行 | 高 | `backend/README.md` の設計どおり実装。**wrangler dev / デプロイ検証が可能な環境が前提** | `npx wrangler dev` + vitest + 段階ロールアウト |
 | ~~B3~~ | ~~IDF-lite トークン重み~~ | — | **実装済 (2026-08)**。`tokenIdfWeights` + weighted Jaccard、weights=null は素の Jaccard へ委譲し後方互換。詳細は `docs/RESEARCH-2026-08.md` 3-1 | 完了 |
 | B4 | Yahoo ランク次元 | 中 | UserPreferences + 設定 UI + PointSimulator.UserContext にランク追加、感謝デーを実計算へ。4 ロケール文字列同時 | run_points.sh + oracle + キー数一致 |
@@ -80,7 +80,7 @@
 
 | # | 項目 | 内容 | 検証 |
 |---|---|---|---|
-| C1 | ダークパターン regex 追加 | 消費者庁実態調査 (OECD 2022 分類 + Hidaka 2023) のうち未対応の文言パターンを 1 カテゴリずつ。誤爆ガードの負ケース必須 | proto+test → Kotlin → ParityHarness (現 136 ケース) |
+| C1 | ダークパターン regex 追加 | 消費者庁実態調査 (OECD 2022 分類 + Hidaka 2023) のうち未対応の文言パターンを 1 カテゴリずつ。誤爆ガードの負ケース必須 | proto+test → Kotlin → ParityHarness (現 155 ケース) |
 | C2 | 属性 recall 追加 | 色 (現: カタカナ 27 色名 → 正準 16 色)・助数詞・単位の追加。「最寄り正準色へ保守的写像」原則を維持 | run_matcher.sh |
 | C3 | parity ケース増強 | 既存ハーネスに境界ケース追加 (全角/半角・空文字・巨大値) | run_all.sh 全 green 維持 |
 | C4 | backend テスト追加 | 未カバー経路 (異常系ヘッダ・巨大 payload 境界値・cron 評価等) を worker.test.ts に | vitest 70+ / tsc |
@@ -89,8 +89,8 @@
 
 ## 検証基準線 (2026-07 実測)
 
-- Python: **476 passed / 1 skipped** (`popcoon-tdd/`)
-- Kotlin parity: **run_all.sh 全 13 ハーネス pass** (run.sh 136 matched / 0 mismatched)
+- Python: **490 passed / 1 skipped** (`popcoon-tdd/`)
+- Kotlin parity: **run_all.sh 全 13 ハーネス pass** (run.sh 155 matched / 0 mismatched)
 - backend: **tsc 0 errors / vitest 70 tests pass**
 - i18n: **4 ロケール × 399 strings** (+3 plurals) 完全一致
 - ファイル数: Kotlin main 131 / unit test 64 / androidTest 4、Python 38

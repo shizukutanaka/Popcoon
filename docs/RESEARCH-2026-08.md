@@ -42,6 +42,40 @@
 - ✅ **残差生成器そのものを parity 対象に追加** — 上記バグが両言語で検出できなかった真因は、
   `holtResiduals` がクロス言語照合の外にあり、parity が合成残差リストしか食わせていなかったこと。
   `HOLTRES` ケース (horizon 1/7/13/14/30 + 定数列・完全直線・3 点未満・空入力の境界) を追加。
+- ✅ **予測アンサンブル (ASSESSMENT B1) — ただし h=7 のみ** — 実装済。predicted_7d を
+  Holt 無減衰外挿から **Holt / damped-trend Holt / seasonal-naive の中央値** へ。
+  単独最良はレジーム依存だが中央値は **どのレジームでも最悪にならない**。MAE 実測 (h=7、
+  合成価格系列 300 試行):
+
+  | レジーム | Holt (現行) | damped | snaive | **median (採用)** |
+  |---|---|---|---|---|
+  | ランダムウォーク | 160.3 | 144.3 | 139.7 | **143.9** |
+  | トレンド転換 | 134.2 | 128.4 | 129.0 | **126.2** |
+  | 週次季節性 | 123.0 | 123.0 | 44.7 | **120.7** |
+  | セール衝撃 | 258.1 | 215.1 | 205.6 | **212.1** |
+
+  φ=0.9 は fpp3 の実用域 [0.8, 0.98] の標準値で決定性のため推定せず固定、period=7 は
+  SeasonalDecompForecast と同一。出典: Gardner & McKenzie (1985) の damped trend が
+  M3/M4 で複雑手法に対し一貫して競争的。<https://www.bauer.uh.edu/gardner/docs/pdf/Why-the-damped-trend-works.pdf>
+  / <https://otexts.com/fpp3/holt.html>
+- ⏸️ **h=30 へのアンサンブル適用は見送り (実測に基づく判断)** — MAE の改善幅はむしろ
+  h=30 の方が大きい (412.8→269.1 等、**-21〜-35%**) が、**予測区間を較正できない**。
+  学習 90 点から得られる 30 ステップ先残差は約 60 本でも窓が重なるため実質独立ブロックは
+  2 個ほどしかなく、アンサンブルの残差分位点が本番誤差を過小評価する。被覆率実測 (目標 90%)
+  は適応追跡 78.0〜84.0% / 静的 split 79.8〜84.8% と **どちらも目標割れ** した
+  (h=7 は 89.8〜91.5% で合格)。被覆保証は明示している契約なので較正できない予測器は
+  採用しない。履歴が数百点得られるようになれば再検討する。
+- ⏸️ **BuyTimingScorer のトレンド信号はアンサンブル化しない (負の実測結果)** —
+  検討過程で 30 日先をアンサンブル化したところ、持続的トレンドの方向判定精度が
+  **下降 98.8%→19.0% / 上昇 88.5%→2.8%** と激減した。減衰が変化幅を過小評価して「微」
+  バケットへ寄せるためで、閾値 (±1% / ±5%) が無減衰スケール前提で調整されていることによる
+  (逆に価格が下げ止まる系列ではアンサンブル 67.2% > 無減衰 36.0%)。
+  h=30 を Holt 据え置きにしたため BuyTimingScorer は完全に不変。
+  `parity_fixtures` の buy_timing 期待値が動いたことでこの退行を検知できた。
+- ✅ **較正の整合維持** — 点予測を変えた horizon は残差も同じ予測器で取る
+  (h=7 = アンサンブル残差 `ensemble_multistep_residuals` / `ensembleResiduals` を新設、
+  h=30 = Holt 残差を据え置き)。出荷構成での被覆率実測: h=7 89.8〜90.8% / h=30 91.2〜93.5%。
+  seasonal-naive の腕は原点までの観測値のみ参照し未来を覗かないことをテストで固定。
 - ⏸️ **AcMCP (多段先誤差の自己相関モデル化)** — 区間の効率 (幅) は改善するが、被覆の是正は
   horizon 一致で達成済み。追加の状態とチューニングを要するため、被覆が実測で満たされている
   現状では費用対効果が見合わない。将来 30 日先の区間幅が広すぎるという実利用フィードバックが
@@ -195,11 +229,12 @@
 | ProductMatcher IDF-lite トークン重み付け (B3) | feat | oracle +9 → run_matcher 全 assertion pass / 別SKU 4 ペアを 0.600→0.5 台へ分離 |
 | ProductMatcher 特徴量メモ化 | perf | 出力不変 (17×17 全ペア等価性を parity 固定) / 320 件 2.5s → 112ms (22.5x) |
 | URGENCY recall 拡張 (あと/締切迫る/英語) | feat | oracle +6 → run.sh parity 126 → 136 matched / 誤爆ガード 4 ケース |
+| 7日先の予測アンサンブル (B1) | feat | oracle +14 → run.sh parity 136 → 155 matched / MAE -2〜-18% / 被覆 89.8〜90.8% / golden 手導出更新 |
 | backend の npm install 復旧 (workers-types v5) | fix | tsc 0 errors / vitest 70 tests pass |
 
 ## 検証基準線 (2026-08 実測)
 
-- Python: **476 passed / 1 skipped** (`popcoon-tdd/`)
-- Kotlin parity: **run_all.sh 13 ハーネス全 pass** (run.sh 136 matched / 0 mismatched)
+- Python: **490 passed / 1 skipped** (`popcoon-tdd/`)
+- Kotlin parity: **run_all.sh 13 ハーネス全 pass** (run.sh 155 matched / 0 mismatched)
 - backend: **tsc 0 errors / vitest 70 tests pass** (本セッションで変更なし)
 - i18n: **4 ロケール × 399 strings** (+3 plurals) 完全一致
