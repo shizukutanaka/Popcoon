@@ -6,6 +6,7 @@ from proto_conformal_interval import (
     adaptive_conformal_margin,
     conformal_margin,
     empirical_coverage,
+    ensemble_multistep_residuals,
     holt_multistep_residuals,
     predict_interval,
 )
@@ -193,3 +194,61 @@ def test_invalid_horizon_raises():
 
 def test_deterministic():
     assert holt_multistep_residuals(_SERIES, 7) == holt_multistep_residuals(_SERIES, 7)
+
+
+# ── アンサンブル予測の horizon 一致残差 (研究 B1) ────────────────────────────
+
+
+def test_ensemble_residual_count_matches_holt_version():
+    # 残差の本数は予測器によらず「h ステップ先の実測が取れる原点の数」で決まる。
+    for h in (1, 3, 7):
+        assert len(ensemble_multistep_residuals(_SERIES, h)) == \
+            len(holt_multistep_residuals(_SERIES, h))
+    assert ensemble_multistep_residuals(_SERIES, len(_SERIES)) == []
+    assert ensemble_multistep_residuals([1.0, 2.0], 1) == []
+    assert ensemble_multistep_residuals([], 1) == []
+
+
+def test_ensemble_residuals_are_zero_on_constant_series():
+    # 定数列は 3 手法とも同じ値を返すので中央値も一致し誤差ゼロ。
+    flat = [1000.0] * 20
+    for h in (1, 7):
+        assert all(abs(r) < 1e-9 for r in ensemble_multistep_residuals(flat, h))
+
+
+def test_ensemble_constants_match_popcoon_core():
+    # φ と period が popcoon_core.ensemble_forecast と一致していること
+    # (循環 import を避けて再宣言しているため、ここで固定する)。
+    import popcoon_core
+    assert popcoon_core.DAMPED_PHI == 0.9
+    assert popcoon_core.ENSEMBLE_SEASON_PERIOD == 7
+
+
+def test_ensemble_residuals_agree_with_ensemble_forecast_at_last_origin():
+    # 最終原点の残差が popcoon_core.ensemble_forecast の定義と一致する
+    # (両実装が同じ予測器であることの突き合わせ)。
+    import popcoon_core
+    h = 3
+    res = ensemble_multistep_residuals(_SERIES, h)
+    # 最後の残差の原点は i = len-h、その時点の既観測系列は _SERIES[:len-h]
+    origin = len(_SERIES) - h
+    seen = _SERIES[:origin]
+    expected = _SERIES[-1] - popcoon_core.ensemble_forecast(seen, h)
+    assert res[-1] == pytest.approx(expected)
+
+
+def test_ensemble_never_peeks_at_future():
+    # 先頭を書き換えても末尾の残差が変わらない = 未来を参照していない…の逆で、
+    # 末尾の実測だけを変えたとき最後の残差だけが動くことを確認する。
+    a = list(_SERIES)
+    b = list(_SERIES)
+    b[-1] += 500.0
+    ra = ensemble_multistep_residuals(a, 3)
+    rb = ensemble_multistep_residuals(b, 3)
+    assert ra[:-1] == pytest.approx(rb[:-1])
+    assert rb[-1] == pytest.approx(ra[-1] + 500.0)
+
+
+def test_ensemble_deterministic():
+    assert ensemble_multistep_residuals(_SERIES, 7) == \
+        ensemble_multistep_residuals(_SERIES, 7)

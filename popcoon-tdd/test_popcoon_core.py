@@ -22,6 +22,7 @@ from popcoon_core import (
     Trie, AlertCondition, eval_condition,
     score_eco_ethics,
 )
+import popcoon_core as pc
 
 
 def _rec(day: int, price: int, product_key: str = "k") -> PriceRecord:
@@ -568,3 +569,77 @@ class TestContracts:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "--tb=short"])
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 予測アンサンブル (研究 B1) — Holt / damped / seasonal-naive の中央値
+# ═══════════════════════════════════════════════════════════════════════════
+class TestEnsembleForecast:
+
+    def test_damped_phi_one_matches_plain_holt(self):
+        # phi=1.0 は従来の Holt と厳密一致 (後方互換の要)。
+        data = [1000.0 + 7 * i + (i % 3) * 20 for i in range(20)]
+        assert pc._holt_linear(data, 0.3, 0.1, phi=1.0) == pc._holt_linear(data, 0.3, 0.1)
+
+    def test_constant_series_forecasts_the_constant(self):
+        flat = [5000.0] * 20
+        for h in (1, 7, 30):
+            assert pc.ensemble_forecast(flat, h) == pytest.approx(5000.0)
+
+    def test_median_is_always_one_of_the_three_arms(self):
+        data = [1000.0 - 12 * i + (i % 5) * 30 for i in range(25)]
+        for h in (1, 7, 30):
+            L, T = pc._holt_linear(data, 0.3, 0.1)
+            Ld, Td = pc._holt_linear(data, 0.3, 0.1, phi=pc.DAMPED_PHI)
+            arms = {
+                L + T * h,
+                Ld + Td * sum(pc.DAMPED_PHI ** i for i in range(1, h + 1)),
+                data[-pc.ENSEMBLE_SEASON_PERIOD + ((h - 1) % pc.ENSEMBLE_SEASON_PERIOD)],
+            }
+            assert pc.ensemble_forecast(data, h) in arms
+
+    def test_damping_shrinks_the_trend_contribution(self):
+        # 単調下降列では damped の外挿が Holt より必ず上 (減衰で下げ幅が縮む)。
+        data = [10000.0 - 100 * i for i in range(30)]
+        L, T = pc._holt_linear(data, 0.3, 0.1)
+        Ld, Td = pc._holt_linear(data, 0.3, 0.1, phi=pc.DAMPED_PHI)
+        for h in (7, 30):
+            holt = L + T * h
+            damped = Ld + Td * sum(pc.DAMPED_PHI ** i for i in range(1, h + 1))
+            assert damped > holt
+
+    def test_short_series_falls_back_to_naive(self):
+        # period 未満なら seasonal-naive の腕は最終値 (naive) になる。
+        short = [100.0, 110.0, 120.0]
+        L, T = pc._holt_linear(short, 0.3, 0.1)
+        Ld, Td = pc._holt_linear(short, 0.3, 0.1, phi=pc.DAMPED_PHI)
+        h = 7
+        arms = sorted([
+            L + T * h,
+            Ld + Td * sum(pc.DAMPED_PHI ** i for i in range(1, h + 1)),
+            short[-1],
+        ])
+        assert pc.ensemble_forecast(short, h) == pytest.approx(arms[1])
+
+    def test_invalid_horizon_raises(self):
+        with pytest.raises(ValueError):
+            pc.ensemble_forecast([1.0, 2.0, 3.0], 0)
+
+    def test_shift_equivariance(self):
+        # 全価格に定数を足すと予測も同じだけ動く (3 腕とも線形なので中央値も等変)。
+        data = [900.0 + 11 * i for i in range(20)]
+        shifted = [x + 250.0 for x in data]
+        for h in (7, 30):
+            assert pc.ensemble_forecast(shifted, h) == pytest.approx(
+                pc.ensemble_forecast(data, h) + 250.0
+            )
+
+    def test_predict_price_uses_ensemble_for_7d_and_holt_for_30d(self):
+        # 7 日先はアンサンブル、30 日先は Holt 単独 (区間較正の都合、docstring 参照)。
+        prices = [10000 - i * 100 for i in range(30)]
+        hist = [_rec(i, p) for i, p in enumerate(prices)]
+        pred = pc.predict_price(hist)
+        cleaned = pc._remove_outliers_iqr([float(p) for p in prices])
+        L, T = pc._holt_linear(cleaned, 0.3, 0.1)
+        assert pred.predicted_7d == max(0, int(pc.ensemble_forecast(cleaned, 7)))
+        assert pred.predicted_30d == max(0, int(L + T * 30))

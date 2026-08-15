@@ -166,6 +166,46 @@ fun main() {
         println("HOLTRES\t${h.data.joinToString(";")}\t${h.horizon}\t$enc")
     }
 
+    // ── ENSFC: 予測アンサンブル (Holt / damped / seasonal-naive の中央値, 研究 B1) ──
+    // popcoon_core.ensemble_forecast と照合。φ=0.9 / period=7 の定数一致もここで守られる。
+    data class EF(val data: List<Double>, val horizon: Int)
+    val ensSeries = listOf(1000.0, 1010.0, 990.0, 1030.0, 1005.0, 1040.0, 995.0,
+                           1050.0, 1020.0, 1060.0, 1010.0, 1070.0, 1030.0, 1080.0)
+    val ensembles = listOf(
+        EF(ensSeries, 1),                            // h=1
+        EF(ensSeries, 7),                            // h=7 (predicted7d が使う horizon)
+        EF(ensSeries, 30),                           // h=30 (未採用だが式の一致は検査)
+        EF(List(20) { 5000.0 }, 7),                  // 定数列 → 3 腕とも同値
+        EF(List(20) { 1000.0 + 5.0 * it }, 7),       // 完全直線
+        EF((0 until 30).map { 10000.0 - 100.0 * it }, 7),   // 単調下降 (damped が中央値)
+        EF((0 until 30).map { 10000.0 - 100.0 * it }, 30),
+        EF(listOf(100.0, 110.0, 120.0), 7),          // period 未満 → naive フォールバック
+        EF(listOf(100.0, 110.0), 7),                 // 2 点
+        EF((0 until 21).map { if (it % 7 >= 5) 800.0 else 1000.0 }, 7),  // 週次季節性
+    )
+    for (e in ensembles) {
+        val f = PricePredictionEngine.ensembleForecast(e.data, e.horizon)
+        println("ENSFC\t${e.data.joinToString(";")}\t${e.horizon}\t${"%.10f".format(f)}")
+    }
+
+    // ── ENSRES: アンサンブル予測の horizon ステップ先残差列 (研究 B1) ────────────
+    // predictionMargin (7日先) の入力そのもの。proto_conformal_interval と照合。
+    val ensRes = listOf(
+        EF(ensSeries, 1),
+        EF(ensSeries, 7),                            // predicted7d の較正に実際に使う
+        EF(ensSeries, 13),                           // 残差 1 件だけ残る境界
+        EF(ensSeries, 14),                           // 実測が取れない → 空
+        EF(List(20) { 5000.0 }, 7),                  // 定数列 → 残差ゼロ
+        EF((0 until 30).map { 10000.0 - 100.0 * it }, 7),
+        EF((0 until 21).map { if (it % 7 >= 5) 800.0 else 1000.0 }, 7),  // 週次季節性
+        EF(listOf(100.0, 110.0), 1),                 // 3 点未満 → 空
+        EF(emptyList(), 1),                          // 空入力 → 空
+    )
+    for (e in ensRes) {
+        val r = PricePredictionEngine.ensembleResiduals(e.data, e.horizon)
+        println("ENSRES\t${e.data.joinToString(";")}\t${e.horizon}\t${r.joinToString(";") { "%.10f".format(it) }}")
+    }
+
     // ── SEASONAL: trend+seasonal 分解予測 (中心移動平均 + 最小二乗線形) ──────────
     // 価格列・horizon・period → 予測列。proto_seasonal_decomp_forecast と照合。
     data class SC(val prices: List<Double>, val horizon: Int, val period: Int)

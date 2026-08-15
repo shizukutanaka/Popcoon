@@ -12,10 +12,11 @@ from datetime import datetime, timedelta, timezone
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from popcoon_core import (
     simulate_customs, score_eco_ethics, PriceRecord, Platform,
-    detect_dark_patterns, predict_price,
+    detect_dark_patterns, predict_price, ensemble_forecast,
 )
 from buy_timing_scorer import score_buy_timing
 from proto_conformal_interval import (adaptive_conformal_margin, conformal_margin,
+                                      ensemble_multistep_residuals,
                                       holt_multistep_residuals)
 from proto_seasonal_decomp_forecast import seasonal_decompose_forecast
 from proto_cross_mall_cart import optimize_basket
@@ -152,6 +153,21 @@ for line in sys.stdin:
         res = holt_multistep_residuals(data, horizon)
         exp = ";".join(f"{v:.10f}" for v in res)
         check(got == exp, f"holtres (n={len(data)},h={horizon})", got, exp)
+
+    elif kind == "ENSFC":
+        data = [float(x) for x in p[1].split(";") if x != ""]
+        horizon = int(p[2])
+        got = p[3]
+        exp = f"{ensemble_forecast(data, horizon):.10f}"
+        check(got == exp, f"ensfc (n={len(data)},h={horizon})", got, exp)
+
+    elif kind == "ENSRES":
+        data = [float(x) for x in p[1].split(";") if x != ""]
+        horizon = int(p[2])
+        got = p[3]
+        res = ensemble_multistep_residuals(data, horizon)
+        exp = ";".join(f"{v:.10f}" for v in res)
+        check(got == exp, f"ensres (n={len(data)},h={horizon})", got, exp)
 
     elif kind == "SEASONAL":
         prices = [float(x) for x in p[1].split(";") if x != ""]

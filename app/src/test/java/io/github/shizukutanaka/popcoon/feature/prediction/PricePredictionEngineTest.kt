@@ -1,6 +1,7 @@
 package io.github.shizukutanaka.popcoon.feature.prediction
 
 import io.github.shizukutanaka.popcoon.data.model.PriceRecord
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
@@ -135,6 +136,59 @@ class PricePredictionEngineTest : StringSpec({
                 p.predictionMargin30d shouldBeGreaterThanOrEqualTo 0L
             }
         }
+    }
+
+    // ── 予測アンサンブル (研究 B1, Gardner & McKenzie 1985 / fpp3 §8.2) ─────
+    "ensembleForecast: 定数列は同じ定数を返す" {
+        val flat = List(20) { 5000.0 }
+        listOf(1, 7, 30).forEach { h ->
+            (kotlin.math.abs(PricePredictionEngine.ensembleForecast(flat, h) - 5000.0) < 1e-9)
+                .shouldBe(true)
+        }
+    }
+
+    "ensembleForecast: 単調下降列では中央値が seasonal-naive を上回らない" {
+        // 下降列では Holt と damped の 2 腕がともに直近値より下に来るため、
+        // 中央値は必ず seasonal-naive 以下になる (減衰しても向きは保つ)。
+        // seasonal-naive の腕だけは内部関数なしで計算できるので、これを境界に使う。
+        val data = (0 until 30).map { 10000.0 - 100.0 * it }
+        listOf(1, 7, 30).forEach { h ->
+            val snaive = data[data.size - 7 + ((h - 1) % 7)]
+            (PricePredictionEngine.ensembleForecast(data, h) < snaive).shouldBe(true)
+        }
+    }
+
+    "ensembleForecast: 週次季節性のある系列でも観測レンジ内に収まる" {
+        val data = (0 until 21).map { if (it % 7 >= 5) 800.0 else 1000.0 }
+        listOf(1, 7).forEach { h ->
+            val fc = PricePredictionEngine.ensembleForecast(data, h)
+            (fc >= 700.0 && fc < 1100.0).shouldBe(true)
+        }
+    }
+
+    "ensembleForecast: 全価格を平行移動すると予測も同じだけ動く (shift 等変性)" {
+        val data = (0 until 20).map { 900.0 + 11.0 * it }
+        val shifted = data.map { it + 250.0 }
+        listOf(7, 30).forEach { h ->
+            val delta = PricePredictionEngine.ensembleForecast(shifted, h) -
+                PricePredictionEngine.ensembleForecast(data, h)
+            (kotlin.math.abs(delta - 250.0) < 1e-9).shouldBe(true)
+        }
+    }
+
+    "ensembleForecast: horizon < 1 は例外" {
+        shouldThrow<IllegalArgumentException> {
+            PricePredictionEngine.ensembleForecast(listOf(1.0, 2.0, 3.0), 0)
+        }
+    }
+
+    "predicted7d はアンサンブル、predicted30d は Holt 単独 (区間較正の都合)" {
+        // 単調下降列: Holt が最も下、damped が中間、snaive が最も上 → 中央値 = damped。
+        // 30日先は Holt 据え置きなので大きく下がったまま。
+        val prices = (0 until 30).map { 10000L - it * 100L }
+        val p = PricePredictionEngine.predict(fixedHistory(prices))!!
+        p.predicted7d shouldBe 6976L    // damped (Python オラクルから導出)
+        p.predicted30d shouldBe 4100L   // Holt 単独 (従来値のまま)
     }
 
     // ── horizon 一致較正 (arXiv:2601.18509 multi-step split conformal) ──────

@@ -154,3 +154,65 @@ def holt_multistep_residuals(
         level = alpha_s * y + (1 - alpha_s) * (level + trend)
         trend = beta_s * (level - prev_level) + (1 - beta_s) * trend
     return out
+
+
+def ensemble_multistep_residuals(
+    data: List[float],
+    horizon: int = 1,
+    alpha_s: float = 0.3,
+    beta_s: float = 0.1,
+) -> List[float]:
+    """**アンサンブル予測** の horizon ステップ先残差列 (研究 B1)。
+
+    点予測を Holt 単独から 3 手法の中央値へ変えた以上、conformal の margin も
+    **同じ予測器の** h ステップ先残差で較正しないと「較正残差と本番の予測誤差が
+    同分布」という前提が再び崩れる (2026-08 に直した過小被覆バグの再発)。
+
+    各原点 i (data[:i] まで吸収した状態) で
+      - Holt   : L + T·h          (φ=1 の状態を追跡)
+      - damped : Ld + Td·Σφ^i     (φ=DAMPED_PHI の状態を並走追跡)
+      - snaive : data[i−period + ((h−1) mod period)] (原点までの実績のみ参照)
+    の中央値を予測とし、実測 data[i+h−1] との差を取る。2 系統の状態を並走させる
+    だけなので計算量は O(n) のまま。
+
+    popcoon_core.ensemble_forecast と**同じ式**であること (定数 φ・period 含む) が
+    パリティの要。data が 3 点未満、または h ステップ先の実測が 1 つも取れない場合は空。
+    """
+    if horizon < 1:
+        raise ValueError("horizon must be >= 1")
+    if len(data) < 3:
+        return []
+
+    # popcoon_core と同一の定数 (import すると循環参照になるためここで再宣言し、
+    # test_proto_conformal_interval が両者の一致をテストで固定する)。
+    phi = 0.9
+    period = 7
+    damp_sum = sum(phi ** k for k in range(1, horizon + 1))
+
+    level = data[0]
+    trend = data[1] - data[0]
+    d_level = data[0]
+    d_trend = data[1] - data[0]
+    out: List[float] = []
+    for i in range(1, len(data)):
+        target = i + horizon - 1
+        if target < len(data):
+            holt_fc = level + trend * horizon
+            damped_fc = d_level + d_trend * damp_sum
+            # snaive は「原点 i までに観測済み」の点のみ参照する (未来を覗かない)。
+            seen = data[:i]
+            if len(seen) >= period:
+                snaive_fc = seen[-period + ((horizon - 1) % period)]
+            else:
+                snaive_fc = seen[-1]
+            out.append(data[target] - sorted([holt_fc, damped_fc, snaive_fc])[1])
+
+        y = data[i]
+        prev_level = level
+        level = alpha_s * y + (1 - alpha_s) * (level + trend)
+        trend = beta_s * (level - prev_level) + (1 - beta_s) * trend
+
+        prev_d = d_level
+        d_level = alpha_s * y + (1 - alpha_s) * (d_level + phi * d_trend)
+        d_trend = beta_s * (d_level - prev_d) + (1 - beta_s) * phi * d_trend
+    return out

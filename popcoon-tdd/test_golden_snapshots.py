@@ -105,8 +105,19 @@ class TestPricePredictionSnapshots:
             "p30": pred.predicted_30d,
             "conf": pred.confidence.value,
         })
-        # 固定ハッシュ (初回実装時の値)
-        expected_hash = "ac6fe61e7fb83f8b"
+        # 固定ハッシュ。2026-08 の 7 日先アンサンブル化 (研究 B1) で更新。
+        # 数式からの手導出 (系列 10000-100i, i=0..29 → 末尾 7100。完全線形なので
+        # IQR 外れ値除去では 30 点すべて残る):
+        #   Holt   : L=7100.0000, T=-100.0000
+        #   damped : L=7223.0700, T=-52.5865 (φ=0.9)
+        #   h=7  → holt 6400.0000 / damped 6976.1589 (Σφ^i=4.6953) / snaive 7100.0
+        #          → 中央値 = damped = 6976  (**変更点はここだけ**)
+        #   h=30 → Holt 据え置き 4100.0000 → 4100 (アンサンブルは区間を較正できず不採用)
+        #   snapshot = {"current": 7100, "p7": 6976, "p30": 4100, "conf": "MEDIUM"}
+        # 旧値 ac6fe61e7fb83f8b は p7=6400 (Holt 単独) 時代のもの。
+        # 完全線形系列は Holt が構造上正しい唯一のケースだが、実データ相当の合成系列では
+        # 無減衰外挿の MAE が最悪 (docs/RESEARCH-2026-08.md §1 の実測表)。
+        expected_hash = "ea6c33e20299ba8d"
         # 実行して値を確認
         if current_hash != expected_hash:
             pytest.fail(
