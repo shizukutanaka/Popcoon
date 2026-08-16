@@ -7,7 +7,9 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import io.github.shizukutanaka.popcoon.feature.points.PointSimulator
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -53,6 +55,7 @@ class UserPreferences @Inject constructor(
         private val KEY_RAKUTEN_SPU = intPreferencesKey("rakuten_spu")
         private val KEY_YAHOO_PREMIUM = booleanPreferencesKey("yahoo_premium")
         private val KEY_PAYPAY_SOFTBANK = booleanPreferencesKey("paypay_softbank")
+        private val KEY_YAHOO_RANK = stringPreferencesKey("yahoo_rank")
         private val KEY_AMAZON_PRIME = booleanPreferencesKey("amazon_prime")
 
         // 通知感度 — PriceAlertEvaluator.minDropPercent に供給
@@ -143,6 +146,24 @@ class UserPreferences @Inject constructor(
 
     suspend fun setPaypaySoftbank(v: Boolean) {
         context.dataStore.edit { it[KEY_PAYPAY_SOFTBANK] = v }
+    }
+
+    /**
+     * ヤフショ会員ランク。PointSimulator.UserContext.yahooRank に供給し、
+     * 毎月 11日・22日の「ヤフショ感謝デー」(シルバー +4% / ゴールド +5%) を計算する。
+     * enum 名を文字列で保存し、未設定・不明値は NONE にフォールバックする
+     * (将来ランクが増減しても DataStore の読み出しで落ちない)。
+     */
+    override val yahooRank: Flow<PointSimulator.YahooRank> = safeData.map { prefs ->
+        when (prefs[KEY_YAHOO_RANK]) {
+            PointSimulator.YahooRank.SILVER.name -> PointSimulator.YahooRank.SILVER
+            PointSimulator.YahooRank.GOLD.name -> PointSimulator.YahooRank.GOLD
+            else -> PointSimulator.YahooRank.NONE
+        }
+    }
+
+    suspend fun setYahooRank(v: PointSimulator.YahooRank) {
+        context.dataStore.edit { it[KEY_YAHOO_RANK] = v.name }
     }
 
     /** Amazon Prime 会員。PointSimulator.UserContext.amazonPrime に供給。 */

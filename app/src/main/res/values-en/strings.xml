@@ -106,6 +106,11 @@
     <string name="settings_paypay_softbank">SoftBank/Y!mobile user</string>
     <string name="settings_paypay_softbank_desc">SoftBank or Y!mobile users earn +5% PayPay points</string>
     <string name="settings_amazon_prime">Amazon Prime</string>
+    <string name="settings_yahoo_rank">Yahoo! Shopping member rank</string>
+    <string name="settings_yahoo_rank_desc">Applied to the Thanks Day bonus on the 11th and 22nd of each month (Silver +4%, Gold +5%). Paid as limited-time PayPay points.</string>
+    <string name="yahoo_rank_none">Not eligible</string>
+    <string name="yahoo_rank_silver">Silver</string>
+    <string name="yahoo_rank_gold">Gold</string>
     <string name="settings_amazon_prime_desc">Amazon Prime members receive free shipping</string>
 
     <string name="eco_score">Eco ethics score</string>
@@ -438,6 +443,7 @@
     <string name="points_yahoo_sunday">Sunday +5%</string>
     <string name="points_yahoo_premium">Yahoo! Premium +2%</string>
     <string name="points_yahoo_softbank">SoftBank/Y!mobile +5%</string>
+    <string name="points_yahoo_thanks_day">Yahoo! Shopping Thanks Day</string>
     <string name="points_amazon_points">Amazon points</string>
 
     <!-- Notifications (PriceSyncWorker / LocalNotificationManager) -->

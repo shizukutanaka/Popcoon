@@ -29,11 +29,19 @@ object PointSimulator {
      * ユーザーが持っている特典を表す。
      * すべて opt-in。デフォルトは何も適用しない。
      */
+    /**
+     * ヤフショ会員ランク。毎月 11日・22日の「ヤフショ感謝デー」の対象判定に使う。
+     * シルバー/ゴールドのみが対象で、それ未満のランクには特典が無いため NONE に畳む
+     * (2026-08 リサーチ)。
+     */
+    enum class YahooRank { NONE, SILVER, GOLD }
+
     data class UserContext(
         val rakutenDiamondMember: Boolean = false,    // 楽天ダイヤモンド会員
         val rakutenSpu: Int = 1,                      // SPU 倍率 (1-15)
         val yahooPremium: Boolean = false,            // Yahoo!プレミアム
         val paypaySoftbank: Boolean = false,          // SoftBank/Y!mobile (+5%)
+        val yahooRank: YahooRank = YahooRank.NONE,    // ヤフショ会員ランク (感謝デー用)
         val amazonPrime: Boolean = false,
         val purchaseDate: LocalDate = LocalDate.now(),
     )
@@ -50,6 +58,7 @@ object PointSimulator {
     enum class Kind {
         RAKUTEN_SPU, RAKUTEN_5_0_DAY, RAKUTEN_DIAMOND,
         YAHOO_PAYPAY_BASE, YAHOO_5_DAY, YAHOO_SUNDAY, YAHOO_PREMIUM, YAHOO_SOFTBANK,
+        YAHOO_THANKS_DAY,
         AMAZON_POINTS,
     }
 
@@ -158,12 +167,28 @@ object PointSimulator {
             )
         }
 
+        // ヤフショ感謝デー: 毎月 11日・22日、シルバー +4% / ゴールド +5%
+        // (2025-11-11 に「ゾロ目の日クーポン」を置き換えて開始。2026-08 リサーチで
+        // 継続を確認)。従来は UserContext にランク次元が無く SaleCalendar の情報表示
+        // だけで、実質価格には反映されていなかった。付与は期間限定 PayPay ポイント。
+        val thanksRate = when (ctx.yahooRank) {
+            YahooRank.GOLD -> 0.05
+            YahooRank.SILVER -> 0.04
+            YahooRank.NONE -> 0.0
+        }
+        if ((day == 11 || day == 22) && thanksRate > 0.0) {
+            out += PointSource(
+                "ヤフショ感謝デー +${(thanksRate * 100).toInt()}%",
+                Kind.YAHOO_THANKS_DAY,
+                (p.realPrice * thanksRate).toLong(),
+                String.format(Locale.US, "%.1f%%", thanksRate * 100),
+            )
+        }
+
         // プレミアムな日曜日 +5% (2026-07 リサーチで確認: 旧ソフトバンク日曜特典は
         // 2022-10 終了。現行は LYPプレミアム会員 or SoftBank/Y!mobile ユーザー限定で、
         // 1注文 5,000 円以上が条件)。従来は無条件で +5% しており、条件を満たさない
         // ユーザーに過大なポイント額を提示していた。realPrice を注文額の近似として使う。
-        // なお 11日/22日の「ヤフショ感謝デー」(会員ランク シルバー+4%/ゴールド+5%) は
-        // UserContext にランク次元が無いため未実装 — SaleCalendar 側で情報表示のみ行う。
         if (ctx.purchaseDate.dayOfWeek == DayOfWeek.SUNDAY &&
             (ctx.yahooPremium || ctx.paypaySoftbank) &&
             p.realPrice >= 5000

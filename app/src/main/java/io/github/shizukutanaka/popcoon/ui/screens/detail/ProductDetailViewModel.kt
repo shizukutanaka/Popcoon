@@ -129,6 +129,7 @@ class ProductDetailViewModel @Inject constructor(
                     rakutenSpu = kotlinx.coroutines.flow.first(prefs.rakutenSpu),
                     yahooPremium = kotlinx.coroutines.flow.first(prefs.yahooPremium),
                     paypaySoftbank = kotlinx.coroutines.flow.first(prefs.paypaySoftbank),
+                    yahooRank = kotlinx.coroutines.flow.first(prefs.yahooRank),
                     amazonPrime = kotlinx.coroutines.flow.first(prefs.amazonPrime),
                     purchaseDate = java.time.LocalDate.now(),
                 )

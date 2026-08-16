@@ -111,6 +111,63 @@ fun main() {
         check("yahoo sunday below-minimum no bonus", 49L + 249, it.pointsBack)
     }
 
+    // ── ヤフショ感謝デー: 毎月 11日・22日、シルバー +4% / ゴールド +5% ──────────
+    // 2025-11-11 に「ゾロ目の日クーポン」を置き換えて開始 (2026-08 リサーチ)。
+    // 2024-01-11 / 2024-01-22 はいずれも木曜/月曜で日曜特典とは重ならない。
+    PointSimulator.simulate(
+        prod(Platform.YAHOO, 10000),
+        PointSimulator.UserContext(
+            yahooRank = PointSimulator.YahooRank.SILVER, purchaseDate = date("2024-01-11"),
+        ),
+    ).let {
+        check("yahoo thanks day silver 11th", 100L + 400, it.pointsBack)  // base 1% + 4%
+    }
+    PointSimulator.simulate(
+        prod(Platform.YAHOO, 10000),
+        PointSimulator.UserContext(
+            yahooRank = PointSimulator.YahooRank.GOLD, purchaseDate = date("2024-01-22"),
+        ),
+    ).let {
+        check("yahoo thanks day gold 22nd", 100L + 500, it.pointsBack)    // base 1% + 5%
+    }
+    // ランク無しは対象外 (シルバー未満には特典が無い)
+    PointSimulator.simulate(
+        prod(Platform.YAHOO, 10000),
+        PointSimulator.UserContext(purchaseDate = date("2024-01-11")),
+    ).let {
+        check("yahoo thanks day no rank", 100L, it.pointsBack)
+    }
+    // 感謝デー以外の日はランク保有でも付かない
+    PointSimulator.simulate(
+        prod(Platform.YAHOO, 10000),
+        PointSimulator.UserContext(
+            yahooRank = PointSimulator.YahooRank.GOLD, purchaseDate = date("2024-01-12"),
+        ),
+    ).let {
+        check("yahoo thanks day off-day no bonus", 100L, it.pointsBack)
+    }
+    // 5のつく日 (1/22 は該当せず) と重なる日: 1/25 はランク持ちでも感謝デーではない
+    PointSimulator.simulate(
+        prod(Platform.YAHOO, 10000),
+        PointSimulator.UserContext(
+            yahooRank = PointSimulator.YahooRank.GOLD, purchaseDate = date("2024-01-25"),
+        ),
+    ).let {
+        check("yahoo 5-day without thanks day", 100L + 400, it.pointsBack)  // base + 5のつく日4%
+    }
+    // 内訳に感謝デーの kind が 1 件だけ入る
+    PointSimulator.simulate(
+        prod(Platform.YAHOO, 10000),
+        PointSimulator.UserContext(
+            yahooRank = PointSimulator.YahooRank.SILVER, purchaseDate = date("2024-01-11"),
+        ),
+    ).let { r ->
+        check("thanks day kind present once", 1,
+            r.breakdown.count { it.kind == PointSimulator.Kind.YAHOO_THANKS_DAY })
+        check("thanks day rate string", "4.0%",
+            r.breakdown.first { it.kind == PointSimulator.Kind.YAHOO_THANKS_DAY }.rateString)
+    }
+
     // ── Amazon: per-product pointsBack, rate displayed ─────────────────────
     PointSimulator.simulate(
         prod(Platform.AMAZON, 8000, pointsBack = 400),

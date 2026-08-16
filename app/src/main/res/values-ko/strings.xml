@@ -106,6 +106,11 @@
     <string name="settings_paypay_softbank">SoftBank/Y!mobile 이용자</string>
     <string name="settings_paypay_softbank_desc">SoftBank 또는 Y!mobile 이용자는 +5% PayPay 포인트가 적립됩니다</string>
     <string name="settings_amazon_prime">Amazon Prime 회원</string>
+    <string name="settings_yahoo_rank">야후쇼핑 회원 등급</string>
+    <string name="settings_yahoo_rank_desc">매월 11일·22일 «야후쇼핑 감사데이» 적립률에 반영됩니다 (실버 +4%, 골드 +5%). 기간 한정 PayPay 포인트로 지급됩니다.</string>
+    <string name="yahoo_rank_none">해당 없음</string>
+    <string name="yahoo_rank_silver">실버</string>
+    <string name="yahoo_rank_gold">골드</string>
     <string name="settings_amazon_prime_desc">Amazon Prime 회원은 무료 배송 혜택이 적용됩니다</string>
 
     <string name="eco_score">에코 윤리 점수</string>
@@ -430,6 +435,7 @@
     <string name="points_yahoo_sunday">일요일 +5%</string>
     <string name="points_yahoo_premium">Yahoo! 프리미엄 +2%</string>
     <string name="points_yahoo_softbank">SoftBank/Y!mobile +5%</string>
+    <string name="points_yahoo_thanks_day">야후쇼핑 감사데이</string>
     <string name="points_amazon_points">Amazon 포인트</string>
 
     <!-- 알림 (PriceSyncWorker / LocalNotificationManager) -->

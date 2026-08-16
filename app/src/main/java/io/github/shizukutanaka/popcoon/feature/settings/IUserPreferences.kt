@@ -1,5 +1,6 @@
 package io.github.shizukutanaka.popcoon.feature.settings
 
+import io.github.shizukutanaka.popcoon.feature.points.PointSimulator
 import kotlinx.coroutines.flow.Flow
 
 /** ViewModel が依存するユーザー設定の読み取り専用インタフェース。テスト差し替え用。 */
@@ -8,6 +9,9 @@ interface IUserPreferences {
     val yahooPremium: Flow<Boolean>
     val paypaySoftbank: Flow<Boolean>
     val amazonPrime: Flow<Boolean>
+
+    /** ヤフショ会員ランク (毎月 11日・22日の感謝デー判定に使う)。 */
+    val yahooRank: Flow<PointSimulator.YahooRank>
 
     /** EC 会員設定の案内バナーを既に閉じた/確認済みか。 */
     val ecPromptDismissed: Flow<Boolean>

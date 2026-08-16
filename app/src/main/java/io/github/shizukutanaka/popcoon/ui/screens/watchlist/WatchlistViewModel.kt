@@ -108,20 +108,26 @@ class WatchlistViewModel @Inject constructor(
      * 並べ替え順は最適化結果に影響しないため raw を使う。
      * EC 会員設定 (UserPreferences) から UserContext を構築して PointSimulator に供給。
      */
-    val smartCart = combine(
-        rawItems,
+    // EC 会員設定は 5 つを超えるため、型付き combine の上限 (5 引数) に合わせて
+    // 「UserContext の組み立て」と「rawItems との結合」を 2 段に分ける。
+    private val userContext = combine(
         prefs.rakutenSpu,
         prefs.yahooPremium,
         prefs.paypaySoftbank,
         prefs.amazonPrime,
-    ) { list, spu, yp, sb, ap ->
-        if (list.size < 2) return@combine null
-        val userCtx = PointSimulator.UserContext(
+        prefs.yahooRank,
+    ) { spu, yp, sb, ap, rank ->
+        PointSimulator.UserContext(
             rakutenSpu = spu,
             yahooPremium = yp,
             paypaySoftbank = sb,
             amazonPrime = ap,
+            yahooRank = rank,
         )
+    }
+
+    val smartCart = combine(rawItems, userContext) { list, userCtx ->
+        if (list.size < 2) return@combine null
         SmartCartService.optimize(list, userCtx = userCtx)
     }
         .flowOn(Dispatchers.Default)

@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import io.github.shizukutanaka.popcoon.feature.points.PointSimulator
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.shizukutanaka.popcoon.BuildConfig
@@ -41,6 +42,7 @@ data class SettingsUiState(
     val rakutenSpu: Int = 1,
     val yahooPremium: Boolean = false,
     val paypaySoftbank: Boolean = false,
+    val yahooRank: PointSimulator.YahooRank = PointSimulator.YahooRank.NONE,
     val amazonPrime: Boolean = false,
     // 通知感度 — 値下がり通知の最小変動率（%）
     val notifDropPercent: Int = 3,
@@ -109,12 +111,14 @@ class SettingsViewModel @Inject constructor(
             prefs.yahooPremium,
             prefs.paypaySoftbank,
             prefs.amazonPrime,
-        ) { spu, yp, sb, ap ->
+            prefs.yahooRank,
+        ) { spu, yp, sb, ap, rank ->
             _state.value.copy(
                 rakutenSpu = spu,
                 yahooPremium = yp,
                 paypaySoftbank = sb,
                 amazonPrime = ap,
+                yahooRank = rank,
             )
         }.onEach { _state.value = it }.launchIn(viewModelScope)
 
@@ -128,6 +132,9 @@ class SettingsViewModel @Inject constructor(
     fun setAffiliateOptin(v: Boolean) { viewModelScope.launch { prefs.setAffiliateOptin(v) } }
 
     fun setRakutenSpu(v: Int) { viewModelScope.launch { prefs.setRakutenSpu(v) } }
+    fun setYahooRank(v: PointSimulator.YahooRank) {
+        viewModelScope.launch { prefs.setYahooRank(v) }
+    }
     fun setYahooPremium(v: Boolean) { viewModelScope.launch { prefs.setYahooPremium(v) } }
     fun setPaypaySoftbank(v: Boolean) { viewModelScope.launch { prefs.setPaypaySoftbank(v) } }
     fun setAmazonPrime(v: Boolean) { viewModelScope.launch { prefs.setAmazonPrime(v) } }

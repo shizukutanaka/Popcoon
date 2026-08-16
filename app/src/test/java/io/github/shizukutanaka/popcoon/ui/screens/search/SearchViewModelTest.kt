@@ -7,6 +7,7 @@ import io.github.shizukutanaka.popcoon.data.model.Platform
 import io.github.shizukutanaka.popcoon.data.model.PriceRecord
 import io.github.shizukutanaka.popcoon.data.model.Product
 import io.github.shizukutanaka.popcoon.data.repository.IProductRepository
+import io.github.shizukutanaka.popcoon.feature.points.PointSimulator
 import io.github.shizukutanaka.popcoon.feature.settings.IUserPreferences
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldContain
@@ -250,6 +251,8 @@ private class FakeUserPreferences(
     override val yahooPremium: Flow<Boolean> = flowOf(yahoo)
     override val paypaySoftbank: Flow<Boolean> = flowOf(softbank)
     override val amazonPrime: Flow<Boolean> = flowOf(prime)
+    override val yahooRank: Flow<PointSimulator.YahooRank> =
+        flowOf(PointSimulator.YahooRank.NONE)
     override val ecPromptDismissed: Flow<Boolean> = flowOf(ecPromptDismissed)
     override suspend fun dismissEcPrompt() {}
 

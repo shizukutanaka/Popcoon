@@ -20,6 +20,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.shizukutanaka.popcoon.R
+import io.github.shizukutanaka.popcoon.feature.points.PointSimulator
+import io.github.shizukutanaka.popcoon.ui.toLabelResource
 import io.github.shizukutanaka.popcoon.ui.theme.CornerRadius
 import io.github.shizukutanaka.popcoon.ui.theme.Spacing
 
@@ -121,6 +123,32 @@ fun SettingsScreen(
                     checked = state.paypaySoftbank,
                     onCheckedChange = viewModel::setPaypaySoftbank,
                 )
+                HorizontalDivider()
+                // ヤフショ会員ランク: 毎月 11日・22日の「ヤフショ感謝デー」
+                // (シルバー +4% / ゴールド +5%) の対象判定に使う。
+                Column(Modifier.padding(Spacing.ml)) {
+                    Text(
+                        stringResource(R.string.settings_yahoo_rank),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        stringResource(R.string.settings_yahoo_rank_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(
+                        Modifier.fillMaxWidth().padding(top = Spacing.sm),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        PointSimulator.YahooRank.entries.forEach { rank ->
+                            FilterChip(
+                                selected = state.yahooRank == rank,
+                                onClick = { viewModel.setYahooRank(rank) },
+                                label = { Text(stringResource(rank.toLabelResource())) },
+                            )
+                        }
+                    }
+                }
                 HorizontalDivider()
                 ToggleRow(
                     title = stringResource(R.string.settings_amazon_prime),

@@ -2,6 +2,7 @@ package io.github.shizukutanaka.popcoon.ui.screens.watchlist
 
 import io.github.shizukutanaka.popcoon.data.db.WatchlistDao
 import io.github.shizukutanaka.popcoon.data.db.WatchlistItem
+import io.github.shizukutanaka.popcoon.feature.points.PointSimulator
 import io.github.shizukutanaka.popcoon.feature.settings.IUserPreferences
 import io.github.shizukutanaka.popcoon.feature.watchlist.WatchlistSort
 import io.github.shizukutanaka.popcoon.widget.IWidgetRefresher
@@ -178,6 +179,8 @@ private class FakeUserPreferences(
     override val yahooPremium: Flow<Boolean> = flowOf(yahoo)
     override val paypaySoftbank: Flow<Boolean> = flowOf(softbank)
     override val amazonPrime: Flow<Boolean> = flowOf(prime)
+    override val yahooRank: Flow<PointSimulator.YahooRank> =
+        flowOf(PointSimulator.YahooRank.NONE)
     override val ecPromptDismissed: Flow<Boolean> = flowOf(true)
     override suspend fun dismissEcPrompt() {}
 

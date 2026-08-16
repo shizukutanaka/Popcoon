@@ -239,6 +239,11 @@
     <string name="settings_paypay_softbank">SoftBank/Y!mobile 利用者</string>
     <string name="settings_paypay_softbank_desc">SoftBank または Y!mobile を利用している場合、+5% PayPay 還元が適用されます</string>
     <string name="settings_amazon_prime">Amazon Prime 会員</string>
+    <string name="settings_yahoo_rank">ヤフショ会員ランク</string>
+    <string name="settings_yahoo_rank_desc">毎月11日・22日の「ヤフショ感謝デー」の還元率に反映します (シルバー +4%、ゴールド +5%)。付与は期間限定PayPayポイントです。</string>
+    <string name="yahoo_rank_none">対象外</string>
+    <string name="yahoo_rank_silver">シルバー</string>
+    <string name="yahoo_rank_gold">ゴールド</string>
     <string name="settings_amazon_prime_desc">Amazon Prime 会員の場合、配送料無料が適用されます</string>
 
     <!-- Eco -->
@@ -462,6 +467,7 @@
     <string name="points_yahoo_sunday">日曜日 +5%</string>
     <string name="points_yahoo_premium">Yahoo!プレミアム +2%</string>
     <string name="points_yahoo_softbank">SoftBank/Y!mobile +5%</string>
+    <string name="points_yahoo_thanks_day">ヤフショ感謝デー</string>
     <string name="points_amazon_points">Amazon ポイント</string>
 
     <!-- 通知 (PriceSyncWorker / LocalNotificationManager) -->

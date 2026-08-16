@@ -20,5 +20,16 @@ fun PointSimulator.PointSource.nameRes(): Int = when (kind) {
     PointSimulator.Kind.YAHOO_SUNDAY -> R.string.points_yahoo_sunday
     PointSimulator.Kind.YAHOO_PREMIUM -> R.string.points_yahoo_premium
     PointSimulator.Kind.YAHOO_SOFTBANK -> R.string.points_yahoo_softbank
+    PointSimulator.Kind.YAHOO_THANKS_DAY -> R.string.points_yahoo_thanks_day
     PointSimulator.Kind.AMAZON_POINTS -> R.string.points_amazon_points
+}
+
+/**
+ * [PointSimulator.YahooRank] → ローカライズ済みランク名の文字列リソース ID。
+ * 設定画面のランク選択チップで使う。
+ */
+fun PointSimulator.YahooRank.toLabelResource(): Int = when (this) {
+    PointSimulator.YahooRank.NONE -> R.string.yahoo_rank_none
+    PointSimulator.YahooRank.SILVER -> R.string.yahoo_rank_silver
+    PointSimulator.YahooRank.GOLD -> R.string.yahoo_rank_gold
 }

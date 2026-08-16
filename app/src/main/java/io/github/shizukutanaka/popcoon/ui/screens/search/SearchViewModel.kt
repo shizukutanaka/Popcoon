@@ -196,6 +196,7 @@ class SearchViewModel @Inject constructor(
                 rakutenSpu = prefs.rakutenSpu.first(),
                 yahooPremium = prefs.yahooPremium.first(),
                 paypaySoftbank = prefs.paypaySoftbank.first(),
+                yahooRank = prefs.yahooRank.first(),
                 amazonPrime = prefs.amazonPrime.first(),
                 purchaseDate = java.time.LocalDate.now(),
             )
