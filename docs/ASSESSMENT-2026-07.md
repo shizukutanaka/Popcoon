@@ -20,7 +20,7 @@
    クロスモールカート最適化 (Prime 会員反映)
 5. **名寄せ精度の多層防御** — JAN → 型番+容量 → タイトル (Jaccard + 文字 2-gram Dice ブレンド)
    → 属性ペナルティ (個数 / 色 27 名→16 正準 / 内容量 ml・mg 正規化)。各層に誤爆ガードと oracle 裏付け
-6. **i18n 規律** — 4 ロケール × 399 キー完全一致 + kind/label 分離パターンでオラクル結合と
+6. **i18n 規律** — 4 ロケール × 405 キー完全一致 + kind/label 分離パターンでオラクル結合と
    ローカライズを両立。TalkBack 対応 (チャート要約読み上げ・mergeDescendants) も監査済み
 7. **backend の実ランタイムテスト** — vitest-pool-workers で本物の `src/index.ts` を miniflare 上で
    実行 (70 tests)。レート制限はネイティブ binding + KV フォールバックの漸進移行、
@@ -37,7 +37,9 @@
 1. **CI 未稼働** — `ci/android.yml` は定義済みだがエージェントの GitHub App に `workflows`
    権限が無く `.github/workflows/` へ push 不能。人手で `bash ci/enable.sh && git push` が必要
 2. **Compose/Room/Hilt 層はコンパイル未検証** — 環境に Android SDK が無い。純 Kotlin は parity で
-   実行検証済みだが、UI 層の変更は構文チェック止まり。CI 有効化までは残存リスク
+   実行検証済みだが、UI 層の変更は構文チェック止まり。CI 有効化までは残存リスク。
+   **2026-08 に現実の欠陥として顕在化**: `UserPreferences` の 5 メンバーが `override` 欠落で
+   約 1 か月コンパイル不能だった (e519e67 で修正)。CI 有効化 (A1) の優先度は最上位
 3. **Amazon データソースが実質 FallbackScraper のみ** — PA-API 5.0 が 2026-05-15 廃止。
    後継 Creators API は OAuth2 資格情報 + 成果実績 (10 件/30 日) が必要で人手ゲート
 4. **FCM push 経路がデッドコード** — backend 側は実装済みだが Android に Firebase 未組込
@@ -46,8 +48,8 @@
    移行設計は `backend/README.md` に文書化済みだが、wrangler 実行検証不可のため未実装
 6. **UI 自動テストが薄い** — Compose UI テスト 2 件 + androidTest 4 ファイルは本環境で実行不可。
    ユニットテスト 64 ファイルはロジック層に偏る (構造上やむを得ないが偏りは事実)
-7. **Yahoo 会員ランク未モデル化** — 感謝デー (+4〜5%) はランク条件つきで、UserContext に
-   ランク次元が無いためシミュレーション対象外 (注記のみ)。設定 UI + スキーマ設計が必要
+7. ~~**Yahoo 会員ランク未モデル化**~~ — 2026-08 に実装済 (B4)。UserContext.yahooRank +
+   設定 UI + 4 ロケール文字列を追加し、感謝デー (毎月 11日・22日) を実計算するようにした
 8. **名寄せの残課題** — groupByIdentity は JAN なし商品で O(m²) (粗ブロッキング B5 は未着手)。
    IDF-lite トークン重み付けは 2026-08 に実装済み。Model2Vec 等の埋め込みは効果不確実で見送り
 9. **レビュー信頼度の入力が浅い** — rating + reviewCount のみ (星分布・レビュー履歴が
@@ -73,7 +75,7 @@
 | ~~B1~~ | ~~予測アンサンブル~~ | — | **h=7 のみ実装済 (2026-08)**。h=30 は予測区間を較正できない (被覆 78〜85%) ため意図的に見送り、BuyTimingScorer も Holt 据え置きで不変。詳細と実測は `docs/RESEARCH-2026-08.md` §1 | 完了 |
 | B2 | Durable Objects 移行 | 高 | `backend/README.md` の設計どおり実装。**wrangler dev / デプロイ検証が可能な環境が前提** | `npx wrangler dev` + vitest + 段階ロールアウト |
 | ~~B3~~ | ~~IDF-lite トークン重み~~ | — | **実装済 (2026-08)**。`tokenIdfWeights` + weighted Jaccard、weights=null は素の Jaccard へ委譲し後方互換。詳細は `docs/RESEARCH-2026-08.md` 3-1 | 完了 |
-| B4 | Yahoo ランク次元 | 中 | UserPreferences + 設定 UI + PointSimulator.UserContext にランク追加、感謝デーを実計算へ。4 ロケール文字列同時 | run_points.sh + oracle + キー数一致 |
+| ~~B4~~ | ~~Yahoo ランク次元~~ | — | **実装済 (2026-08)**。YahooRank enum + DataStore 保存 (不明値は NONE フォールバック) + 設定 UI 3択チップ。詳細は `docs/RESEARCH-2026-08.md` §4 | 完了 |
 | B5 | groupByIdentity の粗ブロッキング | 低 (優先度低下) | 2026-08 の特徴量メモ化で 320 件 2.5s→112ms になり体感問題は解消。比較回数は O(m²) のままなので候補数が数百規模になったら再検討。**ブロッキングキーは文字 2-gram 側に取ること** (トークン一致だけだと 2-gram Dice の腕で救済されるペアを落とす) | run_matcher.sh + 大規模入力の perf 確認 |
 
 ### C. Sonnet 向け (機械的・検証容易 — CLAUDE.md の oracle 先行 TDD でそのまま着手可)
@@ -92,7 +94,7 @@
 - Python: **490 passed / 1 skipped** (`popcoon-tdd/`)
 - Kotlin parity: **run_all.sh 全 13 ハーネス pass** (run.sh 155 matched / 0 mismatched)
 - backend: **tsc 0 errors / vitest 70 tests pass**
-- i18n: **4 ロケール × 399 strings** (+3 plurals) 完全一致
+- i18n: **4 ロケール × 405 strings** (+3 plurals) 完全一致
 - ファイル数: Kotlin main 131 / unit test 64 / androidTest 4、Python 38
 
 この基準線を下回る変更は原因を特定するまで push しない。

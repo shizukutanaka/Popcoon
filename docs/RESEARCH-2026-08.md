@@ -207,6 +207,26 @@
   実装済みの上限 18 倍モデルは有効。
 
 **改善候補**
+- ✅ **ヤフショ会員ランク次元 (ASSESSMENT B4)** — 実装済。「ヤフショ感謝デー」
+  (毎月 11日・22日、シルバー +4% / ゴールド +5%) は SaleCalendar が日付を告知するだけで
+  実質価格に反映されておらず、ランク保有者には最大 5% の還元が抜け落ちていた
+  (UserContext にランク次元が無く「未実装」と明記されていた既知の穴)。
+  2026-08 の再確認: 感謝デーは 2025-11-11 に「ゾロ目の日クーポン」を置き換えて開始し継続中。
+  LYPプレミアムの +2% は 2026-06-22 の「スタンダードプラン」改称後も内容変更なし。
+  <https://shopping.yahoo.co.jp/promotion/campaign/pointrank/>
+  DataStore には enum 名を文字列で保存し、未設定・不明値は NONE へフォールバックする
+  (将来ランクが増減しても読み出しで落ちない)。設定画面に 3 択チップ + 4 ロケール文字列。
+  なお `SaleCalendar` の実装 (day == 11 || day == 22) は元から正しく、
+  RESEARCH-2026-07 の「11/22」表記は日付ではなく「11日・22日」の意だった。
+- ✅ **(副産物) app モジュールのコンパイルエラーを発見・修正** — B4 の配線中に
+  `UserPreferences : IUserPreferences` の 5 メンバー (rakutenSpu / yahooPremium /
+  paypaySoftbank / amazonPrime / ecPromptDismissed) が `override` 無しで宣言されており、
+  **Kotlin ではコンパイルが通らない**状態だったことが判明した。最小再現を実際に
+  コンパイルしてエラーを確認済み。IUserPreferences は 2026-07-13 に追加され、
+  その後に足されたメンバーだけ override が付き、当初の 5 つが取り残されていた。
+  Android SDK 不在 + CI 未稼働で約 1 か月検出されなかった —
+  **短所 2「Compose/Room/Hilt 層はコンパイル未検証」が現実の欠陥として顕在化した事例**。
+  他のインタフェース実装 (IProductRepository 3/3, IWidgetRefresher 1/1) は問題なし。
 - ⏸️ **PayPay ステップの付与基準変更 (2026-06-02) の反映** — PointSimulator は「商品価格から
   付与額を計算する」モデルで、**ユーザーがポイントを使って支払う額を入力として持たない**。
   影響を受けるのは PayPay ステップ由来の付与のみで、シミュレーターが扱う基本 1% と
@@ -230,6 +250,8 @@
 | ProductMatcher 特徴量メモ化 | perf | 出力不変 (17×17 全ペア等価性を parity 固定) / 320 件 2.5s → 112ms (22.5x) |
 | URGENCY recall 拡張 (あと/締切迫る/英語) | feat | oracle +6 → run.sh parity 126 → 136 matched / 誤爆ガード 4 ケース |
 | 7日先の予測アンサンブル (B1) | feat | oracle +14 → run.sh parity 136 → 155 matched / MAE -2〜-18% / 被覆 89.8〜90.8% / golden 手導出更新 |
+| UserPreferences の override 欠落 (コンパイルエラー) 修正 | fix | 最小再現を実コンパイルで確認 + スタブで契約充足を検証 |
+| ヤフショ会員ランク次元 / 感謝デー (B4) | feat | run_points parity +7 ケース / 4 ロケール 405 キー一致 |
 | backend の npm install 復旧 (workers-types v5) | fix | tsc 0 errors / vitest 70 tests pass |
 
 ## 検証基準線 (2026-08 実測)
@@ -237,4 +259,4 @@
 - Python: **490 passed / 1 skipped** (`popcoon-tdd/`)
 - Kotlin parity: **run_all.sh 13 ハーネス全 pass** (run.sh 155 matched / 0 mismatched)
 - backend: **tsc 0 errors / vitest 70 tests pass** (本セッションで変更なし)
-- i18n: **4 ロケール × 399 strings** (+3 plurals) 完全一致
+- i18n: **4 ロケール × 405 strings** (+3 plurals) 完全一致
