@@ -125,28 +125,28 @@ class UserPreferences @Inject constructor(
     }
 
     /** 楽天 SPU 倍率 (1–15)。PointSimulator.UserContext.rakutenSpu に供給。 */
-    val rakutenSpu: Flow<Int> = safeData.map { it[KEY_RAKUTEN_SPU] ?: 1 }
+    override val rakutenSpu: Flow<Int> = safeData.map { it[KEY_RAKUTEN_SPU] ?: 1 }
 
     suspend fun setRakutenSpu(v: Int) {
         context.dataStore.edit { it[KEY_RAKUTEN_SPU] = v.coerceIn(1, 15) }
     }
 
     /** Yahoo!プレミアム会員。PointSimulator.UserContext.yahooPremium に供給。 */
-    val yahooPremium: Flow<Boolean> = safeData.map { it[KEY_YAHOO_PREMIUM] ?: false }
+    override val yahooPremium: Flow<Boolean> = safeData.map { it[KEY_YAHOO_PREMIUM] ?: false }
 
     suspend fun setYahooPremium(v: Boolean) {
         context.dataStore.edit { it[KEY_YAHOO_PREMIUM] = v }
     }
 
     /** SoftBank/Y!mobile 利用者。PointSimulator.UserContext.paypaySoftbank に供給。 */
-    val paypaySoftbank: Flow<Boolean> = safeData.map { it[KEY_PAYPAY_SOFTBANK] ?: false }
+    override val paypaySoftbank: Flow<Boolean> = safeData.map { it[KEY_PAYPAY_SOFTBANK] ?: false }
 
     suspend fun setPaypaySoftbank(v: Boolean) {
         context.dataStore.edit { it[KEY_PAYPAY_SOFTBANK] = v }
     }
 
     /** Amazon Prime 会員。PointSimulator.UserContext.amazonPrime に供給。 */
-    val amazonPrime: Flow<Boolean> = safeData.map { it[KEY_AMAZON_PRIME] ?: false }
+    override val amazonPrime: Flow<Boolean> = safeData.map { it[KEY_AMAZON_PRIME] ?: false }
 
     suspend fun setAmazonPrime(v: Boolean) {
         context.dataStore.edit { it[KEY_AMAZON_PRIME] = v }
@@ -171,7 +171,7 @@ class UserPreferences @Inject constructor(
      * (アプリの差別化機能が事実上死蔵)。SearchScreen に一度だけ案内バナーを出し、
      * 閉じる/設定へ進むいずれかの操作で再表示しないようにする。
      */
-    val ecPromptDismissed: Flow<Boolean> = safeData
+    override val ecPromptDismissed: Flow<Boolean> = safeData
         .map { it[KEY_EC_PROMPT_DISMISSED] ?: false }
 
     override suspend fun dismissEcPrompt() {
