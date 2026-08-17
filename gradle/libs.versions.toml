@@ -31,7 +31,7 @@ room = "2.6.1"
 # Testing
 junit = "4.13.2"
 androidx-test-junit = "1.2.1"
-espresso = "3.6.1"
+espresso = "3.7.0"
 kotest = "5.9.1"
 turbine = "1.2.0"
 
