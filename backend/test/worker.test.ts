@@ -366,3 +366,105 @@ describe("実ハンドラー: scheduled() 毎時 cron (evaluateAlerts の one-sh
     expect(await readAlertActive(id)).toBe(true);
   });
 });
+
+describe("実ハンドラー: DELETE /v1/alerts/{id} (所有者検証、ルート全体が未テストだった)", () => {
+  // このルートは「ID が漏れた場合の無認可削除」を防ぐために device_token 照合を
+  // 追加した経緯があるが、テストが 1 件も無かった (2026-08 の棚卸しで発覚)。
+  // 所有者検証は KV の実挙動 (書いた値が読めるか) に依存するため、
+  // 再実装コピーではなく実ハンドラー + 実 KV で固定する。
+  async function seedAlert(id: string, deviceToken: string) {
+    await env.ALERTS.put(`alert:${id}`, JSON.stringify({
+      alert_id: id,
+      device_token: deviceToken,
+      product_key: "amazon:B0TEST",
+      condition: { type: "price_below", value: 1000 },
+    }));
+  }
+
+  it("x-device-token 欠落は 400", async () => {
+    const res = await call(req("/v1/alerts/some-id", { method: "DELETE" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("存在しない alert_id は 200 (冪等に成功扱い)", async () => {
+    const res = await call(req("/v1/alerts/does-not-exist-2026", {
+      method: "DELETE",
+      headers: { "x-device-token": "tok-owner" },
+    }));
+    expect(res.status).toBe(200);
+  });
+
+  it("他人の device_token では 403 で拒否され、KV から消えない (中核の権限チェック)", async () => {
+    await seedAlert("owned-by-a", "tok-a");
+    const res = await call(req("/v1/alerts/owned-by-a", {
+      method: "DELETE",
+      headers: { "x-device-token": "tok-b" },
+    }));
+    expect(res.status).toBe(403);
+    // 実 KV に残っていることまで確認する (403 を返すだけで消していたら意味がない)
+    expect(await env.ALERTS.get("alert:owned-by-a")).not.toBeNull();
+  });
+
+  it("正しい device_token なら 200 で実際に KV から削除される", async () => {
+    await seedAlert("owned-by-c", "tok-c");
+    const res = await call(req("/v1/alerts/owned-by-c", {
+      method: "DELETE",
+      headers: { "x-device-token": "tok-c" },
+    }));
+    expect(res.status).toBe(200);
+    expect(await env.ALERTS.get("alert:owned-by-c")).toBeNull();
+  });
+
+  it("保存値が壊れた JSON でも 403 で安全側に倒れる (削除しない)", async () => {
+    await env.ALERTS.put("alert:corrupt-json", "{ not valid json");
+    const res = await call(req("/v1/alerts/corrupt-json", {
+      method: "DELETE",
+      headers: { "x-device-token": "tok-any" },
+    }));
+    expect(res.status).toBe(403);
+    expect(await env.ALERTS.get("alert:corrupt-json")).not.toBeNull();
+  });
+});
+
+describe("実ハンドラー: ルーティングのフォールスルー", () => {
+  it("未知のパスは 404", async () => {
+    const res = await call(req("/v1/nope"));
+    expect(res.status).toBe(404);
+  });
+
+  it("既知パスでも非対応メソッドなら 404 (メソッド違いで別ルートに落ちない)", async () => {
+    // /v1/health は GET のみ。POST は他のどのルートにも該当せず 404 になる。
+    const res = await call(req("/v1/health", { method: "POST" }));
+    expect(res.status).toBe(404);
+  });
+
+  it("/v1/alerts/ の末尾スラッシュのみは alert_id 空として扱われる", async () => {
+    const res = await call(req("/v1/alerts/", {
+      method: "DELETE",
+      headers: { "x-device-token": "tok-x" },
+    }));
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("実ハンドラー: PII 検出の IPv4 分岐 (実ハンドラー越しでは未検証だった)", () => {
+  // alerts.test.ts は containsPotentialPii を **再実装したコピー** で IPv4 を
+  // 検証しており、本番コードの分岐は実ハンドラー越しに通っていなかった。
+  it("スタックに IPv4 が含まれると 400 で拒否される", async () => {
+    const res = await call(req("/v1/crash", {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.60" },
+      body: JSON.stringify({ sanitized_stack: "connect failed to 192.168.11.24" }),
+    }));
+    expect(res.status).toBe(400);
+  });
+
+  it("IP に見えないドット区切り数値 (バージョン番号) は誤検出しない", async () => {
+    const res = await call(req("/v1/crash", {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.61" },
+      body: JSON.stringify({ sanitized_stack: "ok", app_version: "1.2.3" }),
+    }));
+    expect(res.status).toBe(200);
+  });
+});
