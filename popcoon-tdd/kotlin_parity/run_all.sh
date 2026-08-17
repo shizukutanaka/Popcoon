@@ -19,6 +19,7 @@ if ! find "$HOME/.gradle" ${GRADLE_HOME:+"$GRADLE_HOME/lib"} /opt/gradle-*/lib /
 fi
 
 harnesses=(
+  "run_compile_core.sh"  # app モジュールの Android 非依存部を実コンパイル (型/override/when 網羅)
   "run.sh"          # 6-function cross-language parity (customs/eco/dark-pattern/predict/buy-timing)
   "run_rakuten.sh"  # RakutenMapper: availability -> stockCount
   "run_yahoo.sh"    # YahooMapper: inStock -> stockCount
