@@ -1,7 +1,7 @@
 [versions]
 # Build tooling
 agp = "8.10.0"
-kotlin = "2.0.21"
+kotlin = "2.4.10"
 ksp = "2.0.21-1.0.28"
 baselineprofile = "1.4.1"
 profileinstaller = "1.4.1"
