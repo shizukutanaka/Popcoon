@@ -167,3 +167,61 @@ internal fun stockFromAmazonAvailability(type: String?, message: String?): Int? 
     )
     return if (outOfStockMarkers.any { m.contains(it) }) 0 else null
 }
+
+/**
+ * 価格文字列 → 円 (Long)。抽出できない・0 以下なら null。
+ *
+ * `"1,980"` / `"¥1,980"` / `"1980円"` / 全角 `"１９８０"` / `"38.99"` を受ける。
+ * **0 以下は null を返す** — 価格 0 は「無料商品」ではなく「取得失敗」であり、
+ * 呼び出し側が失敗として扱えるようにするため (下記 extractHtmlPrice / FallbackScraper 参照)。
+ */
+internal fun parsePriceToLong(raw: String?): Long? {
+    if (raw.isNullOrBlank()) return null
+    val normalized = java.text.Normalizer.normalize(raw, java.text.Normalizer.Form.NFKC)
+    val m = Regex("""-?\d[\d,]*(?:\.\d+)?""").find(normalized) ?: return null
+    val v = m.value.replace(",", "").toDoubleOrNull() ?: return null
+    val cents = v.toLong()
+    return if (cents > 0L) cents else null
+}
+
+// microdata / OpenGraph の価格マーカー。属性順は実サイトでまちまちなので
+// 「同一タグ内にマーカーと content 属性がある」ことだけを条件にする。
+private val HTML_PRICE_MARKERS = listOf(
+    "itemprop=[\"']price[\"']",
+    "property=[\"']product:price:amount[\"']",
+    "property=[\"']og:price:amount[\"']",
+    "name=[\"']twitter:data1[\"']",
+)
+
+private val htmlPriceTagCache = java.util.concurrent.ConcurrentHashMap<String, Regex>()
+
+/**
+ * JSON-LD 以外の経路から価格を拾う **フォールバック戦略群** (2026-08 リサーチ)。
+ *
+ * 関連ソフトウェア調査で、自己ホスト型価格追跡 PriceGhost が「独立した抽出方式を
+ * 複数並列に走らせて突き合わせる」設計を採っていることを確認した。Popcoon の
+ * FallbackScraper は **JSON-LD 単独** で、Amazon PA-API 5.0 廃止 (2026-05-15) 後は
+ * これが Amazon 商品ページの実質的な唯一のデータ源になっている。JSON-LD が無い/
+ * price を含まないページでは価格が取れず、しかも従来は 0 円の Product を捏造していた。
+ *
+ * 戦略の優先順:
+ *  1. microdata  `<span itemprop="price" content="1980">`
+ *  2. OpenGraph  `<meta property="product:price:amount" content="1980">`
+ *  3. OpenGraph  `<meta property="og:price:amount" content="1980">`
+ *  4. Twitter card `<meta name="twitter:data1" content="¥1,980">`
+ * 最初に **正の値** が取れた戦略を採用する (0 や解析不能はスキップして次へ)。
+ * 全滅なら null — 呼び出し側は「取得失敗」として扱うこと。
+ */
+internal fun extractHtmlPrice(html: String): Long? {
+    for (marker in HTML_PRICE_MARKERS) {
+        val tagPattern = htmlPriceTagCache.getOrPut(marker) {
+            Regex("""<[^>]*$marker[^>]*>""", RegexOption.IGNORE_CASE)
+        }
+        for (tag in tagPattern.findAll(html)) {
+            val content = Regex("""content\s*=\s*["']([^"']*)["']""", RegexOption.IGNORE_CASE)
+                .find(tag.value)?.groupValues?.get(1)
+            parsePriceToLong(content)?.let { return it }
+        }
+    }
+    return null
+}

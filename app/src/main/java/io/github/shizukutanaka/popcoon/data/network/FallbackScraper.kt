@@ -90,8 +90,12 @@ class FallbackScraper {
             null
         } ?: return null
 
+        // JSON-LD の Product スキーマが無いページはそもそも商品ページでない可能性が高い
+        // (検索結果・エラーページ等) ため、ここは要求したままにする。多戦略化するのは
+        // 「商品ページだと確認できたうえで price フィールドだけ取れない」ケース
+        // (parseProductSchema 内の HTML フォールバック)。
         val jsonLd = extractJsonLd(html) ?: return null
-        return parseProductSchema(jsonLd, url, platform)
+        return parseProductSchema(jsonLd, html, url, platform)
     }
 
     /**
@@ -133,18 +137,29 @@ class FallbackScraper {
 
     /** 極小パーサ: kotlinx.serialization 不使用 (依存削減) */
     private fun parseProductSchema(
-        json: String, url: String, platform: Platform,
+        json: String, html: String, url: String, platform: Platform,
     ): Product? {
         // キーだけを取り出す粗いパーサ
         val name = extractJsonString(json, "name") ?: return null
         // price は文字列 ("1980") と数値 (1980 / 38.99) の両形式があり得る (schema.org / Google 公式例)。
-        // 文字列マッチが外れたら数値フォールバックを試す。これが無いと数値表記の商品が realPrice=0 になる。
-        val priceStr = extractJsonString(json, "price")
-            ?: extractJsonNumber(json, "price")
-            ?: extractJsonString(json, "lowPrice")
-            ?: extractJsonNumber(json, "lowPrice")
-            ?: "0"
-        val price = priceStr.replace(",", "").toDoubleOrNull()?.toLong() ?: 0L
+        // 文字列マッチが外れたら数値フォールバックを試す。
+        //
+        // JSON-LD で取れない場合は **HTML 側の別戦略** (microdata / OpenGraph / Twitter card) へ
+        // フォールバックする (2026-08 リサーチ: PriceGhost の多戦略抽出に対応)。
+        // PA-API 5.0 廃止後、Amazon 商品ページはこの経路が実質唯一のデータ源のため、
+        // JSON-LD 単独では取りこぼしがそのまま機能停止になる。
+        //
+        // **どの戦略でも取れなければ null を返して失敗にする**。以前は `?: "0"` で
+        // realPrice=0 の Product を捏造しており、refresh() の「失敗時は null」という
+        // 明文化された契約 (ProductRepository.refresh の KDoc) を破っていた。0 円の商品は
+        // 価格履歴に記録されると常に「史上最安値」となり、price_below 系アラートを
+        // 無条件で発火させ、ATL 判定と予測パイプラインを汚染する。
+        val price = parsePriceToLong(
+            extractJsonString(json, "price")
+                ?: extractJsonNumber(json, "price")
+                ?: extractJsonString(json, "lowPrice")
+                ?: extractJsonNumber(json, "lowPrice"),
+        ) ?: extractHtmlPrice(html) ?: return null
         // image は単一文字列・文字列配列のいずれもあり得る (Amazon/楽天は配列が多い)。
         // 配列フォールバックが無いと配列形式の商品でサムネイルが表示されない。
         val image = extractJsonString(json, "image")

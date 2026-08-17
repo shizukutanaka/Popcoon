@@ -139,7 +139,48 @@ fun main() {
     // 単一文字列 brand は string 抽出の領分
     check(extractJsonLdString("""{"brand":"Sony"}""", "brand") == "Sony") { "string brand -> Sony" }
 
+    // ── 価格パース + HTML 多戦略フォールバック (2026-08 リサーチ) ──────────────
+    // 関連ソフトウェア (PriceGhost) の多戦略抽出に対応。JSON-LD に price が無いページで
+    // 従来は realPrice=0 の Product を捏造していた (refresh() の「失敗時 null」契約違反)。
+    check(parsePriceToLong("1980") == 1980L) { "plain -> 1980" }
+    check(parsePriceToLong("1,980") == 1980L) { "comma -> 1980" }
+    check(parsePriceToLong("¥1,980") == 1980L) { "yen sign -> 1980" }
+    check(parsePriceToLong("1980円") == 1980L) { "suffix -> 1980" }
+    check(parsePriceToLong("１９８０") == 1980L) { "full-width -> 1980" }
+    check(parsePriceToLong("38.99") == 38L) { "decimal truncates -> 38" }
+    // 0 / 負 / 非数値は「無料」ではなく **取得失敗** として null
+    check(parsePriceToLong("0") == null) { "zero -> null (failure, not free)" }
+    check(parsePriceToLong("-100") == null) { "negative -> null" }
+    check(parsePriceToLong("") == null) { "empty -> null" }
+    check(parsePriceToLong(null) == null) { "null -> null" }
+    check(parsePriceToLong("お問い合わせください") == null) { "no digits -> null" }
+
+    // microdata (属性順は両方あり得る)
+    check(extractHtmlPrice("""<span itemprop="price" content="1980">""") == 1980L) { "microdata" }
+    check(extractHtmlPrice("""<span content="2480" itemprop="price">""") == 2480L) { "microdata reversed" }
+    // OpenGraph
+    check(extractHtmlPrice("""<meta property="product:price:amount" content="3300">""") == 3300L) { "og product price" }
+    check(extractHtmlPrice("""<meta property="og:price:amount" content="4400">""") == 4400L) { "og price" }
+    // Twitter card (通貨記号つき)
+    check(extractHtmlPrice("""<meta name="twitter:data1" content="¥5,500">""") == 5500L) { "twitter card" }
+    // シングルクォート / 大文字タグ
+    check(extractHtmlPrice("""<META PROPERTY='og:price:amount' CONTENT='6600'>""") == 6600L) { "single quote + upper" }
+    // 優先順: microdata が OpenGraph より先
+    check(
+        extractHtmlPrice("""<meta property="og:price:amount" content="999"><span itemprop="price" content="123">""") == 123L,
+    ) { "microdata wins over og" }
+    // 0 のマーカーはスキップして次の戦略へ進む
+    check(
+        extractHtmlPrice("""<span itemprop="price" content="0"><meta property="og:price:amount" content="777">""") == 777L,
+    ) { "zero marker skipped, falls through" }
+    // 該当なし → null (呼び出し側が失敗として扱う)
+    check(extractHtmlPrice("<html><body>no price here</body></html>") == null) { "no marker -> null" }
+    check(extractHtmlPrice("") == null) { "empty html -> null" }
+    // 価格と無関係な itemprop は拾わない
+    check(extractHtmlPrice("""<span itemprop="ratingValue" content="4.5">""") == null) { "ratingValue not price" }
+
     println("JSON-LD STOCK: all assertions passed")
+    println("PRICE PARSE / HTML FALLBACK: all assertions passed")
     println("ORIGIN COUNTRY: all assertions passed")
     println("GTIN/JAN: all assertions passed")
     println("AMAZON AVAILABILITY: all assertions passed")
