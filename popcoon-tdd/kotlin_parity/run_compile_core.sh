@@ -121,6 +121,12 @@ if [[ ${#TARGETS[@]} -lt $MIN_TARGETS ]]; then
   exit 1
 fi
 
+# 3. コンパイル対象外 (Android/Hilt 依存) のファイルも含めた override 欠落の静的検査。
+#    実コンパイルできるのは 34/119 ファイルだけで、2026-08 に実際に壊れた
+#    UserPreferences.kt は datastore + dagger 依存で対象外のまま。この検査は
+#    全ソースを構文的に走査してその回帰クラスだけを塞ぐ。
+python3 "$HERE/check_overrides.py" || exit 1
+
 if [[ -f "$OUT/core.jar" ]]; then
   echo "CORE COMPILE: OK (${#TARGETS[@]} files)"
 else
