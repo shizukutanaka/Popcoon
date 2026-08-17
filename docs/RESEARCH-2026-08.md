@@ -193,6 +193,38 @@
   「明治 おいしい牛乳 900ml」は 0.75 でマッチする。ブロッキングキーは文字 2-gram 側に
   取る必要がある (共有 2-gram が 0 なら Jaccard も Dice も 0 になるため損失なし)。
 
+## 3-2. 関連ソフトウェア調査 (競合・OSS)
+
+**主な知見**
+- **Keepa / CamelCamelCamel**: Keepa は 11 マーケットプレイスを追い Amazon.co.jp を含むが、
+  **CamelCamelCamel は日本サイトを終了**しており日本の Amazon を追う手段は限られる。
+  Keepa は Sales Rank 履歴 / Buy Box 挙動 / 出品者数を保持するが CamelCamelCamel は持たない。
+  Keepa Pro は €29/月。 <https://revenuegeeks.com/compare/keepa-vs-camelcamelcamel>
+- **PriceGhost** (自己ホスト型 OSS): **独立した抽出方式を複数並列に走らせて突き合わせる**
+  多戦略抽出 (Price Voting)。<https://github.com/clucraft/PriceGhost>
+- **PriceBuddy** / **changedetection.io**: 任意サイトの価格・在庫追跡、複数ストア比較、
+  Playwright による JS 重サイト対応。自己ホストの利点は「プライバシー」と「チェック頻度」。
+  <https://github.com/jez500/pricebuddy>
+
+**改善候補**
+- ✅ **FallbackScraper の価格抽出を多戦略化 + ¥0 捏造の停止** — 実装済。
+  Popcoon は JSON-LD **単独**で、PA-API 5.0 廃止 (2026-05-15) 後は Amazon 商品ページの
+  実質唯一のデータ源がこれになっていた。さらに price が取れないとき `?: "0"` で
+  **realPrice=0 の Product を捏造**しており、`ProductRepository.refresh` の KDoc が
+  明文化する「失敗時は null」契約を破っていた。0 円商品は価格履歴に入ると常に史上最安値と
+  なり、ATL 判定・price_below アラート・Holt/IQR 予測を汚染する。
+  `parsePriceToLong` (0 以下は「無料」ではなく取得失敗として null) と
+  `extractHtmlPrice` (microdata → OpenGraph ×2 → Twitter card の順で最初の正値を採用) を
+  新設し、全滅なら null で失敗させるようにした。parity に 22 assertion を追加。
+  **JSON-LD Product スキーマ自体の要求は据え置き** — 無いページは検索結果/エラーページの
+  可能性が高く「商品ページである」ことの確証として機能するため。
+- ⏸️ **抽出結果の投票 (PriceGhost の Price Voting 相当)** — 複数戦略が **異なる値** を返した
+  ときに多数決で決める仕組み。現状は「最初に取れた戦略を採用」の優先順方式にとどめた。
+  投票が効くのは戦略間の不一致が実データで頻発する場合だが、その頻度を測る実ページの
+  収集手段が本環境に無い (egress 制限)。実運用のログが取れるようになったら再検討する。
+- ⏸️ **Sales Rank / Buy Box 履歴 (Keepa 相当)** — PA-API 廃止で取得手段が無い。
+  Creators API (A5、人手ゲート) 移行後に再検討。
+
 ## 4. 日本 EC のポイント制度 (更新確認)
 
 **主な知見**
@@ -254,6 +286,7 @@
 | ヤフショ会員ランク次元 / 感謝デー (B4) | feat | run_points parity +7 ケース / 4 ロケール 405 キー一致 |
 | `run_compile_core.sh` 新設 (Android 非依存 34 ファイルを実コンパイル) | test | 欠陥注入 3 種で検出能力を実証 / run_all 13 → 14 ハーネス |
 | backend の未テスト経路を補完 (C4) | test | vitest 70 → 80 / DELETE /v1/alerts/{id} はルート全体が未テストだった |
+| FallbackScraper の多戦略価格抽出 + ¥0 捏造の停止 | fix | run_jsonld parity +22 assertion / refresh の「失敗時 null」契約を回復 |
 | backend の npm install 復旧 (workers-types v5) | fix | tsc 0 errors / vitest 70 tests pass |
 
 ## 検証基準線 (2026-08 実測)
