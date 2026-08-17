@@ -7,7 +7,7 @@
 ## 長所
 
 1. **二重言語 TDD アーキテクチャ** — Python 仕様オラクル (490 tests) が真実の源、Kotlin 本番実装を
-   `kotlin_parity/` の 13 ハーネスが**実コンパイル・実行**で照合 (run.sh 155 ケース 0 乖離)。
+   `kotlin_parity/` の 14 ハーネスが**実コンパイル・実行**で照合 (run.sh 155 ケース 0 乖離、`run_compile_core.sh` が Android 非依存 34 ファイルを型検査)。
    Android SDK 無しの環境でもロジックの実行検証ができる、この規模のアプリでは希少な体制
 2. **テスト防御の深さ** — 11 階層 (unit/integration/golden/metamorphic/mutation/perf/fuzz/
    stateful/concurrency/differential/chaos)。mutation score 100% × 4 モジュール。
@@ -39,7 +39,9 @@
 2. **Compose/Room/Hilt 層はコンパイル未検証** — 環境に Android SDK が無い。純 Kotlin は parity で
    実行検証済みだが、UI 層の変更は構文チェック止まり。CI 有効化までは残存リスク。
    **2026-08 に現実の欠陥として顕在化**: `UserPreferences` の 5 メンバーが `override` 欠落で
-   約 1 か月コンパイル不能だった (e519e67 で修正)。CI 有効化 (A1) の優先度は最上位
+   約 1 か月コンパイル不能だった (e519e67 で修正)。再発防止に `run_compile_core.sh` を新設し
+   Android 非依存 34 ファイルを実コンパイルするようにしたが、残り 85 ファイル
+   (Compose/Room/Hilt) は依然未検証。CI 有効化 (A1) の優先度は最上位
 3. **Amazon データソースが実質 FallbackScraper のみ** — PA-API 5.0 が 2026-05-15 廃止。
    後継 Creators API は OAuth2 資格情報 + 成果実績 (10 件/30 日) が必要で人手ゲート
 4. **FCM push 経路がデッドコード** — backend 側は実装済みだが Android に Firebase 未組込
@@ -92,7 +94,7 @@
 ## 検証基準線 (2026-07 実測)
 
 - Python: **490 passed / 1 skipped** (`popcoon-tdd/`)
-- Kotlin parity: **run_all.sh 全 13 ハーネス pass** (run.sh 155 matched / 0 mismatched)
+- Kotlin parity: **run_all.sh 全 14 ハーネス pass** (run.sh 155 matched / 0 mismatched、core compile 34 ファイル)
 - backend: **tsc 0 errors / vitest 70 tests pass**
 - i18n: **4 ロケール × 405 strings** (+3 plurals) 完全一致
 - ファイル数: Kotlin main 131 / unit test 64 / androidTest 4、Python 38

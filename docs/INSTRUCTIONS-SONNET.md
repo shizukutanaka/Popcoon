@@ -60,7 +60,7 @@
 | `run_trie.sh` / `run_currency.sh` / `run_jan.sh` 等 | 各 `*/…Check.kt` | 個別 |
 
 境界ケース (全角/半角数字・全角空白 U+3000・空文字・巨大値・小数) を追加。
-`bash popcoon-tdd/kotlin_parity/run_all.sh` で全 13 ハーネス green 維持が合格条件。
+`bash popcoon-tdd/kotlin_parity/run_all.sh` で全 14 ハーネス green 維持が合格条件。
 
 ---
 

@@ -25,7 +25,7 @@ ci/           android.yml (未稼働 — workflows 権限が無く人手で ci/e
 | 対象 | コマンド | 基準線 (2026-07 時点) |
 |---|---|---|
 | Python オラクル全体 | `cd popcoon-tdd && python3 -m pytest -q` | **490 passed, 1 skipped** |
-| Kotlin 実行 parity 全体 | `bash popcoon-tdd/kotlin_parity/run_all.sh` | 全 13 ハーネス pass (`run.sh` は 155 matched / 0 mismatched) |
+| Kotlin 実行 parity 全体 | `bash popcoon-tdd/kotlin_parity/run_all.sh` | 全 14 ハーネス pass (`run.sh` は 155 matched / 0 mismatched、`run_compile_core.sh` は 34 ファイル実コンパイル) |
 | 個別 parity | `bash popcoon-tdd/kotlin_parity/run_matcher.sh` 等 | "all assertions passed" |
 | backend 型検査 | `cd backend && npx tsc --noEmit` | エラー 0 |
 | backend テスト | `cd backend && npx vitest run` | **70 tests / 4 files pass** |
@@ -34,7 +34,8 @@ ci/           android.yml (未稼働 — workflows 権限が無く人手で ci/e
 
 ## 環境制約 (重要 — 回避不能)
 
-- **Android 実ビルド不可**: SDK が無く `./gradlew` はネットワーク制限で使えない。Compose/Room/Hilt 依存コードはコンパイル検証できない → UI 層の変更は brace バランス + 既存パターン踏襲 + コードレビュー精度で守る。**純 Kotlin ロジックは検証できる**: `/opt/gradle-*/lib/kotlin-compiler-embeddable-*.jar` で実コンパイル・実行 (parity ハーネスがこの方式。throwaway 検証は run_points.sh の invocation を流用)
+- **Android 実ビルド不可**: SDK が無く `./gradlew` はネットワーク制限で使えない。Compose/Room/Hilt 依存コード (85 ファイル) はコンパイル検証できない → UI 層の変更は brace バランス + 既存パターン踏襲 + コードレビュー精度で守る。**純 Kotlin ロジックは検証できる**: `/opt/gradle-*/lib/kotlin-compiler-embeddable-*.jar` で実コンパイル・実行 (parity ハーネスがこの方式。throwaway 検証は run_points.sh の invocation を流用)
+- **Android 非依存の 34 ファイルは `run_compile_core.sh` が一括実コンパイル**する (override 欠落・when 網羅漏れ・未解決参照・`R.string.*` 未定義を検出)。**UI 層を触ったら必ず実行すること** — 2026-08 に `UserPreferences` の override 欠落で app が約 1 か月コンパイル不能だった実績がある
 - **wrangler ランタイム実行不可**: KV/DO/ratelimit binding の実挙動は検証できない。vitest (miniflare) の既知の制限は `backend/README.md` の「テスト構成」参照
 - git push は指定作業ブランチのみ許可 (タグ・他ブランチは 403)。`main` を動かすのは明示指示がある時だけ
 
