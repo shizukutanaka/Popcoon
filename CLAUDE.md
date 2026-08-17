@@ -35,7 +35,7 @@ ci/           android.yml (未稼働 — workflows 権限が無く人手で ci/e
 ## 環境制約 (重要 — 回避不能)
 
 - **Android 実ビルド不可**: SDK が無く `./gradlew` はネットワーク制限で使えない。Compose/Room/Hilt 依存コード (85 ファイル) はコンパイル検証できない → UI 層の変更は brace バランス + 既存パターン踏襲 + コードレビュー精度で守る。**純 Kotlin ロジックは検証できる**: `/opt/gradle-*/lib/kotlin-compiler-embeddable-*.jar` で実コンパイル・実行 (parity ハーネスがこの方式。throwaway 検証は run_points.sh の invocation を流用)
-- **Android 非依存の 34 ファイルは `run_compile_core.sh` が一括実コンパイル**する (override 欠落・when 網羅漏れ・未解決参照・`R.string.*` 未定義を検出)。**UI 層を触ったら必ず実行すること** — 2026-08 に `UserPreferences` の override 欠落で app が約 1 か月コンパイル不能だった実績がある
+- **Android 非依存の 34 ファイルは `run_compile_core.sh` が一括実コンパイル**する (when 網羅漏れ・未解決参照・`R.string.*` 未定義・型不一致を検出)。同スクリプトは `check_overrides.py` も呼び、**コンパイル不能な 85 ファイルも含む全ソース**でインタフェース実装の `override` 欠落を静的検査する。**UI 層を触ったら必ず実行すること** — 2026-08 に `UserPreferences` の override 欠落で app が約 1 か月コンパイル不能だった実績がある
 - **wrangler ランタイム実行不可**: KV/DO/ratelimit binding の実挙動は検証できない。vitest (miniflare) の既知の制限は `backend/README.md` の「テスト構成」参照
 - git push は指定作業ブランチのみ許可 (タグ・他ブランチは 403)。`main` を動かすのは明示指示がある時だけ
 

@@ -285,6 +285,7 @@
 | UserPreferences の override 欠落 (コンパイルエラー) 修正 | fix | 最小再現を実コンパイルで確認 + スタブで契約充足を検証 |
 | ヤフショ会員ランク次元 / 感謝デー (B4) | feat | run_points parity +7 ケース / 4 ロケール 405 キー一致 |
 | `run_compile_core.sh` 新設 (Android 非依存 34 ファイルを実コンパイル) | test | 欠陥注入 3 種で検出能力を実証 / run_all 13 → 14 ハーネス |
+| `check_overrides.py` 新設 (コンパイル不能な 85 ファイルも含む override 欠落検査) | test | 実バグ再現で検出を実証 / 初版の偽陽性 4 件を depth 判定で解消 |
 | backend の未テスト経路を補完 (C4) | test | vitest 70 → 80 / DELETE /v1/alerts/{id} はルート全体が未テストだった |
 | FallbackScraper の多戦略価格抽出 + ¥0 捏造の停止 | fix | run_jsonld parity +22 assertion / refresh の「失敗時 null」契約を回復 |
 | backend の npm install 復旧 (workers-types v5) | fix | tsc 0 errors / vitest 70 tests pass |

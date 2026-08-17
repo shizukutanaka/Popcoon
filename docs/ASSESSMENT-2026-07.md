@@ -40,8 +40,10 @@
    実行検証済みだが、UI 層の変更は構文チェック止まり。CI 有効化までは残存リスク。
    **2026-08 に現実の欠陥として顕在化**: `UserPreferences` の 5 メンバーが `override` 欠落で
    約 1 か月コンパイル不能だった (e519e67 で修正)。再発防止に `run_compile_core.sh` を新設し
-   Android 非依存 34 ファイルを実コンパイルするようにしたが、残り 85 ファイル
-   (Compose/Room/Hilt) は依然未検証。CI 有効化 (A1) の優先度は最上位
+   Android 非依存 34 ファイルを実コンパイルするようにしたが、**壊れた UserPreferences.kt 自体は
+   datastore + dagger 依存でその対象外**だったため、全ソースを走査する `check_overrides.py`
+   (interface 実装の override 欠落を構文検査) を追加して当該回帰クラスだけは塞いだ。
+   それでも残り 85 ファイルの型検査は不能。CI 有効化 (A1) の優先度は最上位
 3. **Amazon データソースが実質 FallbackScraper のみ** — PA-API 5.0 が 2026-05-15 廃止。
    後継 Creators API は OAuth2 資格情報 + 成果実績 (10 件/30 日) が必要で人手ゲート
 4. **FCM push 経路がデッドコード** — backend 側は実装済みだが Android に Firebase 未組込
