@@ -253,11 +253,12 @@
 | UserPreferences の override 欠落 (コンパイルエラー) 修正 | fix | 最小再現を実コンパイルで確認 + スタブで契約充足を検証 |
 | ヤフショ会員ランク次元 / 感謝デー (B4) | feat | run_points parity +7 ケース / 4 ロケール 405 キー一致 |
 | `run_compile_core.sh` 新設 (Android 非依存 34 ファイルを実コンパイル) | test | 欠陥注入 3 種で検出能力を実証 / run_all 13 → 14 ハーネス |
+| backend の未テスト経路を補完 (C4) | test | vitest 70 → 80 / DELETE /v1/alerts/{id} はルート全体が未テストだった |
 | backend の npm install 復旧 (workers-types v5) | fix | tsc 0 errors / vitest 70 tests pass |
 
 ## 検証基準線 (2026-08 実測)
 
 - Python: **490 passed / 1 skipped** (`popcoon-tdd/`)
 - Kotlin parity: **run_all.sh 14 ハーネス全 pass** (run.sh 155 matched / 0 mismatched、core compile 34 ファイル)
-- backend: **tsc 0 errors / vitest 70 tests pass** (本セッションで変更なし)
+- backend: **tsc 0 errors / vitest 80 tests pass**
 - i18n: **4 ロケール × 405 strings** (+3 plurals) 完全一致
