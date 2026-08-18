@@ -399,7 +399,10 @@ private fun StockAlertChip(item: WatchlistItem, onClick: () -> Unit) {
 @Composable
 private fun TargetPriceChip(item: WatchlistItem, onClick: () -> Unit) {
     val target = item.targetPrice
-    val reached = target != null && item.realPrice <= target
+    // realPrice > 0 の条件は WidgetVerdict.forItem と揃える。取得失敗を 0 円として
+    // 記録した汚染レコードは常に「目標達成」になり、同じ画面のウィジェット判定
+    // (NEUTRAL) と食い違ったまま「目標達成」チップだけが点灯していた。
+    val reached = target != null && item.realPrice > 0 && item.realPrice <= target
     AssistChip(
         onClick = onClick,
         label = {

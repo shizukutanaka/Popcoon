@@ -108,13 +108,27 @@ internal fun filterByRange(records: List<PriceRecord>, chartRange: PriceChartRan
     return records.filter { it.recordedAt >= cutoff }
 }
 
+/**
+ * 描画対象のレコードを時系列順で返す (pure function、テスト容易)。
+ *
+ * `realPrice <= 0` は取得失敗を 0 円として記録した汚染レコードであり、実際に成立した
+ * 価格ではない。混ぜるとグラフの下端が常に ¥0 に張り付いて実際の変動幅が潰れ、
+ * a11y の読み上げも「期間最安 0円」になり、先頭/末尾が ¥0 だと傾向 (上昇/下降) の
+ * 判定まで反転する。`WidgetVerdict` / `WatchlistPriceDelta` は既に同じ規則で
+ * 0 以下を除外しており、グラフだけが例外になっていた。
+ */
+internal fun plottableRecords(records: List<PriceRecord>): List<PriceRecord> =
+    records.filter { it.realPrice > 0 }.sortedBy { it.recordedAt }
+
 @Composable
 private fun PriceChartCanvas(
     records: List<PriceRecord>,
     lineColor: Color,
     minMarkerColor: Color,
 ) {
-    if (records.size < 2) {
+    // remember はコンポジション構造を安定させるため早期 return より前に置く。
+    val sorted = remember(records) { plottableRecords(records) }
+    if (sorted.size < 2) {
         Surface(
             modifier = Modifier.fillMaxWidth().height(Spacing.chart),
             shape = RoundedCornerShape(CornerRadius.card),
@@ -131,7 +145,6 @@ private fun PriceChartCanvas(
         return
     }
 
-    val sorted = remember(records) { records.sortedBy { it.recordedAt } }
     val minPrice = remember(sorted) { sorted.minOf { it.realPrice } }
     val maxPrice = remember(sorted) { sorted.maxOf { it.realPrice } }
     val range = remember(minPrice, maxPrice) { (maxPrice - minPrice).coerceAtLeast(1L) }
