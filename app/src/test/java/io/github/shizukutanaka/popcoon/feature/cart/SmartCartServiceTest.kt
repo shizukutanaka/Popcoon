@@ -156,4 +156,50 @@ class SmartCartServiceTest : StringSpec({
         val r = SmartCartService.optimize(items, malls, prime).shouldNotBeNull()
         r.optimized.shippingTotal shouldBe (800.0 plusOrMinus 1e-9)
     }
+
+    // ── ¥0 汚染レコードの除外 (2026-08) ──────────────────────────────────
+    // 取得失敗を 0 円として記録した行を混ぜると、PointSimulator 実質価格が 0.0 になり
+    // optimizer は必ずそのモールを選ぶ。naiveTotal も過小になり「節約額」の表示が嘘になる。
+    // 価格が不明な商品は価格最適化に参加できないので除外する。
+    "realPrice が 0 の item は最適化から除外される" {
+        val items = listOf(
+            item("a:001", "商品A", "amazon", 1000),
+            item("a:002", "価格不明の商品", "amazon", 0),
+        )
+        val r = SmartCartService.optimize(items, noShipMalls).shouldNotBeNull()
+        r.cartItems.map { it.name } shouldContainOnly listOf("商品A")
+        r.optimized.total shouldBe (1000.0 plusOrMinus 1e-9)
+    }
+
+    "realPrice が負の item も除外される" {
+        val items = listOf(
+            item("a:001", "商品A", "amazon", 1000),
+            item("a:003", "異常値の商品", "amazon", -500),
+        )
+        val r = SmartCartService.optimize(items, noShipMalls).shouldNotBeNull()
+        r.cartItems.map { it.name } shouldContainOnly listOf("商品A")
+    }
+
+    "全 item が ¥0 なら null (最適化する対象が無い)" {
+        val items = listOf(
+            item("a:001", "商品A", "amazon", 0),
+            item("r:002", "商品B", "rakuten", 0),
+        )
+        SmartCartService.optimize(items, noShipMalls).shouldBeNull()
+    }
+
+    // ¥0 が混ざっていても、残りの商品の節約額計算は汚染されない。
+    "¥0 が混ざっても savingVsNaive は健全な商品だけで計算される" {
+        val malls = mapOf(
+            "amazon"  to CrossMallCartOptimizer.MallConfig(shipping = 500.0, freeThreshold = 10_000.0),
+            "rakuten" to CrossMallCartOptimizer.MallConfig(shipping = 500.0, freeThreshold = 10_000.0),
+        )
+        val clean = listOf(item("a:001", "商品A", "amazon", 1000))
+        val withZero = clean + item("a:002", "価格不明", "amazon", 0)
+        val a = SmartCartService.optimize(clean, malls).shouldNotBeNull()
+        val b = SmartCartService.optimize(withZero, malls).shouldNotBeNull()
+        b.optimized.total shouldBe (a.optimized.total plusOrMinus 1e-9)
+        b.naiveTotal shouldBe (a.naiveTotal plusOrMinus 1e-9)
+        b.savingVsNaive shouldBe (a.savingVsNaive plusOrMinus 1e-9)
+    }
 })

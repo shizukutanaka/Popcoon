@@ -48,6 +48,15 @@ object SmartCartService {
     ): SmartCartResult? {
         if (items.isEmpty()) return null
 
+        // realPrice <= 0 は取得失敗を 0 円として記録した汚染レコードで、実際に成立した
+        // 価格ではない。そのまま入れると PointSimulator 実質価格が 0.0 になり、
+        // optimizer は必ずそのモールを選び、naiveTotal も過小になって「節約額」の
+        // 表示自体が嘘になる。**価格が不明な商品は価格最適化に参加できない**ので外す
+        // (¥0 として混ぜるのは価格の捏造にあたる。価格は次回同期で復旧し、
+        //  そのとき自動的に対象へ戻る)。
+        val priced = items.filter { it.realPrice > 0 }
+        if (priced.isEmpty()) return null
+
         // 会員特典による送料無料を反映する。userCtx は既にポイント計算 (PointSimulator) に
         // 供給されているが、mallConfigs (送料) 側は常に DEFAULT_MALL_CONFIGS の静的値が
         // 使われ、Amazon Prime 会員でも Amazon の送料が課金される計算のままだった
@@ -65,7 +74,7 @@ object SmartCartService {
             mallConfigs
         }
 
-        val products = items.map { it.toProduct() }
+        val products = priced.map { it.toProduct() }
         val groups = ProductMatcher.groupByIdentity(products)
 
         val cartItems = groups.map { group ->
