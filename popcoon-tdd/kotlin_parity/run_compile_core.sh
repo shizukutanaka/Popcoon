@@ -127,6 +127,14 @@ fi
 #    全ソースを構文的に走査してその回帰クラスだけを塞ぐ。
 python3 "$HERE/check_overrides.py" || exit 1
 
+# 4. 全ソースの `R.*` 参照がリソースに実在するかの静的検査。
+#    上の R スタブは values/strings.xml から起こすので対象 34 ファイルの
+#    R.string.* しか見ておらず、残り 85 ファイルの参照と
+#    R.drawable / R.color / R.plurals / R.xml / R.style / R.mipmap / R.id は
+#    どこからも検査されていなかった。未定義参照は assembleDebug で確実に
+#    コンパイルエラーになる = CI を有効化した瞬間に赤くなる類の欠陥。
+python3 "$HERE/check_resources.py" || exit 1
+
 if [[ -f "$OUT/core.jar" ]]; then
   echo "CORE COMPILE: OK (${#TARGETS[@]} files)"
 else
