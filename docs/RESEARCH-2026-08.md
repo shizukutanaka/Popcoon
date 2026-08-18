@@ -339,13 +339,18 @@
 | 週次ダイジェストの ¥0 計上と 0 件週の通知 | fix | dropCountFrom を実コンパイル・実行で 8 ケース / Kotest 回帰 3 件 |
 | 予測エンジンの ¥0 除外 (oracle 先行) | fix | oracle 494 → 500 / parity 155 → 164 matched / 欠陥注入で 3 件 MISMATCH を実証 |
 | 価格グラフ・目標達成チップの ¥0 除外 | fix | plottableRecords を実コンパイル・実行で 6 ケース / Kotest 回帰 5 件 |
-| 価格履歴の入口 (`BackendClient`) に単一の ¥0 関門 | fix | run_compile_core 34 ファイル OK / 除外件数を PopcoonLogger に記録 |
+| 価格履歴の入口 (`BackendClient`) に単一の ¥0 関門 | fix | run_compile_core OK / 除外件数を PopcoonLogger に記録 |
+| Amazon PA-API の ¥0 Product 捏造を停止 | fix | Offers 無し商品は null / Rakuten・Yahoo も入口で 0 以下を除外 |
+| `check_resources.py` 新設 (`R.*` 参照 388 件の実在検査) | test | 全 131 ファイル対象 / Compose ファイルへの注入 2 件で検出を実証 |
+| `check_when_exhaustive.py` 新設 (enum `when` の網羅漏れ) | test | 29 enum-when / skip 0 / Glance と実際の回帰再現の 2 件で実証 / 初版の偽陽性 1 件 (多行ラベル) を修正 |
+| `check_test_refs.py` 新設 (テスト→本番シンボル 1,139 件) | test | kotest はコンパイル不能 / 改名の追随漏れ注入で実証 / 初版の偽陽性 1 件 (入れ子クラス) を修正 |
+| 実コンパイルを 34 → 46 ファイルへ拡張 | test | KDoc の型名が「参照」と誤判定され対象が縮んでいた + coroutines/javax.inject の実 jar が手元にあった |
 
 ## 検証基準線 (2026-08 実測)
 
 すべて `python3 ci/verify.py` で一括実行・自動照合できる (CLAUDE.md の表が基準線の単一の源)。
 
 - Python: **500 passed / 1 skipped** (`popcoon-tdd/`)
-- Kotlin parity: **run_all.sh 14 ハーネス全 pass** (run.sh 164 matched / 0 mismatched、core compile 34 ファイル)
+- Kotlin parity: **run_all.sh 14 ハーネス全 pass** (run.sh 164 matched / 0 mismatched、core compile 46 ファイル)
 - backend: **tsc 0 errors / vitest 84 tests pass**
 - i18n: **4 ロケール × 365 strings** (+3 plurals) 完全一致

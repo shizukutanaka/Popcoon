@@ -102,7 +102,7 @@ Amazon / 楽天 / Yahoo! ショッピング横断の価格比較 Android アプ�
 
 ### 唯一の技術的ブロッカー: app モジュールが一度もビルドされていない
 
-Compose/Room/Hilt を含む **85 ファイル**がコンパイル検証されていない。
+Compose/Room/Hilt/ktor を含む **85 ファイル**がコンパイル検証されていない (実測: 131 中 46 は検証済み)。
 本環境で解けないことは推測ではなく **実測で確認済み** (2026-08):
 
 | 確認項目 | 結果 |
@@ -114,9 +114,18 @@ Compose/Room/Hilt を含む **85 ファイル**がコンパイル検証されて
 
 この穴が実害を出した実績がある: `UserPreferences` の 5 メンバーが `override` 欠落で
 **約 1 か月コンパイル不能**だった (e519e67)。緩和策として
-`run_compile_core.sh` (Android 非依存 34 ファイルの実コンパイル) と
-`check_overrides.py` (全ソースの override 静的検査) を入れたが、
-**残り 85 ファイルの型検査は CI でしか行えない**。
+緩和策として、CI が無い状態で機械的に確認できる範囲は限界まで広げた
+(いずれも欠陥注入で検出能力を実証済み):
+
+| ゲート | 対象 | 内容 |
+|---|---|---|
+| `run_compile_core.sh` | 46 / 131 ファイル | Gradle 同梱の実 jar (stdlib / serialization / coroutines / javax.inject) で**実コンパイル** |
+| `check_overrides.py` | 全 131 + テスト | インタフェース実装の `override` 欠落 (実際に 1 か月ビルドを壊した回帰クラス) |
+| `check_resources.py` | 全 131 | `R.*` 参照 388 件の実在 (string/drawable/color/plurals/xml/style/mipmap/id) |
+| `check_when_exhaustive.py` | 全 131 | enum に対する `when` の網羅漏れ (Kotlin 2.x ではエラー) |
+| `check_test_refs.py` | テスト 64 ファイル | テストが参照する本番シンボル 1,139 件の実在 (kotest はコンパイル不能) |
+
+それでも **残り 85 ファイルの型検査と、kotest の実行そのものは CI でしか行えない**。
 
 ### 人がやること (順序どおり、所要は 1 コマンド + GitHub UI 操作)
 

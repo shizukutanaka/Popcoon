@@ -7,7 +7,7 @@
 ## 長所
 
 1. **二重言語 TDD アーキテクチャ** — Python 仕様オラクル (490 tests) が真実の源、Kotlin 本番実装を
-   `kotlin_parity/` の 14 ハーネスが**実コンパイル・実行**で照合 (run.sh 155 ケース 0 乖離、`run_compile_core.sh` が Android 非依存 34 ファイルを型検査)。
+   `kotlin_parity/` の 14 ハーネスが**実コンパイル・実行**で照合 (run.sh 164 ケース 0 乖離、`run_compile_core.sh` が 46 ファイルを型検査)。
    Android SDK 無しの環境でもロジックの実行検証ができる、この規模のアプリでは希少な体制
 2. **テスト防御の深さ** — 11 階層 (unit/integration/golden/metamorphic/mutation/perf/fuzz/
    stateful/concurrency/differential/chaos)。mutation score 100% × 4 モジュール。
@@ -40,10 +40,12 @@
    実行検証済みだが、UI 層の変更は構文チェック止まり。CI 有効化までは残存リスク。
    **2026-08 に現実の欠陥として顕在化**: `UserPreferences` の 5 メンバーが `override` 欠落で
    約 1 か月コンパイル不能だった (e519e67 で修正)。再発防止に `run_compile_core.sh` を新設し
-   Android 非依存 34 ファイルを実コンパイルするようにしたが、**壊れた UserPreferences.kt 自体は
+   46 ファイルを実コンパイルするようにしたが、**壊れた UserPreferences.kt 自体は
    datastore + dagger 依存でその対象外**だったため、全ソースを走査する `check_overrides.py`
    (interface 実装の override 欠落を構文検査) を追加して当該回帰クラスだけは塞いだ。
    それでも残り 85 ファイルの型検査は不能。CI 有効化 (A1) の優先度は最上位。
+   2026-08-18 に静的ゲートを 4 種へ拡張 (override / `R.*` 参照 / `when` 網羅 / テスト参照) し、
+   実コンパイルも 34 → 46 ファイルへ広げた。いずれも欠陥注入で検出能力を実証済み。
 
    **「スタブを作れば もっとコンパイルできるのでは」は 2026-08 に実測して見送った**
    (同じ検討を繰り返さないための記録):
@@ -108,7 +110,7 @@
 ## 検証基準線 (2026-07 実測)
 
 - Python: **490 passed / 1 skipped** (`popcoon-tdd/`)
-- Kotlin parity: **run_all.sh 全 14 ハーネス pass** (run.sh 155 matched / 0 mismatched、core compile 34 ファイル)
+- Kotlin parity: **run_all.sh 全 14 ハーネス pass** (run.sh 164 matched / 0 mismatched、core compile 46 ファイル)
 - backend: **tsc 0 errors / vitest 80 tests pass**
 - i18n: **4 ロケール × 405 strings** (+3 plurals) 完全一致
 - ファイル数: Kotlin main 131 / unit test 64 / androidTest 4、Python 38
