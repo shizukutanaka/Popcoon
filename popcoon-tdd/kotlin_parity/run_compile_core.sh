@@ -12,8 +12,11 @@
 #   - 未解決参照、型不一致、可視性違反
 #   - `R.string.*` の未定義 (values/strings.xml から R スタブを生成して突き合わせる)
 #
-# 対象は Android/AndroidX/Hilt/Coroutines に依存しないファイルのみ (自動判定)。
-# Compose/Room/Hilt を含む残りの層は依然ビルド検証不能 — CI 有効化 (ci/README.md) が必要。
+# 対象は「依存 jar が手元にあるファイル」のみ (自動判定)。Gradle ディストリビューションが
+# 同梱する kotlin-stdlib / kotlinx-serialization / kotlinx-coroutines / javax.inject までは
+# 実物を使えるので、それらに依存するファイルもコンパイルする。
+# Android/AndroidX/Hilt(dagger)/ktor に依存する残りの層は依然ビルド検証不能 —
+# CI 有効化 (ci/README.md) が必要。
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,6 +32,15 @@ fi
 LIB="$(dirname "$KC")"
 ST="$(find "$LIB" -name 'kotlin-stdlib-2*.jar' | grep -v sources | head -1)"
 SER="$(find "$LIB" -name 'kotlinx-serialization-core-jvm-*.jar' | head -1):$(find "$LIB" -name 'kotlinx-serialization-json-jvm-*.jar' | head -1)"
+# Gradle ディストリビューションは coroutines と javax.inject の **実 jar** も同梱している。
+# 以前の対象選定はこの 2 つを「依存 jar が無い」側に分類していたが事実誤認だった
+# (2026-08 に /opt/gradle-*/lib を実地確認)。スタブではなく実物なので、
+# これらに依存するファイルも本物の型検査ができる。
+# 注: 同梱の coroutines は 1.6.4、プロジェクトの指定は 1.9.0。API は互換だが、
+# 1.7+ 固有の API を使い始めるとここが先に落ちる (偽の失敗は目に見えるので許容 —
+# 危険なのは偽の成功の方)。
+COR="$(find "$LIB" -name 'kotlinx-coroutines-core-jvm-*.jar' | head -1)"
+INJ="$(find "$LIB" -name 'javax.inject-*.jar' | head -1)"
 
 # 1. 対象ファイルの選定 + values/strings.xml から R スタブを生成
 python3 - "$SRC" "$ROOT/app/src/main/res/values/strings.xml" "$OUT" <<'PY'
@@ -36,7 +48,9 @@ import io, os, pathlib, re, sys
 src, strings_xml, out = sys.argv[1], sys.argv[2], sys.argv[3]
 
 # 対象集合は「閉じている」必要がある。3 条件の不動点で求める:
-#   (a) Android/AndroidX/Hilt/Coroutines を import しない (依存 jar が無い)
+#   (a) 依存 jar が手元に無いものを import しない
+#       (Android / AndroidX / Hilt(dagger) / ktor。coroutines と javax.inject は
+#        Gradle 同梱の実 jar があるので **対象に含める**)
 #   (b) プロジェクト内 import の相手が全て対象集合に入っている
 #   (c) 同一パッケージで対象外になったファイルの **トップレベル宣言を参照していない**
 #       (同パッケージの型は import 無しで参照できるため。パッケージ丸ごと落とすと
@@ -45,7 +59,7 @@ src, strings_xml, out = sys.argv[1], sys.argv[2], sys.argv[3]
 # 判定を誤って過剰に含めた場合はコンパイルが **失敗して顕在化** する (黙って
 # カバレッジが減る方向には倒れない)。
 PKG = "io.github.shizukutanaka.popcoon"
-dep = re.compile(r"^import (android[.x]|androidx\.|dagger\.|javax\.inject|com\.google\.|kotlinx\.coroutines)", re.M)
+dep = re.compile(r"^import (android[.x]|androidx\.|dagger\.|com\.google\.|io\.ktor)", re.M)
 proj_import = re.compile(r"^import (" + re.escape(PKG) + r"\.[A-Za-z0-9_.]+)", re.M)
 
 decl = re.compile(
@@ -108,28 +122,28 @@ PY
 # 2. 実コンパイル
 mapfile -t TARGETS < "$OUT/targets.txt"
 java -cp "$LIB/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
-  -cp "$ST:$SER" -d "$OUT/core.jar" -nowarn -no-reflect \
+  -cp "$ST:$SER:$COR:$INJ" -d "$OUT/core.jar" -nowarn -no-reflect \
   "$OUT/RStub.kt" "${TARGETS[@]}" 2>&1 | grep -v 'unable to find kotlin' || true
 
 # 対象ファイル数の下限。Android 依存 import が増えると自動判定で対象が減るため、
 # 「黙ってカバレッジが縮む」ことを検知する。意図的に減らす場合はこの値も更新すること。
-MIN_TARGETS=34
+MIN_TARGETS=36
 if [[ ${#TARGETS[@]} -lt $MIN_TARGETS ]]; then
   echo "CORE COMPILE: coverage shrank (${#TARGETS[@]} < $MIN_TARGETS files)." >&2
-  echo "  Android/AndroidX/Hilt/Coroutines への依存が増えていないか確認し、" >&2
+  echo "  Android/AndroidX/Hilt(dagger)/ktor への依存が増えていないか確認し、" >&2
   echo "  意図的なら MIN_TARGETS を更新すること。" >&2
   exit 1
 fi
 
 # 3. コンパイル対象外 (Android/Hilt 依存) のファイルも含めた override 欠落の静的検査。
-#    実コンパイルできるのは 34/119 ファイルだけで、2026-08 に実際に壊れた
+#    実コンパイルできるのは 36/131 ファイルだけで、2026-08 に実際に壊れた
 #    UserPreferences.kt は datastore + dagger 依存で対象外のまま。この検査は
 #    全ソースを構文的に走査してその回帰クラスだけを塞ぐ。
 python3 "$HERE/check_overrides.py" || exit 1
 
 # 4. 全ソースの `R.*` 参照がリソースに実在するかの静的検査。
-#    上の R スタブは values/strings.xml から起こすので対象 34 ファイルの
-#    R.string.* しか見ておらず、残り 85 ファイルの参照と
+#    上の R スタブは values/strings.xml から起こすので対象 36 ファイルの
+#    R.string.* しか見ておらず、残り 95 ファイルの参照と
 #    R.drawable / R.color / R.plurals / R.xml / R.style / R.mipmap / R.id は
 #    どこからも検査されていなかった。未定義参照は assembleDebug で確実に
 #    コンパイルエラーになる = CI を有効化した瞬間に赤くなる類の欠陥。
