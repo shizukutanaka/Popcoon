@@ -270,6 +270,52 @@
 
 ---
 
+## 5. ¥0 汚染の掃討 (2026-08、実測)
+
+「取得失敗を 0 円として記録したレコード」がドメイン全体を汚染していた。書き込み側は
+先に塞いだ (FallbackScraper の捏造停止 cdf61dc、backend の `real_price <= 0` 拒否 5c0ade0)
+が、**既に蓄積した行を読む側は無防備**で、`realPrice` を読む全経路を洗い直した結果
+6 か所で判定が壊れていた。実測した被害:
+
+| 経路 | 症状 (実測) |
+|---|---|
+| `BuyTimingScorer` ATL 近接 / ボラティリティ | 正常 `95/BUY_NOW` が ¥0 1 件混入で `40/NEUTRAL` — シグナル消失 |
+| `predict_price` / `PricePredictionEngine` | `historic_low` 3000→**0**、IQR の四分位が引きずられ**本物の高値**が外れ値として捨てられ `historic_high` 12000→8000、`predicted_7d` -22%。末尾 ¥0 では `current_price=0` かつ percentile=1.0 で `buy_now_probability` 0.167→**0.5** |
+| 同上 (有効 13 件 + ¥0 17 件) | 「予測 ¥0 / 買い時確率 0.80 / MEDIUM」という完全に捏造された強い買い推奨 |
+| `WeeklyDigestWorker.dropCountFrom` | `0 < addedPrice` が常に成立し ¥0 が必ず「値下がり」に数えられる |
+| `PriceChartCanvas` | 下端が ¥0 に張り付き変動幅が潰れる / a11y が「期間最安 0円」/ 先頭・末尾が ¥0 だと傾向の読み上げが反転 |
+| `TargetPriceChip` | ¥0 は常に target 以下 → 「目標達成」点灯。同じ画面の `WidgetVerdict` は NEUTRAL で矛盾 |
+
+`WidgetVerdict.forItem` と `WatchlistPriceDelta.since` は**以前から**同じ規則で 0 以下を
+除外していた。つまり規約自体は存在し、後から書かれた経路が守っていなかった。
+
+**設計判断**: 下流に `> 0` を 6 個並べるのではなく、`List<PriceRecord>` がアプリ内で
+生まれる唯一の場所 (`BackendClient.getPriceHistory`) を単一の関門にした
+(「最良の部品は部品が無いこと」)。除外件数は `PopcoonLogger.w` に残す — 黙って捨てると
+汚染がどれだけ残っているか診断できない。下流の個別ガードは多重防御として残す:
+オラクル / parity ハーネスは `BackendClient` を通らないため、そこで検証できるのは
+下流ガードの方だけ。
+
+**検出力の実証**: Kotlin 側のフィルタだけを外す欠陥注入で parity が 3 件 MISMATCH に
+なることを確認済み (差分にそのまま「¥0 予測 / 買い時確率 0.80」が現れる)。
+
+---
+
+## 6. 通知の上限が情報を捨てていた (2026-08)
+
+`PriceSyncWorker` は 1 同期あたりの通知を 3 件に制限していたが、上限超過分を `take()` で
+黙って捨てていた。価格フェーズは**選別より前に**全 Drop の確定価格を DB へ書き戻すため、
+基準価格が下がった後はエッジトリガも下落率判定も再発火せず、4 件目以降の「目標価格到達」は
+**二度と通知されない**。楽天スーパーセール等、同日に複数商品が値下がりする状況で現実に起きる。
+
+過剰通知の上限そのものは文献どおり維持すべき (arXiv PMC8523513: 割り込み負荷)。
+抑制すべきなのは**割り込みの回数**であって情報ではないので、超過分は 1 件のまとめ通知に
+集約した (Android の通知グループ + サマリと同じ考え方)。併せて週次ダイジェストも
+値下がり 0 件の週は送らないようにした — 「10件中0件が値下がり中」は情報量ゼロの
+週次割り込みで、同クラスが空ウォッチリストについて掲げている方針と矛盾していた。
+
+---
+
 ## 本セッションの実装サマリ (このブランチ)
 
 | 項目 | コミット種別 | 検証 |
@@ -289,10 +335,17 @@
 | backend の未テスト経路を補完 (C4) | test | vitest 70 → 80 / DELETE /v1/alerts/{id} はルート全体が未テストだった |
 | FallbackScraper の多戦略価格抽出 + ¥0 捏造の停止 | fix | run_jsonld parity +22 assertion / refresh の「失敗時 null」契約を回復 |
 | backend の npm install 復旧 (workers-types v5) | fix | tsc 0 errors / vitest 70 tests pass |
+| 通知上限による価格アラートの永久喪失 | fix | plan() の分割を実コンパイル・実行で 13 assertion / Kotest 回帰 6 件 / 4 ロケール 365 キー |
+| 週次ダイジェストの ¥0 計上と 0 件週の通知 | fix | dropCountFrom を実コンパイル・実行で 8 ケース / Kotest 回帰 3 件 |
+| 予測エンジンの ¥0 除外 (oracle 先行) | fix | oracle 494 → 500 / parity 155 → 164 matched / 欠陥注入で 3 件 MISMATCH を実証 |
+| 価格グラフ・目標達成チップの ¥0 除外 | fix | plottableRecords を実コンパイル・実行で 6 ケース / Kotest 回帰 5 件 |
+| 価格履歴の入口 (`BackendClient`) に単一の ¥0 関門 | fix | run_compile_core 34 ファイル OK / 除外件数を PopcoonLogger に記録 |
 
 ## 検証基準線 (2026-08 実測)
 
-- Python: **490 passed / 1 skipped** (`popcoon-tdd/`)
-- Kotlin parity: **run_all.sh 14 ハーネス全 pass** (run.sh 155 matched / 0 mismatched、core compile 34 ファイル)
-- backend: **tsc 0 errors / vitest 80 tests pass**
-- i18n: **4 ロケール × 405 strings** (+3 plurals) 完全一致
+すべて `python3 ci/verify.py` で一括実行・自動照合できる (CLAUDE.md の表が基準線の単一の源)。
+
+- Python: **500 passed / 1 skipped** (`popcoon-tdd/`)
+- Kotlin parity: **run_all.sh 14 ハーネス全 pass** (run.sh 164 matched / 0 mismatched、core compile 34 ファイル)
+- backend: **tsc 0 errors / vitest 84 tests pass**
+- i18n: **4 ロケール × 365 strings** (+3 plurals) 完全一致
