@@ -45,6 +45,7 @@ class YahooClient(
             .getOrNull() ?: return emptyList()
 
         // DTO → Product の変換は純粋関数 (YahooMapper.kt) に集約。
-        return resp.hits.map { it.toProduct() }
+        // price <= 0 は RakutenClient と同じ理由で入口から除外する。
+        return resp.hits.filter { it.price > 0 }.map { it.toProduct() }
     }
 }

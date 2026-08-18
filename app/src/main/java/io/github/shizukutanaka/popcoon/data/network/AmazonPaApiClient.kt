@@ -170,7 +170,16 @@ private data class PaItem(
     fun toProduct(): Product? {
         val title = itemInfo?.title?.displayValue ?: return null
         val listing = offers?.listings?.firstOrNull()
-        val price = listing?.price?.amount?.toLong() ?: 0L
+        // Offers が無い商品 (在庫切れ・カートボックス無し・出品者価格のみ等) では
+        // price が取れない。従来はここで 0L を埋めており、FallbackScraper が ¥0 の
+        // Product を捏造していたのと同じ欠陥だった (cdf61dc で向こうは修正済み)。
+        // ¥0 のまま流すと検索結果に「¥0」が出て価格昇順の先頭に並び、ウォッチリストへ
+        // 追加されると addedPrice=0 / realPrice=0 として永続化して履歴まで汚染する。
+        // 価格比較アプリとして価格の無い商品は結果に含めない — toProduct が既に
+        // 「タイトルが取れなければ null」という契約を持っており、呼び出し側は
+        // mapNotNull で受けている。
+        val price = listing?.price?.amount?.toLong() ?: return null
+        if (price <= 0L) return null
         val savingBasis = listing?.savingBasis?.amount?.toLong() ?: price
         return Product(
             sku = asin,

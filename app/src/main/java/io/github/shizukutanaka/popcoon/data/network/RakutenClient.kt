@@ -46,6 +46,9 @@ class RakutenClient(
             .getOrNull() ?: return emptyList()
 
         // DTO → Product の変換は純粋関数 (RakutenMapper.kt) に集約。
-        return resp.Items.map { it.Item.toProduct() }
+        // itemPrice <= 0 は価格比較の対象にならず、ウォッチリストへ追加されると
+        // addedPrice=0 / realPrice=0 として永続化して履歴まで汚染する
+        // (Amazon 側では ?: 0L による捏造として実在した)。入口で落とす。
+        return resp.Items.filter { it.Item.itemPrice > 0 }.map { it.Item.toProduct() }
     }
 }
