@@ -131,11 +131,29 @@ class BackendClient @Inject constructor() {
         return false
     }
 
+    /**
+     * 価格履歴を取得する。**アプリ内で `List<PriceRecord>` が生まれる唯一の場所**であり、
+     * ここが `realPrice > 0` の単一の関門になる。
+     *
+     * `realPrice <= 0` は取得失敗を 0 円として記録した汚染レコードで、実際に成立した
+     * 価格ではない。書き込み側 (FallbackScraper の捏造停止 cdf61dc、backend の
+     * `real_price <= 0` 拒否 5c0ade0) は塞いだが、それ以前に蓄積した行は残る。
+     * 下流 (予測エンジン・買い時スコア・グラフ・ダークパターン検出・CSV 出力) は
+     * それぞれ自前のガードも持つが、**入口で 1 回落とすのが本筋**で、
+     * 個別ガードは多重防御として残す。
+     */
     suspend fun getPriceHistory(productKey: String): List<PriceRecord> {
         return runCatching {
-            client.get("$baseUrl/v1/history") {
+            val raw = client.get("$baseUrl/v1/history") {
                 parameter("key", productKey)
             }.body<HistoryResponse>().records
+            val valid = raw.filter { it.realPrice > 0 }
+            if (valid.size != raw.size) {
+                // 黙って捨てない — 汚染がどれだけ残っているかを診断できるようにする
+                // (productKey は記録しない: PopcoonLogger の PII 方針)。
+                PopcoonLogger.w(this, "価格履歴の無効レコードを除外: ${raw.size - valid.size}/${raw.size} 件")
+            }
+            valid
         }.getOrElse { e ->
             if (e is CancellationException) throw e
             emptyList()
