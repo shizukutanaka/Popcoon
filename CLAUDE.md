@@ -22,6 +22,12 @@ ci/           android.yml (未稼働 — workflows 権限が無く人手で ci/e
 
 ## 検証コマンド (変更の種類ごとに必ず実行)
 
+**まず `python3 ci/verify.py` を叩け。** 下表の全ゲートを実行し、**この表に書かれた基準線を
+自分でパースして実測値と突き合わせ**、1 つでもズレていれば exit 1 する。意図的に数値を
+変えた場合は `python3 ci/verify.py --update` で表を実測値へ同期する (手で書き換えるな)。
+不足依存 (pytest 系 / backend の node_modules) は検出して自動導入し、何を入れたか表示する。
+`--skip-backend` で npm 不可の環境にも対応。個別コマンドは下表のとおりで、デバッグ時に使う。
+
 | 対象 | コマンド | 基準線 (2026-07 時点) |
 |---|---|---|
 | Python オラクル全体 | `cd popcoon-tdd && python3 -m pytest -q` | **490 passed, 1 skipped** |
@@ -29,7 +35,7 @@ ci/           android.yml (未稼働 — workflows 権限が無く人手で ci/e
 | 個別 parity | `bash popcoon-tdd/kotlin_parity/run_matcher.sh` 等 | "all assertions passed" |
 | backend 型検査 | `cd backend && npx tsc --noEmit` | エラー 0 |
 | backend テスト | `cd backend && npx vitest run` | **80 tests / 4 files pass** |
-| i18n キー数一致 | `for f in values values-en values-ko values-zh-rCN; do grep -c '<string name=' app/src/main/res/$f/strings.xml; done` | **全ロケール 405** (plurals 3 は別) |
+| i18n キー数一致 | `for f in values values-en values-ko values-zh-rCN; do grep -c '<string name=' app/src/main/res/$f/strings.xml; done` | **全ロケール 364** (plurals 3 は別) |
 | Kotlin 構文 (ビルド不可の代替) | brace/paren カウント一致を Python ワンライナーで確認 | `{`=`}`, `(`=`)` |
 
 ## 環境制約 (重要 — 回避不能)
