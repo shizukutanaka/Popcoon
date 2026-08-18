@@ -198,6 +198,13 @@ python3 "$HERE/check_test_refs.py" || exit 1
 #    頼らないための規則化。
 python3 "$HERE/check_price_guard.py" || exit 1
 
+# 8. Room の移行チェーン検査。移行ミスは「更新したら二度と起動しない」クラスの障害で、
+#    release ビルドはユーザーデータ保全のため破壊的フォールバックを切っている。
+#    この環境では Room を一切実行できない (androidx 不在 / instrumentation 不可) が、
+#    「宣言したのに addMigrations() へ登録し忘れ」「version を上げてチェーン断絶」は
+#    静的に決まる。
+python3 "$HERE/check_migrations.py" || exit 1
+
 if [[ -f "$OUT/core.jar" ]]; then
   echo "CORE COMPILE: OK (${#TARGETS[@]} files)"
 else

@@ -288,6 +288,26 @@ abstract class PopcoonDatabase : RoomDatabase() {
         val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE watchlist ADD COLUMN tag TEXT")
+                // price_cache (オフライン閲覧用) は v6 で **同時に** 追加されたテーブルだが、
+                // この移行に CREATE TABLE が無かった。v5 以前の DB を v7 まで上げると
+                // テーブルが存在しないまま Room のスキーマ検証に到達し、
+                // IllegalStateException でアプリが起動不能になる (release ビルドは
+                // ユーザーデータ保全のため破壊的フォールバックを意図的に無効化している)。
+                //
+                // 現時点では到達不能な経路ではある — このリポジトリの履歴は v6 から始まり、
+                // GitHub リリースは 0 件で、v5 以前の DB を持つ端末は存在しない
+                // (開発中の debug ビルドは fallbackToDestructiveMigration で作り直される)。
+                // それでも「起動不能」という失敗の重さに対して修正が 1 文で済むので塞ぐ。
+                // DDL は Room が @Entity PriceCacheEntry から生成する形に合わせてある
+                // (Long の autoGenerate 主キー = INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL)。
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `price_cache` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`productKey` TEXT NOT NULL, " +
+                        "`realPrice` INTEGER NOT NULL, " +
+                        "`listPrice` INTEGER NOT NULL, " +
+                        "`recordedAt` INTEGER NOT NULL)",
+                )
             }
         }
 
