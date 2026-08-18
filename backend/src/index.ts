@@ -162,11 +162,82 @@ async function appendPriceHistory(
  * だったため、他フィールド (device_id 等) の PII が二重チェックをすり抜けて永続化されていた。
  * プライバシーを売りにする製品の中核 — payload 全体を走査して保守的に弾く。
  */
-function containsPotentialPii(payload: unknown): boolean {
-  const serialized = JSON.stringify(payload);
-  const email = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
-  const ipv4 = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/;
-  return email.test(serialized) || ipv4.test(serialized);
+/**
+ * クライアント (PrivacyCrashReporter.sanitizeStack) と **同一の除去パターン**。
+ *
+ * サーバー側の役割は「二重チェック」= 古い/改造されたクライアントや、
+ * クライアント側サニタイズの取りこぼしを受け取らないこと。以前ここは
+ * **email と IPv4 の 2 種類しか見ておらず**、クライアントが除去している 9 種類のうち
+ * 電話番号・Authorization ヘッダ・API キー/トークン/パスワード・AWS アクセスキー・
+ * 端末内ユーザーパス・URL クエリの 7 種類が素通りしていた。
+ * 二重チェックを名乗る以上、対象はクライアントと揃っていなければならない。
+ *
+ * 各パターンは **冪等** であることが要件: 既にサニタイズ済みのペイロード
+ * (`[redacted]` / `[tel]` / `[email]` 等) に再適用しても文字列が変化しない。
+ * これにより「サニタイズしても変わらない = PII を含まない」と判定でき、
+ * 正規のクライアントからの正当なレポートを誤って拒否しない。
+ */
+function sanitizePii(text: string): string {
+  return text
+    // メールアドレス
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "[email]")
+    // URL クエリパラメータ
+    .replace(/([?&][^=\s&#]+=)[^\s&#"')]+/g, "$1[redacted]")
+    // AWS アクセスキー ID
+    .replace(/AKIA[0-9A-Z]{16}/g, "[aws-key]")
+    // Authorization ヘッダ (任意スキーム)
+    .replace(/(authorization\s*[:=]\s*)(?:\w+\s+)?[^\s"',;]+/gi, "$1[redacted]")
+    // api_key / secret / token / password / credential の値
+    // 開き引用符は **キャプチャ側に含める**。`["']?` を capture の外に置くと
+    // `api_key="secret"` → `api_key=[redacted]"` と開き引用符が消え、
+    // その出力に再適用すると更に変化してしまう (冪等でない)。冪等でないと
+    // 「サニタイズ済みのペイロード」を PII 有りと誤判定して正当なレポートを全拒否する。
+    .replace(
+      /("?\w*(?:api[_-]?key|secret|token|password|credential)\w*"?\s*[:=]\s*["']?)[^\s"',&}]+/gi,
+      "$1[redacted]",
+    )
+    // IPv4
+    .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, "[ip]")
+    // 電話番号 (日本 国際/国内)
+    .replace(/\b\+?81[-\s]?\d{1,4}[-\s]?\d{1,4}[-\s]?\d{4}\b/g, "[tel]")
+    .replace(/\b0\d{1,4}[-\s]?\d{1,4}[-\s]?\d{4}\b/g, "[tel]")
+    // Android ファイルパスのユーザー名部分
+    .replace(/\/data\/user\/0\/[^/]+\/files\/[^/\s]+/g, "/data/user/0/[pkg]/files/[user]")
+    .replace(/\/storage\/emulated\/\d+\/[^/\s]+/g, "/storage/emulated/[u]/[user]");
+}
+
+/**
+ * ペイロード内の全ての文字列値を列挙する (ネストしたオブジェクト・配列も辿る)。
+ * 保存対象は body 全体なので、どの階層に入っていても見る。
+ */
+function* stringValues(node: unknown): Generator<string> {
+  if (typeof node === "string") {
+    yield node;
+  } else if (Array.isArray(node)) {
+    for (const v of node) yield* stringValues(v);
+  } else if (node !== null && typeof node === "object") {
+    for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+      yield k;
+      yield* stringValues(v);
+    }
+  }
+}
+
+/**
+ * ペイロードに PII らしきものが残っていないか。
+ * 各文字列値をサニタイズして変化すれば、除去対象が含まれていたということ。
+ *
+ * **JSON.stringify した 1 本の文字列ではなく、値を 1 つずつ見る**のが要点。
+ * シリアライズすると値の中の `"` が `\"` に変わり、`api_key="..."` のような
+ * 引用符を含むパターンが崩れて誤判定する (実際、クライアントがサニタイズ済みの
+ * 正当なペイロードを 400 で拒否した)。クライアント側 (sanitizeStack) も
+ * 生のスタックトレース文字列に対して適用しており、こちらが揃った形になる。
+ */
+export function containsPotentialPii(payload: unknown): boolean {
+  for (const s of stringValues(payload)) {
+    if (sanitizePii(s) !== s) return true;
+  }
+  return false;
 }
 
 /**

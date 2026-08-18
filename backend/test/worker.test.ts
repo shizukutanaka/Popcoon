@@ -501,3 +501,89 @@ describe("実ハンドラー: POST /v1/history は ¥0 を拒否する (2026-08 
     expect((await post({ ...base, real_price: 4900, list_price: 0 })).status).toBe(200);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PII 二重チェックはクライアントと同じ 9 種類を見なければならない (2026-08)
+//
+// サーバー側は以前 email と IPv4 の 2 種類しか見ておらず、クライアント
+// (PrivacyCrashReporter.sanitizeStack) が除去している残り 7 種類 —
+// 電話番号 / Authorization / API キー・トークン・パスワード / AWS アクセスキー /
+// 端末内ユーザーパス / URL クエリ — が素通りしていた。「二重チェック」を名乗る以上、
+// 対象はクライアントと揃っている必要がある (古い/改造クライアント対策がこの層の役割)。
+//
+// すべて **実ハンドラー越し** に検証する。alerts.test.ts の同種テストは
+// containsPotentialPii を再実装したコピーを対象にしており、本番コードを通らない。
+// ─────────────────────────────────────────────────────────────────────────────
+describe("実ハンドラー: PII 二重チェックはクライアントの除去対象と揃っている", () => {
+  const cases: Array<[string, string]> = [
+    ["電話番号 (国内)", "SmsService.send(09012345678)"],
+    ["電話番号 (国際 +81)", "SmsService.send(+81 90 1234 5678)"],
+    ["Authorization ヘッダ", "at Http.kt: Authorization: Bearer abc123def456"],
+    ["API キー", 'Config(api_key="sk-live-abcdef123456")'],
+    ["token", "IllegalStateException: token=eyJhbGciOiJIUzI1NiJ9"],
+    ["password", "LoginRequest(password=hunter2)"],
+    ["AWS アクセスキー", "S3Client init AKIAIOSFODNN7EXAMPLE"],
+    ["端末内ユーザーパス (/data/user)", "open /data/user/0/com.example/files/tanaka_memo.txt"],
+    ["端末内ユーザーパス (/storage/emulated)", "read /storage/emulated/0/TanakaShizuku"],
+    ["URL クエリ", "GET https://api.example.com/v1?user=shizuku&key=secret failed"],
+  ];
+
+  let ipCounter = 100;
+  for (const [name, stack] of cases) {
+    it(`${name} を含むペイロードは 400 で拒否される`, async () => {
+      const res = await call(req("/v1/crash", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "cf-connecting-ip": `203.0.113.${ipCounter++}`,
+        },
+        body: JSON.stringify({ sanitized_stack: stack }),
+      }));
+      expect(res.status).toBe(400);
+    });
+  }
+
+  // 冪等性が要件: クライアントが正しくサニタイズしたペイロードは通らなければならない。
+  // 除去パターンが自分の置換結果に再マッチすると、正当なレポートを全て拒否してしまう。
+  it("クライアントがサニタイズ済みのペイロードは通る (置換後の文字列に再マッチしない)", async () => {
+    const sanitized = [
+      "at Http.kt: Authorization: [redacted]",
+      'Config(api_key="[redacted]")',
+      "SmsService.send([tel])",
+      "connect to [ip] failed",
+      "mail [email]",
+      "open /data/user/0/[pkg]/files/[user]",
+      "read /storage/emulated/[u]/[user]",
+      "GET https://api.example.com/v1?user=[redacted]&key=[redacted]",
+      "S3Client init [aws-key]",
+    ].join("\n");
+    const res = await call(req("/v1/crash", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "cf-connecting-ip": "203.0.113.150",
+      },
+      body: JSON.stringify({ sanitized_stack: sanitized, app_version: "1.2.3" }),
+    }));
+    expect(res.status).toBe(200);
+  });
+
+  it("通常のスタックトレースは誤検出しない", async () => {
+    const res = await call(req("/v1/crash", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "cf-connecting-ip": "203.0.113.151",
+      },
+      body: JSON.stringify({
+        sanitized_stack:
+          "java.lang.IllegalStateException\n\tat io.github.popcoon.Foo.bar(Foo.kt:42)\n" +
+          "\tat io.github.popcoon.Baz.qux(Baz.kt:1337)",
+        app_version: "1.2.3",
+        android_version: 36,
+        device_model: "Google Pixel 9",
+      }),
+    }));
+    expect(res.status).toBe(200);
+  });
+});
