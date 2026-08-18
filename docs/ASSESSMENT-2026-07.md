@@ -43,7 +43,19 @@
    Android 非依存 34 ファイルを実コンパイルするようにしたが、**壊れた UserPreferences.kt 自体は
    datastore + dagger 依存でその対象外**だったため、全ソースを走査する `check_overrides.py`
    (interface 実装の override 欠落を構文検査) を追加して当該回帰クラスだけは塞いだ。
-   それでも残り 85 ファイルの型検査は不能。CI 有効化 (A1) の優先度は最上位
+   それでも残り 85 ファイルの型検査は不能。CI 有効化 (A1) の優先度は最上位。
+
+   **「スタブを作れば もっとコンパイルできるのでは」は 2026-08 に実測して見送った**
+   (同じ検討を繰り返さないための記録):
+   - 85 ファイルの内訳は Compose 44 / 非 Compose 41。非 Compose 側が要求する外部型は 87 種。
+   - このうち **スタブが嘘をつけないのはアノテーションのみ** (`@Inject` `@Module` `@Dao` 等は
+     プロセッサ不在では実物も不活性で意味的に同一)。それだけで足りるファイルは **8 件**、
+     さらに 3 件は ktor 依存 (jar 不在) なので実質 **5 件** しか増えない。
+   - 残りは `Context` (17 件) / Room の `RoomDatabase`・`Migration` / WorkManager の
+     `CoroutineWorker` / DataStore の `Preferences`・`edit` など **実クラス**。これらを手書きで
+     模すと、**実 API と食い違っても気付けない**「検証の演劇」になる (本リポジトリが
+     `JsonLdStock` の docstring で戒めているのと同じ失敗)。既知のギャップを未知のリスクへ
+     変えるだけなので採用しない。
 3. **Amazon データソースが実質 FallbackScraper のみ** — PA-API 5.0 が 2026-05-15 廃止。
    後継 Creators API は OAuth2 資格情報 + 成果実績 (10 件/30 日) が必要で人手ゲート
 4. **FCM push 経路がデッドコード** — backend 側は実装済みだが Android に Firebase 未組込
