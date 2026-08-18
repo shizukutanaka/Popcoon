@@ -45,10 +45,18 @@ object WatchlistSort {
     private fun hasTarget(item: WatchlistItem): Boolean =
         item.targetPrice != null && item.targetPrice > 0
 
-    /** 目標価格に対する現在価格の比率。小さいほど目標に近い／到達済み。 */
+    /**
+     * 目標価格に対する現在価格の比率。小さいほど目標に近い／到達済み。
+     *
+     * `realPrice <= 0` は取得失敗を 0 円として記録した汚染レコードで、実際に成立した
+     * 価格ではない。比率 0.0 = 「最も目標に近い」となり、価格が分からない商品が
+     * 「目標達成が近い順」の先頭に並んでしまう。判定不能として末尾へ送る
+     * (`WidgetVerdict.forItem` / `WatchlistPriceDelta.since` と同じ規則)。
+     */
     private fun targetRatio(item: WatchlistItem): Double {
         val target = item.targetPrice ?: return Double.MAX_VALUE
         if (target <= 0) return Double.MAX_VALUE
+        if (item.realPrice <= 0) return Double.MAX_VALUE
         return item.realPrice.toDouble() / target
     }
 

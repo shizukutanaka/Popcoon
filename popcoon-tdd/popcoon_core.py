@@ -463,26 +463,40 @@ def detect_dark_patterns(
     list_price: Optional[int],
     history: List[PriceRecord],
 ) -> List[PsychWarning]:
+    """価格履歴からダークパターンを検出する。
+
+    real_price <= 0 のレコードは統計に入れない。取得失敗を 0 円として記録した
+    汚染レコードであり、実際に成立した価格ではない。混ぜると **販売者に対する
+    冤罪** を作る:
+      - 直近 7 日 / その前 7 日の平均を比べる「セール前値上げ」は、前半の窓に
+        ¥0 が 1 件混ざるだけで prev_avg が下がり、価格が完全に平坦な商品にも
+        PRE_SALE_MARKUP が付く (実測: 14 日すべて 10000 円の履歴で発火)
+      - 「常設セール」は ¥0 が必ず list_price 未満に数えられ below 率を押し上げる
+      - 「参考価格誇張」は履歴が全て ¥0 だと actual_high=0 になり必ず発火する
+    ダークパターン検出は販売者を名指しする機能なので、誤検出は最も避けたい。
+    母数 (30 件 / 14 件) も有効な観測数で数える。
+    """
     warnings = []
+    valid = [r for r in history if r.real_price > 0]
 
     # 1. 常設セール (90%以上の期間割引中)
-    if list_price and list_price > current_price and len(history) >= 30:
-        below = sum(1 for r in history if r.real_price < list_price)
-        if below / len(history) > 0.90:
+    if list_price and list_price > current_price and len(valid) >= 30:
+        below = sum(1 for r in valid if r.real_price < list_price)
+        if below / len(valid) > 0.90:
             warnings.append(PsychWarning(
                 WarningType.ALWAYS_ON_DISCOUNT, "常設セール", Severity.HIGH))
 
     # 2. 参考価格詐欺
-    if list_price and history:
-        actual_high = max(r.real_price for r in history)
+    if list_price and valid:
+        actual_high = max(r.real_price for r in valid)
         if list_price > actual_high * 1.5:
             warnings.append(PsychWarning(
                 WarningType.INFLATED_LIST_PRICE, "参考価格誇張", Severity.HIGH))
 
     # 3. セール前値上げ
-    if len(history) >= 14:
-        recent = history[-7:]
-        prev = history[-14:-7]
+    if len(valid) >= 14:
+        recent = valid[-7:]
+        prev = valid[-14:-7]
         recent_avg = sum(r.real_price for r in recent) / 7
         prev_avg = sum(r.real_price for r in prev) / 7
         if recent_avg > prev_avg * 1.10 and list_price and current_price < list_price:

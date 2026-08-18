@@ -707,3 +707,61 @@ class TestPredictPriceZeroPoisoning:
         assert pred is not None
         assert pred.current_price == 5000
         assert pred.historic_low == 5000
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ダークパターン検出の ¥0 汚染耐性 (2026-08)
+#
+# この機能は **販売者を名指しする**。誤検出は冤罪になるので、取得失敗を 0 円として
+# 記録した汚染レコードが警告を作り出さないことを固定する。
+# ═══════════════════════════════════════════════════════════════════════════
+class TestDarkPatternsZeroPoisoning:
+    def _hist(self, prices, lp=12000):
+        from popcoon_core import PriceRecord
+        t0 = datetime(2026, 1, 1)
+        return [PriceRecord("k", "amazon", lp, p, t0 + timedelta(days=i))
+                for i, p in enumerate(prices)]
+
+    def _names(self, warnings):
+        return sorted(w.type.name for w in warnings)
+
+    def test_zero_in_previous_window_does_not_fabricate_pre_sale_markup(self):
+        # 14 日すべて 10000 円 = 値上げしていない。前半 7 日窓に ¥0 が 1 件混ざるだけで
+        # prev_avg が下がり PRE_SALE_MARKUP が発火していた (実測)。
+        flat = [10000] * 14
+        assert self._names(detect_dark_patterns(9000, 12000, self._hist(flat))) == []
+        poisoned = flat[:5] + [0] + flat[6:]
+        assert self._names(detect_dark_patterns(9000, 12000, self._hist(poisoned))) == []
+
+    def test_zero_does_not_suppress_a_real_pre_sale_markup(self):
+        # 除外は「無かったことにする」方向にも倒れてはいけない。
+        # 前 7 日 10000 / 直近 7 日 12000 = 実際に +20% の値上げ。
+        real = [10000] * 7 + [12000] * 7
+        assert "PRE_SALE_MARKUP" in self._names(
+            detect_dark_patterns(11000, 13000, self._hist(real)))
+        # ¥0 を 1 件足しても検出は維持される (有効 14 件が残るよう 15 件にする)
+        with_zero = [0] + real
+        assert "PRE_SALE_MARKUP" in self._names(
+            detect_dark_patterns(11000, 13000, self._hist(with_zero)))
+
+    def test_all_zero_history_produces_no_inflated_list_price(self):
+        # 全件 ¥0 だと actual_high=0 になり list_price > 0 で必ず発火していた。
+        assert self._names(detect_dark_patterns(9000, 12000, self._hist([0] * 14))) == []
+
+    def test_zero_does_not_inflate_always_on_discount_rate(self):
+        # ¥0 は必ず list_price 未満に数えられ below 率を押し上げる。
+        # 実売はすべて定価超 = 常設セールではない。
+        prices = [12500] * 28 + [0, 0]
+        assert "ALWAYS_ON_DISCOUNT" not in self._names(
+            detect_dark_patterns(11000, 12000, self._hist(prices)))
+
+    def test_thresholds_count_valid_records_only(self):
+        # 有効 13 件 + ¥0 が 5 件 = 18 件。頭数で数えると 14 件の閾値を超えてしまう。
+        prices = [10000] * 6 + [0] * 5 + [12000] * 7
+        assert "PRE_SALE_MARKUP" not in self._names(
+            detect_dark_patterns(11000, 13000, self._hist(prices)))
+
+    def test_charm_pricing_is_unaffected(self):
+        # 端数価格は current_price だけを見るので汚染とは無関係。
+        assert "CHARM_PRICING" in self._names(
+            detect_dark_patterns(9980, None, self._hist([0] * 5)))

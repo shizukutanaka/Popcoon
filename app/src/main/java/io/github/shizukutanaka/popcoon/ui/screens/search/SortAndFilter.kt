@@ -33,8 +33,11 @@ enum class SortOption(@androidx.annotation.StringRes val labelRes: Int) {
             DISCOUNT_DESC ->
                 rows.sortedByDescending { row ->
                     val list = row.product.listPrice
-                    if (list <= 0) 0.0
-                    else (list - row.product.realPrice).toDouble() / list
+                    val real = row.product.realPrice
+                    // real <= 0 は価格取得に失敗したレコード。割引率 100% と計算されて
+                    // 先頭に並ぶため「割引率が高い順」が壊れる。判定不能として 0 扱い。
+                    if (list <= 0 || real <= 0) 0.0
+                    else (list - real).toDouble() / list
                 }
             RATING_DESC ->
                 rows.sortedWith(

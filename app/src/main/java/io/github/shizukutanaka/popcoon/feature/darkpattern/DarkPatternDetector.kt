@@ -37,24 +37,40 @@ object DarkPatternDetector {
         val labelArgs: List<Any> = emptyList(),
     )
 
+    /**
+     * 価格履歴からダークパターンを検出する。
+     *
+     * `realPrice <= 0` のレコードは統計に入れない。取得失敗を 0 円として記録した
+     * 汚染レコードであり、実際に成立した価格ではない。混ぜると **販売者に対する冤罪**
+     * を作る:
+     *  - 直近 7 日 / その前 7 日の平均を比べる「セール前値上げ」は、前半の窓に ¥0 が
+     *    1 件混ざるだけで prevAvg が下がり、価格が完全に平坦な商品にも
+     *    PRE_SALE_MARKUP が付く (実測: 14 日すべて 10000 円の履歴で発火した)
+     *  - 「常設セール」は ¥0 が必ず listPrice 未満に数えられ below 率を押し上げる
+     *  - 「参考価格誇張」は履歴が全て ¥0 だと maxReal=0 になり必ず発火する
+     * ダークパターン検出は販売者を名指しする機能なので、誤検出は最も避けたい。
+     * 母数 (30 件 / 14 件) も有効な観測数で数える。
+     * Python 参照 (popcoon_core.detect_dark_patterns) と完全一致。
+     */
     fun detect(
         currentPrice: Long,
         listPrice: Long?,
         history: List<PriceRecord>,
     ): List<Warning> {
         val warnings = mutableListOf<Warning>()
+        val valid = history.filter { it.realPrice > 0 }
 
         // 1. 常設セール: 30日中90%超が listPrice 未満 (Python oracle と一致)
-        if (listPrice != null && listPrice > currentPrice && history.size >= 30) {
-            val belowRate = history.count { it.realPrice < listPrice }.toDouble() / history.size
+        if (listPrice != null && listPrice > currentPrice && valid.size >= 30) {
+            val belowRate = valid.count { it.realPrice < listPrice }.toDouble() / valid.size
             if (belowRate > 0.90) {
                 warnings += Warning(WarningType.ALWAYS_ON_DISCOUNT, "常設セール", Severity.HIGH)
             }
         }
 
         // 2. 参考価格詐欺: listPrice が historic_high の 1.5倍超え
-        if (listPrice != null && history.isNotEmpty()) {
-            val maxReal = history.maxOf { it.realPrice }
+        if (listPrice != null && valid.isNotEmpty()) {
+            val maxReal = valid.maxOf { it.realPrice }
             if (listPrice > maxReal * 1.5) {
                 warnings += Warning(
                     WarningType.INFLATED_LIST_PRICE, "参考価格誇張", Severity.HIGH)
@@ -62,9 +78,9 @@ object DarkPatternDetector {
         }
 
         // 3. セール前値上げ: 直近7日 vs 前7日で平均+10%超え + 今セール中
-        if (history.size >= 14) {
-            val recentAvg = history.takeLast(7).map { it.realPrice }.average()
-            val prevAvg = history.subList(history.size - 14, history.size - 7)
+        if (valid.size >= 14) {
+            val recentAvg = valid.takeLast(7).map { it.realPrice }.average()
+            val prevAvg = valid.subList(valid.size - 14, valid.size - 7)
                 .map { it.realPrice }.average()
             if (recentAvg > prevAvg * 1.10 && listPrice != null && currentPrice < listPrice) {
                 warnings += Warning(

@@ -340,11 +340,35 @@ class TestZeroPricePoisoning:
     def test_single_zero_record_does_not_change_the_verdict(self):
         # ¥0 が 1 件混じっても正常な履歴と同じ結論になること。
         # 修正前は 95/BUY_NOW が 40/NEUTRAL に反転し、「過去最安値到達」が消えていた。
+        #
+        # poisoned は ¥0 を **足した** 形にする (置き換えではない)。除外後の有効列が
+        # clean と厳密に同一になるので、「¥0 が無視されている」ことを直接示せる。
+        # 置き換えにすると有効件数が 30 → 29 に減り、detect_dark_patterns の
+        # 「30 日中」の母数を割ってスコアが変わる (それ自体は下のテストで固定する
+        # 正しい挙動であって、¥0 混入の影響ではない)。
         clean = self._hist([5000] * 29 + [4900])
-        poisoned = self._hist([5000] * 15 + [0] + [5000] * 13 + [4900])
+        poisoned = self._hist([5000] * 15 + [0] + [5000] * 14 + [4900])
         a = score_buy_timing(current=4900, list_price=6000, history=clean)
         b = score_buy_timing(current=4900, list_price=6000, history=poisoned)
         assert a.total == b.total
+        assert a.verdict == b.verdict
+        assert [s.name for s in a.signals] == [s.name for s in b.signals]
+
+    def test_dropping_below_the_valid_count_threshold_withdraws_the_accusation(self):
+        """有効件数が閾値を割ったら「常設セール」の指摘を取り下げる。
+
+        detect_dark_patterns の「30 日中 90% 超が定価未満」は母数を **有効な観測数**
+        で数える。30 件のうち 1 件が ¥0 なら有効 29 件で、「30 日中」を主張できない。
+        ダークパターン検出は販売者を名指しする機能なので、データ不足のときに
+        指摘を出さない方向へ倒すのが正しい。
+        """
+        clean = self._hist([5000] * 29 + [4900])
+        one_replaced = self._hist([5000] * 15 + [0] + [5000] * 13 + [4900])
+        a = score_buy_timing(current=4900, list_price=6000, history=clean)
+        b = score_buy_timing(current=4900, list_price=6000, history=one_replaced)
+        assert any("ダークパターン" in s.name for s in a.signals)
+        assert not any("ダークパターン" in s.name for s in b.signals)
+        # 買い時の結論自体は変わらない (指摘の有無だけが変わる)
         assert a.verdict == b.verdict
 
     def test_atl_signal_survives_a_zero_record(self):
@@ -360,7 +384,7 @@ class TestZeroPricePoisoning:
 
     def test_negative_price_is_also_excluded(self):
         clean = self._hist([5000] * 29 + [4900])
-        poisoned = self._hist([5000] * 15 + [-100] + [5000] * 13 + [4900])
+        poisoned = self._hist([5000] * 15 + [-100] + [5000] * 14 + [4900])
         a = score_buy_timing(current=4900, list_price=6000, history=clean)
         b = score_buy_timing(current=4900, list_price=6000, history=poisoned)
         assert a.total == b.total
