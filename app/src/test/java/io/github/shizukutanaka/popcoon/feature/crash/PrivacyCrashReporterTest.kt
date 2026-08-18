@@ -2,11 +2,12 @@ package io.github.shizukutanaka.popcoon.feature.crash
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 
 /**
- * PrivacyCrashReporter.sanitizeStack() の純関数テスト。
+ * PrivacyCrashReporter の純関数テスト (sanitizeStack / crashDirFor)。
  * コンテキスト不要で Android SDK なしに実行可能。
  */
 class PrivacyCrashReporterTest : StringSpec({
@@ -102,5 +103,25 @@ class PrivacyCrashReporterTest : StringSpec({
     "無害なスタックトレースは変更しない" {
         val normal = "java.lang.NullPointerException: null\n\tat com.example.Foo.bar(Foo.kt:42)"
         sanitize(normal) shouldBe normal
+    }
+
+    // ── 同意の境界 (2026-08) ───────────────────────────────────────────────
+    // 以前は同意の有無に関わらず同じディレクトリへ保存し、送信時にだけ enabled を
+    // 見ていた。PopcoonApp は crashReportOptin の**変化**で uploadPendingCrashes() を
+    // 呼ぶため、「オプトアウトのままクラッシュ → 後で ON」でスイッチを入れた瞬間に
+    // 同意していなかった期間のクラッシュが遡って送信されていた。
+    // 同意は「これから送ってよい」であって「過去の分も送ってよい」ではない。
+    "同意ありで取得したクラッシュだけが送信対象ディレクトリに入る" {
+        PrivacyCrashReporter.crashDirFor(consented = true) shouldBe
+            PrivacyCrashReporter.DIR_UPLOADABLE
+    }
+
+    "同意なしで取得したクラッシュは端末外に出さないディレクトリに入る" {
+        PrivacyCrashReporter.crashDirFor(consented = false) shouldBe
+            PrivacyCrashReporter.DIR_LOCAL_ONLY
+    }
+
+    "送信対象と端末内限定は別ディレクトリでなければならない" {
+        PrivacyCrashReporter.DIR_UPLOADABLE shouldNotBe PrivacyCrashReporter.DIR_LOCAL_ONLY
     }
 })

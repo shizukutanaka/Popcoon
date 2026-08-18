@@ -172,8 +172,9 @@ class SettingsViewModel @Inject constructor(
      * GDPR Article 17 — 全データ削除。
      *
      * 端末内データを完全削除する: Room 全テーブル + DataStore 設定 + ローカル保存済み
-     * クラッシュレポート (`PrivacyCrashReporter` が送信前に `filesDir/crashes/` へ永続化する
-     * JSON、機種名・Androidバージョン等を含む) + Coil の画像ディスク/メモリキャッシュ
+     * クラッシュレポート (`PrivacyCrashReporter` が `filesDir/crashes/` (同意あり) と
+     * `filesDir/crashes-local/` (同意なし・端末外に出さない) へ永続化する JSON、
+     * 機種名・Androidバージョン等を含む。両方を消す) + Coil の画像ディスク/メモリキャッシュ
      * (`filesDir/cache/image_cache/`、商品画像)。
      * 以前はクラッシュレポートと画像キャッシュがこの削除対象から漏れており、「完全削除」の
      * 表示に反して実際には端末に個人利用履歴の痕跡 (閲覧した商品のサムネイル、クラッシュ発生

@@ -76,6 +76,7 @@ class PrivacyCrashReporter(
         val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             // クラッシュレポートをローカルに永続化 (オプトアウト時もデバッグ用に保持)。
+            // **同意の有無で保存先ディレクトリを分ける** — 詳細は saveLocally() の注記。
             // 送信は次回起動時の uploadPendingCrashes() に委ねる。
             saveLocally(throwable)
             // 既存の handler に委譲 (システムのクラッシュダイアログ表示)
@@ -107,6 +108,23 @@ class PrivacyCrashReporter(
          * PopcoonLogger の共通パターン + クラッシュログ固有のファイルパスパターン。
          * `internal` 可視性はテスト用。
          */
+        /** 同意ありで取得したクラッシュ。[uploadPendingCrashes] の送信対象。 */
+        internal const val DIR_UPLOADABLE = "crashes"
+
+        /** 同意なしで取得したクラッシュ。**端末から出さない** (デバッグ用の保持のみ)。 */
+        internal const val DIR_LOCAL_ONLY = "crashes-local"
+
+        /** ディレクトリごとの保持上限 (ストレージ消費抑制)。 */
+        internal const val MAX_LOCAL_CRASHES = 30
+
+        /**
+         * 取得時点の同意状態から保存先ディレクトリ名を決める純関数。
+         * 同意の境界を「送信時のフラグ判定」ではなく **ファイルの置き場所** で表現し、
+         * 後からフラグが変わっても過去の取得分が送信対象に混ざらないようにする。
+         */
+        internal fun crashDirFor(consented: Boolean): String =
+            if (consented) DIR_UPLOADABLE else DIR_LOCAL_ONLY
+
         internal fun sanitizeStack(text: String): String = text
             // メールアドレス
             .replace(Regex("""[\w.-]+@[\w.-]+\.\w+"""), "[email]")
@@ -131,16 +149,32 @@ class PrivacyCrashReporter(
             .replace(Regex("""/storage/emulated/\d+/[^/\s]+"""), "/storage/emulated/[u]/[user]")
     }
 
+    /**
+     * クラッシュを端末内に永続化する。
+     *
+     * **同意の有無を「取得時点」で記録するため、保存先を分ける**:
+     *  - 同意あり → [DIR_UPLOADABLE]。次回起動時に [uploadPendingCrashes] が送信する。
+     *  - 同意なし → [DIR_LOCAL_ONLY]。**端末から出ない**。adb や設定画面からの
+     *    デバッグ用にのみ残す。
+     *
+     * 以前は同意の有無に関わらず 1 つのディレクトリへ保存し、送信時にだけ
+     * `enabled` を見ていた。そのため「オプトアウトのまま何度かクラッシュ →
+     * 後で設定を ON」にすると、**同意していなかった期間のクラッシュが全て送信されて**
+     * いた (PopcoonApp は crashReportOptin の変化で uploadPendingCrashes() を呼ぶため、
+     * スイッチを入れた瞬間に遡って送られる)。クラス冒頭に掲げた
+     * 「ユーザー明示同意なしには 1 byte も送信しない」に反する。
+     * 同意は「これから送ってよい」であって「過去の分も送ってよい」ではない。
+     */
     private fun saveLocally(throwable: Throwable) {
         runCatching {
-            val dir = File(context.filesDir, "crashes").apply { mkdirs() }
+            val dir = File(context.filesDir, crashDirFor(enabled)).apply { mkdirs() }
             // 構造化レポート (CrashReport JSON) として保存。次回起動時にそのまま送信できる。
             val file = File(dir, "crash_${System.currentTimeMillis()}.json")
             file.writeText(json.encodeToString(CrashReport.serializer(), buildReport(throwable)))
-            // 30件以上は古い順に削除 (ストレージ消費抑制)
+            // 30件以上は古い順に削除 (ストレージ消費抑制)。ディレクトリごとに適用する。
             val files = dir.listFiles()?.sortedBy { it.lastModified() } ?: return@runCatching
-            if (files.size > 30) {
-                files.take(files.size - 30).forEach { it.delete() }
+            if (files.size > MAX_LOCAL_CRASHES) {
+                files.take(files.size - MAX_LOCAL_CRASHES).forEach { it.delete() }
             }
         }
     }
@@ -161,7 +195,8 @@ class PrivacyCrashReporter(
      */
     suspend fun uploadPendingCrashes() {
         if (!enabled) return
-        val dir = File(context.filesDir, "crashes")
+        // 同意ありで取得した分だけを送る。DIR_LOCAL_ONLY は決して読まない。
+        val dir = File(context.filesDir, DIR_UPLOADABLE)
         dir.listFiles { f -> f.extension == "json" }?.forEach { file ->
             val report = runCatching {
                 json.decodeFromString(CrashReport.serializer(), file.readText())
@@ -182,9 +217,11 @@ class PrivacyCrashReporter(
         }
     }
 
+    /** 端末内のクラッシュ記録を全消去する (同意あり / なし の両方)。 */
     fun clearLocalCrashes() {
         runCatching {
-            File(context.filesDir, "crashes").deleteRecursively()
+            File(context.filesDir, DIR_UPLOADABLE).deleteRecursively()
+            File(context.filesDir, DIR_LOCAL_ONLY).deleteRecursively()
         }
     }
 }
