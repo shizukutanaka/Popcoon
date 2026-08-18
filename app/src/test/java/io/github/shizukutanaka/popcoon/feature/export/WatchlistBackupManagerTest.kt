@@ -3,6 +3,7 @@ package io.github.shizukutanaka.popcoon.feature.export
 import io.github.shizukutanaka.popcoon.data.db.WatchlistItem
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
@@ -89,5 +90,56 @@ class WatchlistBackupManagerTest : StringSpec({
         decoded.stockAlertEnabled shouldBe false
         decoded.targetPrice.shouldBeNull()
         decoded.addedPrice shouldBe 0
+    }
+
+    // ── normalizedOrNull: 外部から戻ってくる唯一の入力の検証 ────────────────
+    // バックアップ JSON は共有・クラウド保存・手編集を経て戻りうるため、
+    // DB へ入れる前に濾す。方針は「壊れた行だけ落とし、それ以外は必ず復元する」。
+    fun entry(
+        key: String = "amazon:B1",
+        real: Long = 1000,
+        list: Long = 1500,
+        added: Long = 900,
+        target: Long? = 800,
+    ) = WatchlistBackupEntry(
+        productKey = key, sku = "B1", title = "商品", platform = "amazon",
+        realPrice = real, listPrice = list, url = "https://example.com",
+        addedPrice = added, targetPrice = target,
+    )
+
+    "正常なエントリはそのまま復元される" {
+        val e = entry()
+        e.normalizedOrNull() shouldBe e
+    }
+
+    "productKey が空白のみのエントリは除外される (主キーが壊れるため)" {
+        entry(key = "").normalizedOrNull().shouldBeNull()
+        entry(key = "   ").normalizedOrNull().shouldBeNull()
+    }
+
+    "負の価格は 0 に丸める (負の金額は表示・計算のどこでも意味を持たない)" {
+        val n = entry(real = -100, list = -1, added = -50).normalizedOrNull()
+        n.shouldNotBeNull()
+        n.realPrice shouldBe 0L
+        n.listPrice shouldBe 0L
+        n.addedPrice shouldBe 0L
+    }
+
+    // PriceAlertEvaluator は targetPrice > 0 を要求するので、0 のまま入れても
+    // 永久に発火しない死んだ設定になる。「未設定」に正規化する。
+    "targetPrice が 0 以下なら未設定 (null) に正規化する" {
+        entry(target = 0).normalizedOrNull()!!.targetPrice.shouldBeNull()
+        entry(target = -5).normalizedOrNull()!!.targetPrice.shouldBeNull()
+        entry(target = 1).normalizedOrNull()!!.targetPrice shouldBe 1L
+    }
+
+    // 復元の目的はウォッチ対象そのものを取り戻すこと。価格は次回同期で上書きされ、
+    // 読み出し側は 2026-08 の一斉修正で ¥0 を無視するよう揃えてある。
+    // ここで弾くと「バックアップしたのに商品が消えた」というより重い損失になる。
+    "realPrice が 0 でもエントリは除外しない (価格は次回同期で復旧する)" {
+        val n = entry(real = 0).normalizedOrNull()
+        n.shouldNotBeNull()
+        n.productKey shouldBe "amazon:B1"
+        n.realPrice shouldBe 0L
     }
 })

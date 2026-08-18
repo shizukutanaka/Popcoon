@@ -10,7 +10,6 @@ import io.github.shizukutanaka.popcoon.data.db.WatchlistDao
 import io.github.shizukutanaka.popcoon.data.db.WatchlistItem
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -40,7 +39,12 @@ class WatchlistBackupManager @Inject constructor(
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = false }
 
     sealed interface ImportResult {
-        data class Success(val count: Int) : ImportResult
+        /**
+         * @property count 実際に DB へ書き込んだ件数。
+         * @property skipped 主キーが壊れていて復元できなかった件数 ([normalizedOrNull] 参照)。
+         *   0 でない場合はバックアップファイル側が壊れている。
+         */
+        data class Success(val count: Int, val skipped: Int = 0) : ImportResult
         data class Failure(val reason: String) : ImportResult
     }
 
@@ -79,7 +83,8 @@ class WatchlistBackupManager @Inject constructor(
 
     /**
      * ファイルピッカーで選択された URI からウォッチリストを復元する。
-     * 失敗 (不正な JSON、読み込み不能等) しても既存データは一切変更しない。
+     * 失敗 (読み込み不能・不正な JSON・DB 書き込みエラー) しても既存データは一切変更しない
+     * — 書き込みは [WatchlistDao.upsertAll] の単一トランザクションで行う。
      */
     suspend fun import(context: Context, uri: Uri): ImportResult {
         val text = try {
@@ -100,31 +105,29 @@ class WatchlistBackupManager @Inject constructor(
             return ImportResult.Failure("parse_error")
         }
 
-        entries.forEach { watchlistDao.upsert(it.toWatchlistItem()) }
-        return ImportResult.Success(entries.size)
+        // DB へ入れる前に一度濾す。バックアップ JSON は共有・クラウド保存・手編集を
+        // 経て戻りうる唯一の外部入力で、壊れた行をそのまま upsert すると主キーが壊れる。
+        val restorable = entries.mapNotNull { it.normalizedOrNull() }
+        val skipped = entries.size - restorable.size
+        if (skipped > 0) {
+            PopcoonLogger.w(this, "ウォッチリスト復元: 復元不能なエントリを除外 $skipped/${entries.size} 件")
+        }
+
+        // **1 トランザクションで書く**。以前は forEach で 1 件ずつ upsert しており、
+        // 途中で失敗すると「復元失敗」と表示されながら DB は部分的に書き換わっていた
+        // (このクラスの「失敗しても既存データは一切変更しない」という宣言と矛盾していた)。
+        return try {
+            watchlistDao.upsertAll(restorable.map { it.toWatchlistItem() })
+            ImportResult.Success(restorable.size, skipped)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            PopcoonLogger.w(this, "ウォッチリスト復元: DB 書き込み失敗 ${e.message}", e)
+            ImportResult.Failure("write_error")
+        }
     }
 }
 
-/**
- * バックアップ専用のシリアライズ可能 DTO。`WatchlistItem` の Room アノテーションと分離する。
- * `previousInStock` (内部同期状態) は意図的に含めない — 復元後は次回同期で自然に再構築される。
- */
-@Serializable
-internal data class WatchlistBackupEntry(
-    val productKey: String,
-    val sku: String,
-    val title: String,
-    val platform: String,
-    val realPrice: Long,
-    val listPrice: Long,
-    val url: String,
-    val imageUrl: String? = null,
-    val addedAt: Long = 0,
-    val targetPrice: Long? = null,
-    val addedPrice: Long = 0,
-    val stockAlertEnabled: Boolean = false,
-    val tag: String? = null,
-)
 
 internal fun WatchlistItem.toBackupEntry(): WatchlistBackupEntry = WatchlistBackupEntry(
     productKey = productKey,

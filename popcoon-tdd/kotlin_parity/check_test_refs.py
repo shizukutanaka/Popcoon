@@ -36,6 +36,8 @@ BUILTIN = {
     "values", "entries", "valueOf", "name", "ordinal", "copy", "equals", "hashCode",
     "toString", "javaClass", "INSTANCE", "Companion",
     "let", "also", "apply", "run", "takeIf", "takeUnless", "to",
+    # kotlinx.serialization のコンパイラプラグインが @Serializable に生成する
+    "serializer",
 }
 
 

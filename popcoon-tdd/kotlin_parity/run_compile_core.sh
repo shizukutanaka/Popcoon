@@ -62,11 +62,23 @@ PKG = "io.github.shizukutanaka.popcoon"
 dep = re.compile(r"^import (android[.x]|androidx\.|dagger\.|com\.google\.|io\.ktor)", re.M)
 proj_import = re.compile(r"^import (" + re.escape(PKG) + r"\.[A-Za-z0-9_.]+)", re.M)
 
-decl = re.compile(
-    r"^(?:@\w+\s+)*(?:public\s+|internal\s+|private\s+)?(?:abstract\s+|sealed\s+|open\s+|data\s+|value\s+)*"
-    r"(?:class|object|interface|enum class|fun|val|var|typealias)\s+([A-Za-z_][A-Za-z0-9_]*)",
-    re.M,
-)
+# トップレベル宣言の名前。**拡張関数のレシーバを宣言名と読まないこと**が要点:
+# 素朴に `fun\s+(\w+)` とすると `internal fun String.escapeCsv()` から `String` を、
+# `fun WatchlistBackupEntry.toWatchlistItem()` から `WatchlistBackupEntry` を
+# 「このファイルが宣言している名前」として拾ってしまう。すると条件 (c) 側で
+# 同パッケージの全ファイルが `String` を参照しているとみなされ、パッケージごと
+# 検証対象から消える (WatchlistBackupEntry.kt が実際にこれで落ちた)。
+# レシーバ (`Foo.` の部分) は任意でスキップし、実際の宣言名だけを取る。
+_MODIFIERS = (r"^(?:@\w+\s+)*(?:public\s+|internal\s+|private\s+)?"
+              r"(?:abstract\s+|sealed\s+|open\s+|data\s+|value\s+)*")
+decl_type = re.compile(_MODIFIERS + r"(?:class|object|interface|enum class|typealias)\s+([A-Za-z_][A-Za-z0-9_]*)", re.M)
+decl_fun = re.compile(_MODIFIERS + r"(?:suspend\s+)?fun\s+(?:<[^>]*>\s*)?(?:[A-Za-z_][\w.<>?, ]*\.)?([A-Za-z_][A-Za-z0-9_]*)\s*\(", re.M)
+decl_prop = re.compile(_MODIFIERS + r"(?:val|var)\s+(?:<[^>]*>\s*)?(?:[A-Za-z_][\w.<>?, ]*\.)?([A-Za-z_][A-Za-z0-9_]*)\s*[:=]", re.M)
+
+
+def top_level_decls(text):
+    return (set(decl_type.findall(text)) | set(decl_fun.findall(text))
+            | set(decl_prop.findall(text)))
 
 def strip_noncode(s):
     """コメントと文字列リテラルを落とす。
@@ -95,7 +107,7 @@ for f in sorted(pathlib.Path(src).rglob("*.kt")):
         "android": bool(dep.search(text)),
         # import 先の FQN から末尾の型名を落としてパッケージを得る (R スタブは除外)
         "imports": {i.rsplit(".", 1)[0] for i in proj_import.findall(text) if i != f"{PKG}.R"},
-        "decls": set(decl.findall(text)),
+        "decls": top_level_decls(text),
     }
 
 keep = {f for f, v in info.items() if not v["android"]}
@@ -144,7 +156,7 @@ java -cp "$LIB/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
 
 # 対象ファイル数の下限。Android 依存 import が増えると自動判定で対象が減るため、
 # 「黙ってカバレッジが縮む」ことを検知する。意図的に減らす場合はこの値も更新すること。
-MIN_TARGETS=46
+MIN_TARGETS=47
 if [[ ${#TARGETS[@]} -lt $MIN_TARGETS ]]; then
   echo "CORE COMPILE: coverage shrank (${#TARGETS[@]} < $MIN_TARGETS files)." >&2
   echo "  Android/AndroidX/Hilt(dagger)/ktor への依存が増えていないか確認し、" >&2

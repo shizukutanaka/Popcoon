@@ -124,6 +124,16 @@ interface WatchlistDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(item: WatchlistItem)
 
+    /**
+     * 複数件を 1 トランザクションで upsert する (バックアップ復元用)。
+     * 1 件ずつ upsert すると途中失敗で部分的に書き換わり、呼び出し側が
+     * 「失敗」と表示しているのに DB は変わっている、という状態が起きる。
+     */
+    @Transaction
+    suspend fun upsertAll(items: List<WatchlistItem>) {
+        items.forEach { upsert(it) }
+    }
+
     @Query("DELETE FROM watchlist WHERE productKey = :key")
     suspend fun delete(key: String)
 
