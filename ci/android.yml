@@ -153,6 +153,12 @@ jobs:
         working-directory: backend
         run: npm install
 
+      # 型検査はテストとは別の失敗モードを拾う (テストが触らない経路の型崩れ)。
+      # ローカルの ci/verify.py は tsc も回すので、CI 側にも同じゲートを置いて揃える。
+      - name: Type check (tsc)
+        working-directory: backend
+        run: npx tsc --noEmit
+
       - name: Run vitest
         working-directory: backend
         run: npm test

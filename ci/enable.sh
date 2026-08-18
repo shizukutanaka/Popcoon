@@ -29,10 +29,18 @@ git commit -m "ci: enable Android + Python + parity + backend CI workflow"
 
 cat <<'MSG'
 CI enabled. The workflow now runs four jobs on push:
-  - android        : detekt / lint / kotest unit tests / assembleDebug
+  - android        : detekt / lint / kotest unit tests / assembleDebug /
+                     assembleRelease (R8 + resource shrink, throwaway keystore)
   - python-oracle  : popcoon-tdd pytest suite
-  - parity         : Kotlin<->Python parity + data mappers (no Android SDK)
-  - backend        : Cloudflare Worker vitest tests
+  - parity         : run_all.sh — cross-language parity + data mappers +
+                     run_compile_core.sh (Android 非依存部の実コンパイル) +
+                     check_overrides.py (override 欠落の静的検査)
+  - backend        : Cloudflare Worker tsc + vitest
+
+これが有効になると、本環境では実行できなかった以下が初めて検証されます:
+  - Compose/Room/Hilt を含む app モジュール全体のコンパイル (85 ファイル)
+  - kotest 単体テスト (本環境では実行不可のまま書かれている)
+  - R8 圧縮後の release ビルド
 
 Push to activate:
   git push
