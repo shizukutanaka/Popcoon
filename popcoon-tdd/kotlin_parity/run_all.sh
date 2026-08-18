@@ -35,10 +35,34 @@ harnesses=(
   "run_alerts.sh"   # PriceAlertEvaluator: target-price edge-trigger (Tier 53/54 regression guard)
 )
 
+# ハーネスは互いに独立している (それぞれ自前の mktemp -d へ出力し、ソースは読むだけ) ため
+# 並列実行できる。各ハーネスは Kotlin コンパイラ JVM を 1 つ起動するので、同時実行数は
+# コア数までに絞る (逐次 82 秒 / 4 コア。詰め込みすぎるとメモリと文脈切替で逆に遅くなる)。
+# デバッグ時は PARITY_JOBS=1 で逐次実行に戻せる。
+JOBS="${PARITY_JOBS:-$(nproc 2>/dev/null || echo 2)}"
+OUTDIR="$(mktemp -d)"
+trap 'rm -rf "$OUTDIR"' EXIT
+
+for h in "${harnesses[@]}"; do
+  {
+    if bash "$HERE/$h" > "$OUTDIR/$h.out" 2>&1; then
+      echo 0 > "$OUTDIR/$h.rc"
+    else
+      echo 1 > "$OUTDIR/$h.rc"
+    fi
+  } &
+  # 同時実行数を JOBS までに制限
+  while [[ "$(jobs -rp | wc -l)" -ge "$JOBS" ]]; do wait -n; done
+done
+wait
+
+# **宣言順**に出力する (完了順ではない)。並列化してもログの並びと差分が安定するようにし、
+# 既存の grep パターン (✓ / ✗ / matched) もそのまま使えるようにする。
 fail=0
 for h in "${harnesses[@]}"; do
   echo "═══ $h ═══"
-  if bash "$HERE/$h"; then
+  cat "$OUTDIR/$h.out"
+  if [[ "$(cat "$OUTDIR/$h.rc" 2>/dev/null || echo 1)" == "0" ]]; then
     echo "  ✓ $h"
   else
     echo "  ✗ $h FAILED"
