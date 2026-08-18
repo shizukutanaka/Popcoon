@@ -13,9 +13,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ── Kotlin / Android: 静的解析・lint・単体テスト・Debug ビルド ──────────────
+  # ── Kotlin / Android: コンパイル・単体テスト・Debug/Release ビルド ──────────
+  #
+  # ステップ順は「1 回の実行で得られる情報量」で決めている。GitHub Actions は
+  # 最初に失敗したステップでジョブを打ち切るため、順序がそのまま「何が分かるか」になる。
+  # このリポジトリは CI が一度も動いたことがなく、app モジュールの 84 ファイルは
+  # コンパイル検証すらされていない。最初の実行で最も知りたいのは
+  # **コンパイルが通るか / kotest が通るか** なので、それを先頭に置く。
+  # detekt / lint (スタイル・静的解析) は別ジョブへ分離した — こちらが先に落ちると
+  # 本命の情報が一切得られないため。両ジョブとも成功しないと全体は緑にならないので、
+  # ゲートとしての強度は落ちていない。
   android:
-    name: Android (detekt / lint / unit tests / assemble)
+    name: Android (compile / unit tests / assemble)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -36,14 +45,13 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      # detekt（静的解析）→ lint → 単体テスト → Debug APK。
-      # 失敗箇所を切り分けやすいよう個別タスクで実行する。
-      - name: detekt
-        run: ./gradlew detekt --stacktrace
+      # 1) まずコンパイルが通るか。Compose/Room/Hilt/ktor を含む 84 ファイルが
+      #    型検査されるのはここが初めて (ローカルの run_compile_core.sh は
+      #    依存 jar が揃う 47 ファイルしか見られない)。
+      - name: Compile (debug sources)
+        run: ./gradlew compileDebugKotlin --stacktrace
 
-      - name: Android Lint
-        run: ./gradlew lintDebug --stacktrace
-
+      # 2) 次に kotest。テストは 1 ファイルもコンパイルされたことがない。
       - name: Unit tests (kotest)
         run: ./gradlew testDebugUnitTest --stacktrace
 
@@ -73,15 +81,58 @@ jobs:
           KEY_PASSWORD: ci-only-not-for-distribution
         run: ./gradlew assembleRelease --stacktrace
 
-      - name: Upload test & lint reports
+      - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: android-reports
           path: |
             app/build/reports/tests/
-            app/build/reports/lint-results-*.html
+          if-no-files-found: ignore
+
+  # ── 静的解析 / lint: ビルドとは独立に失敗させる ──────────────────────────
+  #
+  # detekt は `maxIssues: 0` かつ baseline 無しで、**一度も実行されたことがない**
+  # 131 ファイルに対して走る。初回に指摘が出る可能性は高いが、それが android ジョブを
+  # 止めてコンパイル結果を隠してしまうのは本末転倒なので別ジョブにする。
+  # 初回に大量の指摘が出た場合は `./gradlew detektBaseline` で baseline を作り、
+  # 既存分を凍結してから新規混入だけを止める運用に切り替えるとよい。
+  quality:
+    name: Static analysis (detekt / lint)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle (with cache)
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: detekt
+        run: ./gradlew detekt --stacktrace
+
+      - name: Android Lint
+        run: ./gradlew lintDebug --stacktrace
+
+      - name: Upload detekt & lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-reports
+          path: |
             app/build/reports/detekt/
+            app/build/reports/lint-results-*.html
           if-no-files-found: ignore
 
   # ── Python TDD オラクル: 差分テストの正本 ────────────────────────────────

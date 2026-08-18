@@ -88,11 +88,37 @@ Android Studio での手元ビルド) で必ずコンパイル・テストを確
   実地確認もできないため未検証 — CI 稼働後に `zipalign -c -P 16` か Play Console の
   アップロード結果で確認すること (期限まで約 17 か月ある)。
 
+## 初回実行で最初に見るもの
+
+CI は一度も動いたことがなく、app モジュールの **84 ファイルはコンパイル検証すらされていない**
+（ローカルの `run_compile_core.sh` は依存 jar が揃う 47 ファイルしか見られない）。
+そのため初回実行で最も知りたいのは「コンパイルが通るか / kotest が通るか」の 2 点です。
+
+これを確実に得られるよう、ジョブ構成を次のようにしてあります:
+
+- `android` ジョブは **`compileDebugKotlin` → `testDebugUnitTest` → `assembleDebug`
+  → `assembleRelease`** の順。GitHub Actions は最初に失敗したステップで打ち切るので、
+  順序がそのまま「何が分かるか」になります。
+- `detekt` / `lintDebug` は **`quality` という別ジョブ**に分離。detekt は
+  `maxIssues: 0` かつ baseline 無しで、一度も実行されたことのない 131 ファイルに対して
+  走ります。初回に指摘が出る可能性は高く、同一ジョブに置くとコンパイル結果を隠して
+  しまうためです。両ジョブとも成功しないと全体は緑にならないので、ゲートとしての
+  強度は落ちていません。
+
+**detekt が大量に指摘してきた場合**は、既存分を凍結してから新規混入だけを止める運用に
+切り替えてください:
+
+```bash
+./gradlew detektBaseline   # config/detekt/baseline.xml を生成
+git add config/detekt/baseline.xml && git commit -m "ci: freeze existing detekt findings"
+```
+
 ## このワークフローが検証する内容
 
 | ジョブ | 内容 |
 |--------|------|
-| **android** | JDK 17 + Android SDK + Gradle キャッシュ。`detekt`（静的解析）→ `lintDebug` → `testDebugUnitTest`（kotest 200+ テスト）→ `assembleDebug` → `assembleRelease`（使い捨てキーストアで署名、R8 圧縮・リソース shrink・kotlinx.serialization/Room/Hilt/Ktor の ProGuard ルールを実パイプラインで検証。生成 APK は誰も鍵を持たないため配布不可）。失敗時はテスト/lint/detekt レポートを artifact として保存。 |
+| **android** | JDK 17 + Android SDK + Gradle キャッシュ。`compileDebugKotlin` → `testDebugUnitTest`（kotest 64 ファイル）→ `assembleDebug` → `assembleRelease`（使い捨てキーストアで署名、R8 圧縮・リソース shrink・kotlinx.serialization/Room/Hilt/Ktor の ProGuard ルールを実パイプラインで検証。生成 APK は誰も鍵を持たないため配布不可）。 |
+| **quality** | `detekt` → `lintDebug`。**android ジョブとは別ジョブ**にしてある（下記「初回実行で最初に見るもの」参照）。 |
 | **python-oracle** | `popcoon-tdd` の pytest スイート（差分テストの正本、300 テスト）。ベンチマークは CI のノイズになるため無効化。 |
 | **parity** | Android SDK 不要。Gradle 同梱の kotlin-compiler-embeddable で純関数（customs/eco/dark-pattern/predict/buy-timing と各 EC マッパー）をコンパイル・実行し Python オラクルと照合（`popcoon-tdd/kotlin_parity/run_all.sh`）。 |
 | **backend** | Cloudflare Worker の vitest（アラート評価・PII 検査・KV ページネーション・入力検証）。 |
