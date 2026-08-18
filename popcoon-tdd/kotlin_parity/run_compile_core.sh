@@ -149,6 +149,13 @@ python3 "$HERE/check_overrides.py" || exit 1
 #    コンパイルエラーになる = CI を有効化した瞬間に赤くなる類の欠陥。
 python3 "$HERE/check_resources.py" || exit 1
 
+# 5. enum に対する `when` の網羅漏れの静的検査。Kotlin 2.x では非網羅的な when は
+#    エラーなので、これも「CI を有効化した瞬間に赤くなる」欠陥クラス。実コンパイル
+#    対象の 36 ファイルはコンパイラが見るが、残り 95 ファイル (Compose/Glance/Room 等)
+#    は誰も見ていなかった。実例: Category に OBSTRUCTION を足したとき
+#    ui/DarkPatternTextLabels.kt の when も同時更新が必要だった。
+python3 "$HERE/check_when_exhaustive.py" || exit 1
+
 if [[ -f "$OUT/core.jar" ]]; then
   echo "CORE COMPILE: OK (${#TARGETS[@]} files)"
 else
