@@ -435,6 +435,7 @@
     <string name="notif_price_detail">%1$s\n%2$s (前回: %3$s)</string>
     <string name="notif_back_in_stock">入荷しました</string>
     <string name="notif_back_in_stock_body">%1$s の在庫が復活しました。今すぐ購入できます。</string>
+    <string name="notif_price_drop_summary">他 %1$d 件も値下がりしました</string>
     <string name="notif_weekly_digest_title">週間価格まとめ</string>
     <string name="notif_weekly_digest_body">ウォッチリスト%1$d件中%2$d件が値下がり中。アプリで最新価格を確認しましょう。</string>
 

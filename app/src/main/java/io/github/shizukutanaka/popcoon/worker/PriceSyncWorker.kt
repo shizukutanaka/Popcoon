@@ -77,8 +77,6 @@ class PriceSyncWorker @AssistedInject constructor(
 
         if (watchlist.isEmpty()) return Result.success()
 
-        var priceDropCount = 0
-
         // 各アイテムを並列取得 (最大 MAX_CONCURRENCY 並列)。従来は逐次で、
         // 件数ぶん直列にネットワーク待ちしていた。Result で成否を追跡する。
         val semaphore = Semaphore(MAX_CONCURRENCY)
@@ -135,10 +133,16 @@ class PriceSyncWorker @AssistedInject constructor(
         val drops = outcomes.mapNotNull { it.getOrNull() }
         val failureCount = outcomes.count { it.isFailure }
 
-        // 目標価格到達を最優先、次に値下がり率が大きい順。最大 MAX_NOTIFICATIONS 件。
-        PriceSyncPlanner.selectNotifications(drops, MAX_NOTIFICATIONS)
+        // 目標価格到達を最優先、次に値下がり率が大きい順。個別通知は最大 MAX_NOTIFICATIONS 件で、
+        // 超過分は捨てずに 1 件のまとめ通知へ回す (確定価格は既に DB へ書き戻し済みなので、
+        // ここで落とすと二度と再通知されない)。
+        val plan = PriceSyncPlanner.plan(drops, MAX_NOTIFICATIONS)
+        // ReviewPrompter に渡す「ユーザーにとって良いことが起きた回数」は、まとめ通知に
+        // 回った分も含めた確定値下がり件数。個別通知の上限は割り込みの制御であって、
+        // 起きた事実の件数ではない。
+        val priceDropCount = plan.notify.size + plan.suppressed.size
+        plan.notify
             .forEach { drop ->
-                priceDropCount++
                 val title = if (drop.targetReached) {
                     applicationContext.getString(
                         R.string.notif_target_reached,
@@ -159,6 +163,13 @@ class PriceSyncWorker @AssistedInject constructor(
                     ),
                 )
             }
+        if (plan.suppressed.isNotEmpty()) {
+            notificationManager.sendPriceDropSummary(
+                context = applicationContext,
+                suppressedCount = plan.suppressed.size,
+                titles = plan.suppressed.take(SUMMARY_TITLE_LIMIT).map { it.item.title },
+            )
+        }
 
         // ── 在庫アラートフェーズ ──────────────────────────────────────────────
         // stockAlertEnabled な商品のみ repository.refresh() でライブ在庫を取得する。
@@ -240,10 +251,13 @@ class PriceSyncWorker @AssistedInject constructor(
 
     companion object {
         internal const val WORK_NAME = "price_sync_daily"
-        /** 1回の同期で送る通知の上限 (過剰通知防止 — arXiv PMC8523513) */
+        /** 1回の同期で送る**個別**通知の上限 (過剰通知防止 — arXiv PMC8523513)。
+         *  超過分は 1 件のまとめ通知に集約する (情報は捨てない)。 */
         private const val MAX_NOTIFICATIONS = 3
-        /** 通知する最小値下がり率 (微小変動のノイズ通知を抑制 — arXiv 2509.02458) */
-        private const val MIN_DROP_PERCENT = 3
+        /** まとめ通知の本文に列挙する商品名の最大件数 (通知本文の可読性の上限)。 */
+        private const val SUMMARY_TITLE_LIMIT = 5
+        // 最小値下がり率は UserPreferences.notifDropPercent (既定 3%) が唯一の供給源。
+        // 以前ここにあった MIN_DROP_PERCENT 定数は誰からも読まれない死んだ値だった。
         /** 価格取得の最大並列数 (backend への thundering herd 抑制) */
         private const val MAX_CONCURRENCY = 8
         /** 全件失敗時の最大 retry 回数 (指数バックオフ) */

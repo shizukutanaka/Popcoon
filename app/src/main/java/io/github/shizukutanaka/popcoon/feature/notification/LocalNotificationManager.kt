@@ -127,12 +127,64 @@ class LocalNotificationManager @Inject constructor() {
         }
     }
 
+    /**
+     * 1 回の同期で個別通知の上限を超えた値下がりをまとめて 1 件だけ通知する。
+     *
+     * 上限 (PriceSyncPlanner の maxNotifications) は割り込み回数を抑えるためのもので、
+     * 情報を捨てるためのものではない。超過分を黙って落とすと、確定価格は既に DB へ
+     * 書き戻されているため二度と再通知されない (ソクラテス式レビューで発見)。
+     *
+     * @param suppressedCount 個別通知に載らなかった値下がり件数。
+     * @param titles 上記のうち先頭数件の商品名 (本文に列挙する)。
+     */
+    fun sendPriceDropSummary(
+        context: Context,
+        suppressedCount: Int,
+        titles: List<String>,
+    ) {
+        if (suppressedCount <= 0) return
+        sendWatchlistNotification(
+            context = context,
+            notifId = PRICE_DROP_SUMMARY_NOTIF_ID,
+            channelId = PopcoonApp.CHANNEL_PRICE_ALERT,
+            title = context.getString(R.string.notif_price_drop_summary, suppressedCount),
+            body = titles.joinToString("\n") { it.take(30) },
+            priority = NotificationCompat.PRIORITY_DEFAULT,
+            failureLogMessage = { "値下がりまとめ通知の発行に失敗: $it" },
+        )
+    }
+
     fun sendWeeklyDigest(
         context: Context,
         summary: String,
     ) {
-        // 価格/在庫アラートと異なり、従来 contentIntent が未設定で「タップしても何も起きない」
-        // 通知になっていた (ソクラテス式レビューで発見)。ウォッチリスト画面への Deep Link を張る。
+        sendWatchlistNotification(
+            context = context,
+            notifId = WEEKLY_DIGEST_NOTIF_ID,
+            channelId = PopcoonApp.CHANNEL_WEEKLY_DIGEST,
+            title = context.getString(R.string.notif_weekly_digest_title),
+            body = summary,
+            priority = NotificationCompat.PRIORITY_LOW,
+            failureLogMessage = { "週間ダイジェスト通知の発行に失敗: $it" },
+        )
+    }
+
+    /**
+     * ウォッチリスト画面へのディープリンクを持つ通知 (週間ダイジェスト / 値下がりまとめ) の
+     * 共通発行処理。個別商品ではなく複数商品をまとめて伝える通知はここを通す。
+     *
+     * 週間ダイジェストは以前 contentIntent が未設定で「タップしても何も起きない」通知だった
+     * (ソクラテス式レビューで発見)。両者で同じ組み立てを重複させないよう集約する。
+     */
+    private fun sendWatchlistNotification(
+        context: Context,
+        notifId: Int,
+        channelId: String,
+        title: String,
+        body: String,
+        priority: Int,
+        failureLogMessage: (String?) -> String,
+    ) {
         val deepLinkIntent = Intent(context, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
             data = android.net.Uri.parse(io.github.shizukutanaka.popcoon.core.DeepLinks.WATCHLIST)
@@ -140,27 +192,28 @@ class LocalNotificationManager @Inject constructor() {
         }
         val pendingIntent = PendingIntent.getActivity(
             context,
-            WEEKLY_DIGEST_NOTIF_ID,
+            notifId,
             deepLinkIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val notification = NotificationCompat.Builder(context, PopcoonApp.CHANNEL_WEEKLY_DIGEST)
+        val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_shortcut_star)
-            .setContentTitle(context.getString(R.string.notif_weekly_digest_title))
-            .setContentText(summary)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(summary))
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(priority)
             .build()
 
         runCatching {
-            NotificationManagerCompat.from(context).notify(WEEKLY_DIGEST_NOTIF_ID, notification)
+            NotificationManagerCompat.from(context).notify(notifId, notification)
         }.onFailure { e ->
-            PopcoonLogger.w(this, "週間ダイジェスト通知の発行に失敗: ${e.message}", e)
+            PopcoonLogger.w(this, failureLogMessage(e.message), e)
         }
     }
 }
 
 private const val WEEKLY_DIGEST_NOTIF_ID = 999
+private const val PRICE_DROP_SUMMARY_NOTIF_ID = 998

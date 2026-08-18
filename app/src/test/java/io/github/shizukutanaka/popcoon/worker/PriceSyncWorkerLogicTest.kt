@@ -119,7 +119,7 @@ class PriceSyncWorkerLogicTest : StringSpec({
     }
 
     // ── PriceSyncPlanner (doWork() から切り出した純粋な意思決定ロジック) ──────────
-    "selectNotifications: 目標到達を最優先し、次に値下がり率降順で maxNotifications 件に絞る" {
+    "plan: 目標到達を最優先し、次に値下がり率降順で maxNotifications 件に絞る" {
         val drops = listOf(
             testDrop("a", pct = 5, targetReached = false),
             testDrop("b", pct = 30, targetReached = false),
@@ -127,17 +127,57 @@ class PriceSyncWorkerLogicTest : StringSpec({
             testDrop("d", pct = 50, targetReached = false),
             testDrop("e", pct = 1, targetReached = true),
         )
-        val selected = PriceSyncPlanner.selectNotifications(drops, maxNotifications = 3)
-        selected.map { it.item.productKey } shouldBe listOf("c", "e", "d")
+        val plan = PriceSyncPlanner.plan(drops, maxNotifications = 3)
+        plan.notify.map { it.item.productKey } shouldBe listOf("c", "e", "d")
     }
 
-    "selectNotifications: maxNotifications=0 は空リスト" {
+    // 回帰: 旧 selectNotifications は上限超過分を take() で切り落としていた。
+    // PriceSyncWorker は切り落とし前に全 Drop の確定価格を DB へ書き戻すため、
+    // 落とされた値下がりは基準価格が下がった後で二度と再発火せず永久に失われていた。
+    // 上限超過分は必ず suppressed として返り、1 件のまとめ通知に集約される。
+    "plan: 上限超過分は捨てられず suppressed に入る (情報損失なし)" {
+        val drops = listOf(
+            testDrop("a", pct = 5, targetReached = false),
+            testDrop("b", pct = 30, targetReached = false),
+            testDrop("c", pct = 10, targetReached = true),
+            testDrop("d", pct = 50, targetReached = false),
+            testDrop("e", pct = 1, targetReached = true),
+        )
+        val plan = PriceSyncPlanner.plan(drops, maxNotifications = 3)
+        plan.suppressed.map { it.item.productKey } shouldBe listOf("b", "a")
+        (plan.notify + plan.suppressed).size shouldBe drops.size
+        (plan.notify + plan.suppressed).map { it.item.productKey }.toSet() shouldBe
+            drops.map { it.item.productKey }.toSet()
+    }
+
+    // 同日に 4 件以上が目標価格に到達する状況 (楽天スーパーセール等) でも、
+    // 個別通知に載らなかった目標到達が黙って消えないこと。
+    "plan: 目標到達が上限を超えても超過分は suppressed で残る" {
+        val drops = (1..5).map { testDrop("t$it", pct = it, targetReached = true) }
+        val plan = PriceSyncPlanner.plan(drops, maxNotifications = 3)
+        plan.notify.size shouldBe 3
+        plan.suppressed.size shouldBe 2
+        plan.suppressed.all { it.targetReached } shouldBe true
+    }
+
+    "plan: maxNotifications=0 なら全件 suppressed (個別通知ゼロでも情報は残る)" {
         val drops = listOf(testDrop("a", pct = 10, targetReached = false))
-        PriceSyncPlanner.selectNotifications(drops, maxNotifications = 0) shouldBe emptyList()
+        val plan = PriceSyncPlanner.plan(drops, maxNotifications = 0)
+        plan.notify shouldBe emptyList()
+        plan.suppressed.map { it.item.productKey } shouldBe listOf("a")
     }
 
-    "selectNotifications: 入力が空でも例外なく空リスト" {
-        PriceSyncPlanner.selectNotifications(emptyList(), maxNotifications = 3) shouldBe emptyList()
+    "plan: 上限に満たなければ suppressed は空" {
+        val drops = listOf(testDrop("a", pct = 10, targetReached = false))
+        val plan = PriceSyncPlanner.plan(drops, maxNotifications = 3)
+        plan.notify.map { it.item.productKey } shouldBe listOf("a")
+        plan.suppressed shouldBe emptyList()
+    }
+
+    "plan: 入力が空でも例外なく空の計画" {
+        val plan = PriceSyncPlanner.plan(emptyList(), maxNotifications = 3)
+        plan.notify shouldBe emptyList()
+        plan.suppressed shouldBe emptyList()
     }
 
     "shouldRetry: 全件失敗かつ retry 上限未満なら true" {
