@@ -26,9 +26,10 @@ import java.util.concurrent.TimeUnit
  * ローカル通知でサマリーを届ける。ネットワーク不要（端末内データのみ）。
  *
  * スケジュール: 7日ごと (WorkManager の柔軟窓で月曜朝に近い時刻に発火)。
- * ウォッチリストが空のときは静かに終了（ノイズ通知を抑制）。
+ * ウォッチリストが空のとき、および値下がりが 1 件も無いときは静かに終了（ノイズ通知を抑制）。
  *
  * addedPrice == 0 の商品は v3 以前に登録された基準なしアイテムとして除外する。
+ * realPrice <= 0 の商品も取得失敗の汚染レコードとして除外する。
  */
 @HiltWorker
 class WeeklyDigestWorker @AssistedInject constructor(
@@ -53,6 +54,11 @@ class WeeklyDigestWorker @AssistedInject constructor(
         val totalCount = watchlist.size
         val dropCount = dropCountFrom(watchlist.map { it.realPrice to it.addedPrice })
 
+        // 値下がりが 1 件も無い週は送らない。本文は「N件中0件が値下がり中」となり
+        // 情報量ゼロの週次割り込みにしかならず、本クラスが空ウォッチリストで既に
+        // 掲げている「ノイズ通知を抑制」という方針と矛盾していた。
+        if (dropCount == 0) return Result.success()
+
         val summary = applicationContext.getString(
             R.string.notif_weekly_digest_body,
             totalCount,
@@ -68,11 +74,17 @@ class WeeklyDigestWorker @AssistedInject constructor(
 
         /**
          * 追加時価格より現在価格が低い商品の件数を返す純関数。
-         * addedPrice == 0 (v3 以前の基準なしアイテム) は除外。
+         *
+         * 除外するもの:
+         *  - addedPrice == 0 — v3 以前に登録された基準なしアイテム。
+         *  - realPrice <= 0 — 取得失敗を 0 として記録してしまった汚染レコード。
+         *    `realPrice < addedPrice` だけで判定すると 0 円は常に「値下がり」になり、
+         *    ダイジェストの件数が実態より水増しされる (BuyTimingScorer と同じ ¥0 汚染。
+         *    書き込み側は塞いだが既存 DB の行は残りうるため、読み出し側でも無視する)。
          */
         fun dropCountFrom(pricesPairs: List<Pair<Long, Long>>): Int =
             pricesPairs.count { (realPrice, addedPrice) ->
-                addedPrice > 0 && realPrice < addedPrice
+                addedPrice > 0 && realPrice > 0 && realPrice < addedPrice
             }
 
         fun schedule(context: Context) {

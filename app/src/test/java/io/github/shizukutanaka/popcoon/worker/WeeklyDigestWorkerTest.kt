@@ -21,12 +21,24 @@ class WeeklyDigestWorkerTest : StringSpec({
         WeeklyDigestWorker.dropCountFrom(listOf(0L to 0L, 4000L to 0L)) shouldBe 0
     }
 
+    // ¥0 汚染 (取得失敗を 0 円として記録したレコード) は「値下がり」ではない。
+    // realPrice > 0 のガードが無いと 0 < addedPrice が常に成立し、ダイジェストの
+    // 件数が実態より水増しされる (BuyTimingScorer で実際に判定を反転させたのと同じ欠陥)。
+    "realPrice == 0 (取得失敗の汚染レコード) は値下がりに数えない" {
+        WeeklyDigestWorker.dropCountFrom(listOf(0L to 5000L)) shouldBe 0
+    }
+
+    "realPrice が負 (異常値) も値下がりに数えない" {
+        WeeklyDigestWorker.dropCountFrom(listOf(-100L to 5000L)) shouldBe 0
+    }
+
     "複数件の混在: 値下がりのみをカウント" {
         val pairs = listOf(
             4000L to 5000L,  // drop ✓
             6000L to 5000L,  // up ✗
             3000L to 3000L,  // same ✗
             2000L to 0L,     // no baseline ✗
+            0L to 4000L,     // ¥0 汚染 ✗
             1000L to 1500L,  // drop ✓
         )
         WeeklyDigestWorker.dropCountFrom(pairs) shouldBe 2
