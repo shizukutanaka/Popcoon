@@ -173,6 +173,12 @@ python3 "$HERE/check_resources.py" || exit 1
 #    ui/DarkPatternTextLabels.kt の when も同時更新が必要だった。
 python3 "$HERE/check_when_exhaustive.py" || exit 1
 
+# 6. テスト (app/src/test の 64 ファイル) が参照する本番シンボルの実在検査。
+#    kotest の jar が無いのでテストは 1 ファイルもコンパイルできない。本番 API を
+#    改名したときの追随漏れは CI 初回実行まで誰にも見えない — `Object.member` の
+#    member が存在するかだけは静的に決まるので、そこだけ塞ぐ。
+python3 "$HERE/check_test_refs.py" || exit 1
+
 if [[ -f "$OUT/core.jar" ]]; then
   echo "CORE COMPILE: OK (${#TARGETS[@]} files)"
 else
