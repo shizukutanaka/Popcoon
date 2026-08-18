@@ -10,14 +10,14 @@ Amazon / 楽天 / Yahoo! ショッピング横断の価格比較 Android アプ�
 | 区分 | 数量 |
 |---|---|
 | 総ファイル数 | 346 |
-| Kotlin ファイル | 211 |
+| Kotlin ファイル | 199 (main 131 / unit test 64 / androidTest 4) |
 | ユニットテスト | 64 |
 | Compose UI テスト | 2 |
 | Kotlin 行数 | ~16,400 |
-| 言語対応 | 4 (ja / en / zh-CN / ko-KR) |
+| 言語対応 | 4 (ja / en / zh-CN / ko-KR) × 364 キー |
 | CI ワークフロー | 0 稼働 (`ci/android.yml` に定義のみ — 下記「CI/CD」参照) |
 | ストアリスティング | 4 言語 |
-| ドキュメント | 8 (README / CHANGELOG / ARCHITECTURE / SECURITY / CONTRIBUTING / LICENSE / PRIVACY / COMPLETION_REPORT) |
+| ドキュメント | 23 (*.md + docs/*.md、2026-08 実測) |
 
 ## Python TDD 参照層 (別ディレクトリ)
 
@@ -94,6 +94,55 @@ Amazon / 楽天 / Yahoo! ショッピング横断の価格比較 Android アプ�
 - GDPR Article 17 削除
 - クラッシュレポート受信 (PII 二重チェック)
 - Rate limiting
+
+## リリースまでの残作業 (2026-08 棚卸し — マスク流に「何が本当に止めているか」だけ書く)
+
+**私 (自動化エージェント) 側で閉じられる作業は完了している。** 残る阻害要因は
+**すべて人手ゲート**で、しかも実質 1 つに集約される。
+
+### 唯一の技術的ブロッカー: app モジュールが一度もビルドされていない
+
+Compose/Room/Hilt を含む **85 ファイル**がコンパイル検証されていない。
+本環境で解けないことは推測ではなく **実測で確認済み** (2026-08):
+
+| 確認項目 | 結果 |
+|---|---|
+| システム上の `android.jar` | 存在しない |
+| `ANDROID_HOME` / `ANDROID_SDK_ROOT` | いずれも未設定 |
+| `dl.google.com` / `maven.google.com` / `repo1.maven.org` | いずれも到達不可 (curl 000) |
+
+この穴が実害を出した実績がある: `UserPreferences` の 5 メンバーが `override` 欠落で
+**約 1 か月コンパイル不能**だった (e519e67)。緩和策として
+`run_compile_core.sh` (Android 非依存 34 ファイルの実コンパイル) と
+`check_overrides.py` (全ソースの override 静的検査) を入れたが、
+**残り 85 ファイルの型検査は CI でしか行えない**。
+
+### 人がやること (順序どおり、所要は 1 コマンド + GitHub UI 操作)
+
+| # | 作業 | コマンド / 手順 | これで初めて検証されるもの |
+|---|---|---|---|
+| 1 | **CI 有効化** | `bash ci/enable.sh && git push` | app 全体のコンパイル / kotest 単体テスト / R8 release ビルド / backend tsc |
+| 2 | CI が緑になるまで修正 | 落ちたら本エージェントに差し戻し可 | — |
+| 3 | v0.1.0 Release 作成 | GitHub → Releases → Draft (`main` から) | — |
+| 4 | default branch を `main` へ | GitHub → Settings → Branches | — |
+| 5 | (任意) リポジトリ public 化 | GitHub → Settings → Danger Zone | — |
+
+**1 が全ての前提。** 2〜5 は 1 が緑になってから。
+
+### 期限つきの外部要因
+
+- **target API 36 (Android 16) が Google Play 必須: 2026-08-31**
+  (延長申請で 11/01 まで)。コード移行は完了済みだが **ビルド検証が未了** —
+  上記 1 を通さないと出せない。 <https://support.google.com/googleplay/android-developer/answer/11926878>
+- Play Billing 8.3.0 移行も同様にコード完了 / ビルド未検証。
+
+### 意図的に「やらない」と決めたもの (再検討の無駄打ちを防ぐため記録)
+
+- **Amazon Creators API 移行** — OAuth2 資格情報 + 成果実績 (10 件/30 日) が必要な人手ゲート。
+  現状 Amazon は FallbackScraper 依存 (2026-08 に多戦略化 + ¥0 捏造を修正済み)。
+- **Firebase/FCM 組込み** — 製品判断。backend 側の配信経路は実装済みで、
+  組み込めば生きる。組み込まない限り通知は端末ローカルのみ。
+- **Durable Objects 移行** — `wrangler dev` 実行環境が前提。設計は backend/README.md に記録済み。
 
 ## CI/CD
 
