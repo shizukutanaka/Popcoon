@@ -1,6 +1,5 @@
 package io.github.shizukutanaka.popcoon.worker
 
-import io.github.shizukutanaka.popcoon.data.db.WatchlistItem
 import io.github.shizukutanaka.popcoon.feature.notification.PriceAlertDebouncer
 import io.github.shizukutanaka.popcoon.feature.notification.PriceAlertEvaluator
 import io.kotest.core.spec.style.StringSpec
@@ -128,7 +127,7 @@ class PriceSyncWorkerLogicTest : StringSpec({
             testDrop("e", pct = 1, targetReached = true),
         )
         val plan = PriceSyncPlanner.plan(drops, maxNotifications = 3)
-        plan.notify.map { it.item.productKey } shouldBe listOf("c", "e", "d")
+        plan.notify.map { it.productKey } shouldBe listOf("c", "e", "d")
     }
 
     // 回帰: 旧 selectNotifications は上限超過分を take() で切り落としていた。
@@ -144,10 +143,10 @@ class PriceSyncWorkerLogicTest : StringSpec({
             testDrop("e", pct = 1, targetReached = true),
         )
         val plan = PriceSyncPlanner.plan(drops, maxNotifications = 3)
-        plan.suppressed.map { it.item.productKey } shouldBe listOf("b", "a")
+        plan.suppressed.map { it.productKey } shouldBe listOf("b", "a")
         (plan.notify + plan.suppressed).size shouldBe drops.size
-        (plan.notify + plan.suppressed).map { it.item.productKey }.toSet() shouldBe
-            drops.map { it.item.productKey }.toSet()
+        (plan.notify + plan.suppressed).map { it.productKey }.toSet() shouldBe
+            drops.map { it.productKey }.toSet()
     }
 
     // 同日に 4 件以上が目標価格に到達する状況 (楽天スーパーセール等) でも、
@@ -164,13 +163,13 @@ class PriceSyncWorkerLogicTest : StringSpec({
         val drops = listOf(testDrop("a", pct = 10, targetReached = false))
         val plan = PriceSyncPlanner.plan(drops, maxNotifications = 0)
         plan.notify shouldBe emptyList()
-        plan.suppressed.map { it.item.productKey } shouldBe listOf("a")
+        plan.suppressed.map { it.productKey } shouldBe listOf("a")
     }
 
     "plan: 上限に満たなければ suppressed は空" {
         val drops = listOf(testDrop("a", pct = 10, targetReached = false))
         val plan = PriceSyncPlanner.plan(drops, maxNotifications = 3)
-        plan.notify.map { it.item.productKey } shouldBe listOf("a")
+        plan.notify.map { it.productKey } shouldBe listOf("a")
         plan.suppressed shouldBe emptyList()
     }
 
@@ -211,11 +210,7 @@ class PriceSyncWorkerLogicTest : StringSpec({
     }
 })
 
-private fun testItem(key: String) = WatchlistItem(
-    productKey = key, sku = key, title = "title-$key", platform = "amazon",
-    realPrice = 1000, listPrice = 1000, url = "https://example.com/$key", imageUrl = null,
-)
-
 private fun testDrop(key: String, pct: Int, targetReached: Boolean) = PriceSyncPlanner.Drop(
-    item = testItem(key), latest = 1000, prev = 1200, pct = pct, targetReached = targetReached,
+    productKey = key, title = "title-$key", targetPrice = null,
+    latest = 1000, prev = 1200, pct = pct, targetReached = targetReached,
 )

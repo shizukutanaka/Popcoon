@@ -112,7 +112,9 @@ class PriceSyncWorker @AssistedInject constructor(
                             val alert = resolution.alert
                             if (alert.shouldNotify) {
                                 PriceSyncPlanner.Drop(
-                                    item = item,
+                                    productKey = item.productKey,
+                                    title = item.title,
+                                    targetPrice = item.targetPrice,
                                     latest = resolution.resolvedPrice,
                                     prev = previousPrice,
                                     pct = alert.dropPercent,
@@ -146,18 +148,18 @@ class PriceSyncWorker @AssistedInject constructor(
                 val title = if (drop.targetReached) {
                     applicationContext.getString(
                         R.string.notif_target_reached,
-                        CurrencyFormatter.yen(drop.item.targetPrice ?: drop.latest),
+                        CurrencyFormatter.yen(drop.targetPrice ?: drop.latest),
                     )
                 } else {
                     applicationContext.getString(R.string.notif_price_drop, drop.pct)
                 }
                 notificationManager.sendPriceAlert(
                     context = applicationContext,
-                    productKey = drop.item.productKey,
+                    productKey = drop.productKey,
                     title = title,
                     priceText = applicationContext.getString(
                         R.string.notif_price_detail,
-                        drop.item.title.take(20),
+                        drop.title.take(20),
                         CurrencyFormatter.yen(drop.latest),
                         CurrencyFormatter.yen(drop.prev),
                     ),
@@ -167,7 +169,7 @@ class PriceSyncWorker @AssistedInject constructor(
             notificationManager.sendPriceDropSummary(
                 context = applicationContext,
                 suppressedCount = plan.suppressed.size,
-                titles = plan.suppressed.take(SUMMARY_TITLE_LIMIT).map { it.item.title },
+                titles = plan.suppressed.take(SUMMARY_TITLE_LIMIT).map { it.title },
             )
         }
 

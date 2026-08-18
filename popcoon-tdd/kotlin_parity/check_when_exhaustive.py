@@ -2,8 +2,8 @@
 """check_when_exhaustive.py — enum に対する `when` の網羅漏れを静的に検出する。
 
 背景 (2026-08):
-  app の 131 ファイルのうち実コンパイルできるのは 36 だけ (`run_compile_core.sh`)。
-  残り 95 ファイル (Compose/Room/Hilt/ktor 依存) では、enum にエントリを足したときに
+  app の 131 ファイルのうち実コンパイルできるのは 46 だけ (`run_compile_core.sh`)。
+  残り 85 ファイル (Compose/Room/Hilt/ktor 依存) では、enum にエントリを足したときに
   `when` の更新を忘れても気付けない。Kotlin 2.x では enum に対する非網羅的な `when` は
   **エラー**なので、これは CI を有効化した瞬間に赤くなる欠陥クラスであり、
   しかも純粋に静的に決まる。

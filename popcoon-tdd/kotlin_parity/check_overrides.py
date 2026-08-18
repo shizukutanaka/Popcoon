@@ -4,7 +4,7 @@
 背景 (2026-08):
   `UserPreferences : IUserPreferences` の 5 メンバーが `override` 無しで宣言され、
   app モジュールが約 1 か月コンパイル不能だった (e519e67)。
-  `run_compile_core.sh` は Android 非依存の 34 ファイルしか型検査できず、
+  `run_compile_core.sh` は依存 jar が揃う 46 ファイルしか型検査できず、
   **問題の UserPreferences.kt は androidx.datastore + dagger 依存で対象外**のまま。
   つまりあの不具合は今の実コンパイルでも捕まらない。
 

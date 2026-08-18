@@ -2,8 +2,8 @@
 """check_resources.py — Kotlin から参照される `R.*` が実在するかを静的に検査する。
 
 背景 (2026-08):
-  app モジュールの 131 ファイルのうち、本環境で実コンパイルできるのは Android 非依存の
-  34 ファイルだけ (`run_compile_core.sh`)。そのハーネスは `values/strings.xml` から
+  app モジュールの 131 ファイルのうち、本環境で実コンパイルできるのは
+  46 ファイルだけ (`run_compile_core.sh`)。そのハーネスは `values/strings.xml` から
   R スタブを生成するので `R.string.*` の未定義は捕まえられるが、**対象外の 85 ファイル**
   (Compose/Room/Hilt 依存) の参照は一切見ていない。`R.string.*` 以外の
   `R.drawable` / `R.color` / `R.plurals` / `R.xml` / `R.style` / `R.mipmap` / `R.id` も

@@ -68,12 +68,29 @@ decl = re.compile(
     re.M,
 )
 
+def strip_noncode(s):
+    """コメントと文字列リテラルを落とす。
+
+    条件 (c) の「同一パッケージの対象外宣言を参照しているか」は素朴に本文全体を
+    正規表現で走査していたため、**KDoc に型名を書いただけで参照とみなされ**、
+    そのファイルが検証対象から外れていた (PriceSyncPlanner.kt が実例: 説明文中の
+    `PriceSyncWorker` に反応して落ちていた)。ドキュメントを書くほど型検査の
+    カバレッジが減るのは明らかに逆で、コード部分だけを見る。
+    """
+    s = re.sub(r"/\*.*?\*/", " ", s, flags=re.S)
+    s = re.sub(r"//[^\n]*", " ", s)
+    s = re.sub(r'"""(?:.|\n)*?"""', ' "" ', s)
+    s = re.sub(r'"(?:\\.|[^"\\\n])*"', ' "" ', s)
+    return s
+
+
 info = {}
 for f in sorted(pathlib.Path(src).rglob("*.kt")):
     text = io.open(f, encoding="utf-8").read()
     m = re.search(r"^package\s+([A-Za-z0-9_.]+)", text, re.M)
     info[str(f)] = {
         "text": text,
+        "code": strip_noncode(text),
         "pkg": m.group(1) if m else "",
         "android": bool(dep.search(text)),
         # import 先の FQN から末尾の型名を落としてパッケージを得る (R スタブは除外)
@@ -98,7 +115,7 @@ while True:
             continue
         # (c) 同一パッケージの対象外宣言を実際に参照している
         siblings = dropped_decls.get(v["pkg"], set()) - v["decls"]
-        if any(re.search(r"\b" + re.escape(n) + r"\b", v["text"]) for n in siblings):
+        if any(re.search(r"\b" + re.escape(n) + r"\b", v["code"]) for n in siblings):
             drop.add(f)
     if not drop:
         break
@@ -127,7 +144,7 @@ java -cp "$LIB/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
 
 # 対象ファイル数の下限。Android 依存 import が増えると自動判定で対象が減るため、
 # 「黙ってカバレッジが縮む」ことを検知する。意図的に減らす場合はこの値も更新すること。
-MIN_TARGETS=36
+MIN_TARGETS=46
 if [[ ${#TARGETS[@]} -lt $MIN_TARGETS ]]; then
   echo "CORE COMPILE: coverage shrank (${#TARGETS[@]} < $MIN_TARGETS files)." >&2
   echo "  Android/AndroidX/Hilt(dagger)/ktor への依存が増えていないか確認し、" >&2
@@ -136,14 +153,14 @@ if [[ ${#TARGETS[@]} -lt $MIN_TARGETS ]]; then
 fi
 
 # 3. コンパイル対象外 (Android/Hilt 依存) のファイルも含めた override 欠落の静的検査。
-#    実コンパイルできるのは 36/131 ファイルだけで、2026-08 に実際に壊れた
+#    実コンパイルできるのは 46/131 ファイルだけで、2026-08 に実際に壊れた
 #    UserPreferences.kt は datastore + dagger 依存で対象外のまま。この検査は
 #    全ソースを構文的に走査してその回帰クラスだけを塞ぐ。
 python3 "$HERE/check_overrides.py" || exit 1
 
 # 4. 全ソースの `R.*` 参照がリソースに実在するかの静的検査。
-#    上の R スタブは values/strings.xml から起こすので対象 36 ファイルの
-#    R.string.* しか見ておらず、残り 95 ファイルの参照と
+#    上の R スタブは values/strings.xml から起こすので対象 46 ファイルの
+#    R.string.* しか見ておらず、残り 85 ファイルの参照と
 #    R.drawable / R.color / R.plurals / R.xml / R.style / R.mipmap / R.id は
 #    どこからも検査されていなかった。未定義参照は assembleDebug で確実に
 #    コンパイルエラーになる = CI を有効化した瞬間に赤くなる類の欠陥。
@@ -151,7 +168,7 @@ python3 "$HERE/check_resources.py" || exit 1
 
 # 5. enum に対する `when` の網羅漏れの静的検査。Kotlin 2.x では非網羅的な when は
 #    エラーなので、これも「CI を有効化した瞬間に赤くなる」欠陥クラス。実コンパイル
-#    対象の 36 ファイルはコンパイラが見るが、残り 95 ファイル (Compose/Glance/Room 等)
+#    対象の 46 ファイルはコンパイラが見るが、残り 85 ファイル (Compose/Glance/Room 等)
 #    は誰も見ていなかった。実例: Category に OBSTRUCTION を足したとき
 #    ui/DarkPatternTextLabels.kt の when も同時更新が必要だった。
 python3 "$HERE/check_when_exhaustive.py" || exit 1

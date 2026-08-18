@@ -1,7 +1,5 @@
 package io.github.shizukutanaka.popcoon.worker
 
-import io.github.shizukutanaka.popcoon.data.db.WatchlistItem
-
 /**
  * PriceSyncWorker.doWork() の純粋な意思決定ロジック。
  *
@@ -12,11 +10,28 @@ import io.github.shizukutanaka.popcoon.data.db.WatchlistItem
  * 純粋関数として切り出し、単体テストで検証可能にする。
  * Context に直接触れる部分 (通知送信・ウィジェット更新・WorkManager 制約) は
  * Instrumentation テストに委ねる。
+ *
+ * **Room エンティティに依存しない**: 以前 [Drop] は `WatchlistItem` をまるごと抱えていたが、
+ * 実際に使うのは productKey / title / targetPrice の 3 つだけだった。@Entity 付きの型を
+ * 参照していたせいでこのファイル自体が androidx.room 依存となり、
+ * 「純粋な意思決定ロジックを検証可能にする」という本クラスの存在理由に反して
+ * `run_compile_core.sh` の実コンパイル対象から外れていた (Android SDK が無い本環境では
+ * 型検査が一切かからない状態)。必要な値だけを受け取る形にして、この層を実際に
+ * コンパイル・検証できるようにする。
  */
 object PriceSyncPlanner {
 
+    /**
+     * 確認済みの値下がり 1 件。通知の組み立てに必要な値だけを持つ
+     * (Room の `WatchlistItem` は参照しない — 上の注記を参照)。
+     */
     data class Drop(
-        val item: WatchlistItem,
+        /** 通知 ID とディープリンクに使う商品キー。 */
+        val productKey: String,
+        /** 通知本文に出す商品名。 */
+        val title: String,
+        /** ユーザー設定の目標価格 (未設定なら null)。 */
+        val targetPrice: Long?,
         val latest: Long,
         val prev: Long,
         val pct: Int,
