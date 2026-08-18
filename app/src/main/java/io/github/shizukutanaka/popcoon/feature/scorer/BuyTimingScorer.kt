@@ -147,7 +147,16 @@ object BuyTimingScorer {
     }
 
     private fun signalAtlProximity(current: Long, history: List<PriceRecord>): Signal {
-        val prices = history.map { it.realPrice }
+        // **0 以下の価格は「無料商品」ではなく取得失敗の痕跡** として除外する (2026-08)。
+        // FallbackScraper は price が取れないとき realPrice=0 の Product を捏造しており
+        // (cdf61dc で修正)、backend も `real_price >= 0` を許容していたため、既存の価格履歴に
+        // ¥0 レコードが残っている可能性がある。1 件混入しただけで low=0 になり
+        // position が常に 1 に近づくため **「過去最安値到達」が検出されなくなる**
+        // (実測: 正常なら 95/BUY_NOW のケースが 40/NEUTRAL に反転)。読み出し側でも防御する。
+        val prices = history.map { it.realPrice }.filter { it > 0 }
+        if (prices.isEmpty()) {
+            return Signal("価格履歴なし (ATL近接判定不可)", 0, SignalKind.ATL_STABLE_UNKNOWN)
+        }
         val low = prices.min()
         val high = prices.max()
         if (high == low) return Signal("価格安定 (ATL近接判定不可)", 0, SignalKind.ATL_STABLE_UNKNOWN)
@@ -189,7 +198,10 @@ object BuyTimingScorer {
     }
 
     private fun signalVolatility(history: List<PriceRecord>): Signal {
-        val prices = history.map { it.realPrice.toDouble() }
+        // ATL 近接判定と同じ理由で 0 以下を除外する (取得失敗の痕跡であって価格ではない)。
+        // ¥0 が 1 件混じると分散が跳ね上がり、安定した系列が安定加点 (+10) を失う。
+        val prices = history.map { it.realPrice.toDouble() }.filter { it > 0.0 }
+        if (prices.isEmpty()) return Signal("ボラティリティ判定不可", 0, SignalKind.AVG_PRICE_ZERO)
         val mean = prices.average()
         if (mean == 0.0) return Signal("平均価格ゼロ", 0, SignalKind.AVG_PRICE_ZERO)
         val variance = prices.map { (it - mean) * (it - mean) }.average()

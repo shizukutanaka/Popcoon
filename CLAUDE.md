@@ -30,11 +30,11 @@ ci/           android.yml (未稼働 — workflows 権限が無く人手で ci/e
 
 | 対象 | コマンド | 基準線 (2026-07 時点) |
 |---|---|---|
-| Python オラクル全体 | `cd popcoon-tdd && python3 -m pytest -q` | **490 passed, 1 skipped** |
+| Python オラクル全体 | `cd popcoon-tdd && python3 -m pytest -q` | **494 passed, 1 skipped** |
 | Kotlin 実行 parity 全体 | `bash popcoon-tdd/kotlin_parity/run_all.sh` | 全 14 ハーネス pass (`run.sh` は 155 matched / 0 mismatched、`run_compile_core.sh` は 34 ファイル実コンパイル) |
 | 個別 parity | `bash popcoon-tdd/kotlin_parity/run_matcher.sh` 等 | "all assertions passed" |
 | backend 型検査 | `cd backend && npx tsc --noEmit` | エラー 0 |
-| backend テスト | `cd backend && npx vitest run` | **80 tests / 4 files pass** |
+| backend テスト | `cd backend && npx vitest run` | **84 tests / 4 files pass** |
 | i18n キー数一致 | `for f in values values-en values-ko values-zh-rCN; do grep -c '<string name=' app/src/main/res/$f/strings.xml; done` | **全ロケール 364** (plurals 3 は別) |
 | Kotlin 構文 (ビルド不可の代替) | brace/paren カウント一致を Python ワンライナーで確認 | `{`=`}`, `(`=`)` |
 

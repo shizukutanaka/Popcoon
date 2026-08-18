@@ -112,7 +112,16 @@ def score_buy_timing(
 
 # ── 個別シグナル関数 ─────────────────────────────────────────────────────────
 def _signal_atl_proximity(current: int, history: List[PriceRecord]) -> TimingSignal:
-    prices = [r.real_price for r in history]
+    # **0 以下の価格は「無料商品」ではなく取得失敗の痕跡** として除外する (2026-08)。
+    # FallbackScraper は price が取れないとき realPrice=0 の Product を捏造しており
+    # (cdf61dc で修正)、backend も `real_price >= 0` を許容していたため、既存の価格履歴に
+    # ¥0 レコードが残っている可能性がある。1 件混入しただけで low=0 になり、
+    # position = (current-0)/(high-0) が常に 1 に近づくため **「過去最安値到達」が
+    # 検出されなくなる** (実測: 正常なら 95/BUY_NOW のケースが 40/NEUTRAL に反転した)。
+    # 価格比較アプリの中核価値が壊れるので、読み出し側でも防御する (多層防御)。
+    prices = [r.real_price for r in history if r.real_price > 0]
+    if not prices:
+        return TimingSignal("価格履歴なし (ATL近接判定不可)", 0)
     low = min(prices)
     high = max(prices)
     if high == low:
@@ -165,7 +174,10 @@ def _signal_discount_from_list(current: int, list_price: int) -> TimingSignal:
 
 
 def _signal_volatility(history: List[PriceRecord]) -> TimingSignal:
-    prices = [r.real_price for r in history]
+    # ATL 近接判定と同じ理由で 0 以下を除外する (取得失敗の痕跡であって価格ではない)。
+    # ¥0 が 1 件混じると分散が跳ね上がり、実際には安定している系列が
+    # 「通常の価格変動」に落ちて安定加点 (+10) を失う。
+    prices = [r.real_price for r in history if r.real_price > 0]
     if not prices:
         return TimingSignal("ボラティリティ判定不可", 0)
     mean = sum(prices) / len(prices)

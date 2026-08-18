@@ -468,3 +468,36 @@ describe("実ハンドラー: PII 検出の IPv4 分岐 (実ハンドラー越�
     expect(res.status).toBe(200);
   });
 });
+
+describe("実ハンドラー: POST /v1/history は ¥0 を拒否する (2026-08 の価格汚染対策)", () => {
+  // 0 は「無料商品」ではなく取得失敗の痕跡。履歴に入ると BuyTimingScorer の
+  // 「過去最安値到達」判定が反転する (95/BUY_NOW → 40/NEUTRAL) ため書き込み側で弾く。
+  // クライアントの parsePriceToLong も同じ規約 (<=0 は失敗) で揃えてある。
+  function post(body: Record<string, unknown>) {
+    return call(req("/v1/history", {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.70" },
+      body: JSON.stringify(body),
+    }));
+  }
+  const base = {
+    product_key: "amazon:B0ZERO", platform: "amazon",
+    list_price: 5000, recorded_at: "2026-08-01T00:00:00Z",
+  };
+
+  it("real_price = 0 は 400 で拒否される", async () => {
+    expect((await post({ ...base, real_price: 0 })).status).toBe(400);
+  });
+
+  it("real_price が負でも 400", async () => {
+    expect((await post({ ...base, real_price: -1 })).status).toBe(400);
+  });
+
+  it("正の real_price は従来どおり受理される", async () => {
+    expect((await post({ ...base, real_price: 4900 })).status).toBe(200);
+  });
+
+  it("list_price = 0 は引き続き許容 (定価不明を 0 で表す既存の規約)", async () => {
+    expect((await post({ ...base, real_price: 4900, list_price: 0 })).status).toBe(200);
+  });
+});

@@ -319,3 +319,48 @@ class TestBuyTimingScorerProperty:
             # 合計は total の ±10% 以内
             assert abs(sum_contrib - score.total) <= 10, \
                 f"total={score.total}, sum={sum_contrib}"
+
+
+class TestZeroPricePoisoning:
+    """価格履歴に混入した ¥0 レコードが判定を壊さないこと (2026-08 回帰ガード)。
+
+    FallbackScraper は price が取れないとき realPrice=0 の Product を捏造しており
+    (cdf61dc で修正)、backend も `real_price >= 0` を許容していた (同時に修正) ため、
+    **既存の価格履歴には ¥0 が残っている可能性がある**。読み出し側でも防御する。
+    """
+
+    @staticmethod
+    def _hist(prices):
+        from popcoon_core import PriceRecord
+        from datetime import datetime, timedelta, timezone
+        base = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        return [PriceRecord("k", "amazon", p + 500, p, base + timedelta(days=i))
+                for i, p in enumerate(prices)]
+
+    def test_single_zero_record_does_not_change_the_verdict(self):
+        # ¥0 が 1 件混じっても正常な履歴と同じ結論になること。
+        # 修正前は 95/BUY_NOW が 40/NEUTRAL に反転し、「過去最安値到達」が消えていた。
+        clean = self._hist([5000] * 29 + [4900])
+        poisoned = self._hist([5000] * 15 + [0] + [5000] * 13 + [4900])
+        a = score_buy_timing(current=4900, list_price=6000, history=clean)
+        b = score_buy_timing(current=4900, list_price=6000, history=poisoned)
+        assert a.total == b.total
+        assert a.verdict == b.verdict
+
+    def test_atl_signal_survives_a_zero_record(self):
+        poisoned = self._hist([5000] * 15 + [0] + [5000] * 13 + [4900])
+        s = score_buy_timing(current=4900, list_price=6000, history=poisoned)
+        assert any("最安" in sig.name for sig in s.signals)
+
+    def test_all_zero_history_degrades_gracefully(self):
+        # 全件 ¥0 (取得が全滅) でも例外を出さず、判定不可として扱う。
+        s = score_buy_timing(current=4900, list_price=6000, history=self._hist([0] * 20))
+        assert s.total is not None
+        assert any("判定不可" in sig.name for sig in s.signals)
+
+    def test_negative_price_is_also_excluded(self):
+        clean = self._hist([5000] * 29 + [4900])
+        poisoned = self._hist([5000] * 15 + [-100] + [5000] * 13 + [4900])
+        a = score_buy_timing(current=4900, list_price=6000, history=clean)
+        b = score_buy_timing(current=4900, list_price=6000, history=poisoned)
+        assert a.total == b.total

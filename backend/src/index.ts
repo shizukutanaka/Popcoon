@@ -234,8 +234,14 @@ async function handleRequest(req: Request, env: Env): Promise<Response> {
       return bad("invalid payload");
     }
     // 入力検証
-    if (typeof body.real_price !== "number" || body.real_price < 0) {
-      return bad("real_price must be non-negative number");
+    // **0 は「無料商品」ではなく取得失敗の痕跡** として拒否する (2026-08)。
+    // クライアントの FallbackScraper は price が取れないとき realPrice=0 の Product を
+    // 捏造していた (cdf61dc で修正)。0 が履歴に入ると BuyTimingScorer の
+    // 「過去最安値到達」判定が壊れる (実測: 95/BUY_NOW → 40/NEUTRAL に反転) ため、
+    // 読み出し側の防御と合わせて書き込み側でも弾く (多層防御)。
+    // クライアント側 parsePriceToLong も同じ規約 (<=0 は null = 失敗) で揃えてある。
+    if (typeof body.real_price !== "number" || body.real_price <= 0) {
+      return bad("real_price must be a positive number");
     }
     if (typeof body.list_price !== "number" || body.list_price < 0) {
       return bad("list_price must be non-negative number");
