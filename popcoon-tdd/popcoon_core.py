@@ -97,11 +97,23 @@ class Prediction:
 
 
 def predict_price(records: List[PriceRecord]) -> Optional[Prediction]:
-    """Holt's linear smoothing による価格予測"""
-    if len(records) < 14:
+    """Holt's linear smoothing による価格予測
+
+    real_price <= 0 のレコードは統計に入れない。取得失敗を 0 円として記録してしまった
+    汚染レコードであり、実際に成立した価格ではない (BuyTimingScorer と同じクラスの欠陥)。
+    混ぜたときの実測被害 (30 点、うち 3 点が ¥0 のボラタイルな系列):
+      - historic_low が 3000 → **0** (UI に「過去最安 ¥0」と表示される)
+      - IQR の四分位が下へ引きずられ、本物の高値が外れ値として捨てられて
+        historic_high が 12000 → 8000、predicted_7d が 5281 → 4121 (-22%)
+      - 末尾 1 件だけが ¥0 の系列では current_price=0 かつ
+        percentile=1.0 となり buy_now_probability が 0.167 → **0.5** (3 倍) に跳ねる
+    有効レコードが 14 件に満たなければ従来どおり None (母数は「有効な観測数」)。
+    """
+    valid = [r for r in records if r.real_price > 0]
+    if len(valid) < 14:
         return None
 
-    data = [float(r.real_price) for r in records]
+    data = [float(r.real_price) for r in valid]
     cleaned = _remove_outliers_iqr(data)
     if len(cleaned) < 2:
         return None
@@ -113,7 +125,7 @@ def predict_price(records: List[PriceRecord]) -> Optional[Prediction]:
     pred_7 = max(0, int(ensemble_forecast(cleaned, 7)))
     pred_30 = max(0, int(level + trend * 30))
 
-    current = records[-1].real_price
+    current = valid[-1].real_price
     low = min(cleaned)
     high = max(cleaned)
 
@@ -122,9 +134,11 @@ def predict_price(records: List[PriceRecord]) -> Optional[Prediction]:
     trend_boost = 0.3 if trend < 0 else 0.0
     buy_prob = min(1.0, max(0.0, pct * 0.5 + trend_boost))
 
+    # 信頼度も「有効な観測数」で決める。汚染レコードを頭数に入れると、
+    # 実データが少ないのに HIGH と表示してしまう。
     conf = (
-        Confidence.HIGH if len(records) >= 90
-        else Confidence.MEDIUM if len(records) >= 30
+        Confidence.HIGH if len(valid) >= 90
+        else Confidence.MEDIUM if len(valid) >= 30
         else Confidence.LOW
     )
 

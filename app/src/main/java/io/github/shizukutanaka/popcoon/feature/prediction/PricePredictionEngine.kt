@@ -59,10 +59,24 @@ object PricePredictionEngine {
      */
     internal const val ENSEMBLE_SEASON_PERIOD = 7
 
+    /**
+     * 価格予測。有効レコードが [MIN_RECORDS] 件未満なら null。
+     *
+     * `realPrice <= 0` のレコードは統計に入れない。取得失敗を 0 円として記録してしまった
+     * 汚染レコードであり、実際に成立した価格ではない (BuyTimingScorer と同じクラスの欠陥)。
+     * 混ぜたときの実測被害 (30 点、うち 3 点が ¥0 のボラタイルな系列):
+     *  - historicLow が 3000 → **0** (UI に「過去最安 ¥0」と出る)
+     *  - IQR の四分位が下へ引きずられ、**本物の高値の方**が外れ値として捨てられて
+     *    historicHigh が 12000 → 8000、predicted7d が 5281 → 4121 (-22%)
+     *  - 末尾 1 件だけが ¥0 の系列では currentPrice=0 かつ percentile=1.0 となり
+     *    buyNowProbability が 0.167 → **0.5** (3 倍) に跳ねる
+     * Python 参照 (popcoon_core.predict_price) と完全一致。
+     */
     fun predict(records: List<PriceRecord>): Prediction? {
-        if (records.size < MIN_RECORDS) return null
+        val valid = records.filter { it.realPrice > 0 }
+        if (valid.size < MIN_RECORDS) return null
 
-        val data = records.map { it.realPrice.toDouble() }
+        val data = valid.map { it.realPrice.toDouble() }
         val cleaned = removeOutliersIqr(data)
         if (cleaned.size < 2) return null
 
@@ -105,7 +119,7 @@ object PricePredictionEngine {
         val seasonalSeries = SeasonalDecompForecast.forecast(cleaned, 7, 7)
         val seasonalF7d = if (seasonalSeries.size == 7) max(0L, seasonalSeries[6].toLong()) else 0L
 
-        val current = records.last().realPrice  // ← Python port の真のバグ修正後
+        val current = valid.last().realPrice  // ← Python port の真のバグ修正後
         val low = cleaned.min().toLong()
         val high = cleaned.max().toLong()
 
@@ -114,9 +128,11 @@ object PricePredictionEngine {
         val trendBoost = if (trend < 0) 0.3 else 0.0
         val buyProb = (percentile * 0.5 + trendBoost).toFloat().coerceIn(0f, 1f)
 
+        // 信頼度も「有効な観測数」で決める。汚染レコードを頭数に入れると、
+        // 実データが少ないのに HIGH と表示してしまう。
         val confidence = when {
-            records.size >= 90 -> Confidence.HIGH
-            records.size >= 30 -> Confidence.MEDIUM
+            valid.size >= 90 -> Confidence.HIGH
+            valid.size >= 30 -> Confidence.MEDIUM
             else -> Confidence.LOW
         }
 

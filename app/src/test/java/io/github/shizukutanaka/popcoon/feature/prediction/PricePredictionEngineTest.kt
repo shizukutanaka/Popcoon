@@ -232,4 +232,44 @@ class PricePredictionEngineTest : StringSpec({
     "14日未満は予測不能 (null)" {
         PricePredictionEngine.predict(fixedHistory(List(10) { 1000L })) shouldBe null
     }
+
+    // ── ¥0 汚染耐性 (2026-08) ────────────────────────────────────────────
+    // 取得失敗を 0 円として記録したレコードは実際に成立した価格ではない。
+    // 統計に混ぜると historicLow が ¥0 になり、IQR の四分位が下へ引きずられて
+    // 本物の高値が外れ値として捨てられ、末尾が ¥0 なら currentPrice=0 かつ
+    // percentile=1.0 で buyNowProbability が跳ね上がる (BuyTimingScorer と同じ欠陥)。
+    "末尾の ¥0 は currentPrice にならず、除外後の系列と完全一致する" {
+        val clean = List(29) { 5000L }
+        val poisoned = clean + listOf(0L)
+        val ref = PricePredictionEngine.predict(fixedHistory(clean))
+        val got = PricePredictionEngine.predict(fixedHistory(poisoned))
+        got.shouldNotBeNull()
+        got.currentPrice shouldBe 5000L
+        got shouldBe ref
+    }
+
+    "¥0 は historicLow を 0 に引き下げない" {
+        val prices = List(15) { 5000L } + listOf(0L) + List(14) { 5000L }
+        val p = PricePredictionEngine.predict(fixedHistory(prices))!!
+        p.historicLow shouldBe 5000L
+        p.historicHigh shouldBe 5000L
+    }
+
+    "有効レコードが 14 件未満なら (総数が足りていても) null" {
+        val prices = List(13) { 5000L } + List(17) { 0L }
+        PricePredictionEngine.predict(fixedHistory(prices)).shouldBeNull()
+    }
+
+    "confidence は有効レコード数で決まる (汚染分を頭数に入れない)" {
+        val prices = List(20) { 5000L } + List(15) { 0L }
+        val p = PricePredictionEngine.predict(fixedHistory(prices))!!
+        p.confidence shouldBe PricePredictionEngine.Confidence.LOW
+    }
+
+    "負の価格も異常値として除外される" {
+        val prices = List(20) { 5000L } + listOf(-100L)
+        val p = PricePredictionEngine.predict(fixedHistory(prices))!!
+        p.currentPrice shouldBe 5000L
+        p.historicLow shouldBe 5000L
+    }
 })

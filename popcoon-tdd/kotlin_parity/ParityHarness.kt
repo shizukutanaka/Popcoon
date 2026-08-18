@@ -72,6 +72,14 @@ fun main() {
     val charm = List(40) { 9_980L }                       // 端数価格 (下二桁80-99)
     val inflated = List(20) { 5_000L }                    // list>max*1.5 で参考価格誇張
     val presale = List(7) { 8_000L } + List(7) { 9_200L } // 直近7日が前7日比+15%
+    // ¥0 汚染 (取得失敗を 0 円として記録したレコード)。両言語が同じ除外規則で
+    // 動いていることを実行で照合する。tailZero は末尾が ¥0 (current_price / percentile
+    // が壊れる形)、volZero は IQR が ¥0 を落とせず本物の高値を捨てる形。
+    val tailZero = List(29) { 5_000L } + listOf(0L)
+    val volZeroBase = listOf(3_000L, 12_000L, 5_000L, 8_000L, 12_000L, 3_000L, 5_000L, 8_000L,
+        12_000L, 3_000L, 5_000L, 8_000L, 12_000L, 3_000L, 5_000L, 8_000L)
+    val volZero = volZeroBase.take(8) + listOf(0L, 0L, 0L) + volZeroBase.drop(8)
+    val mostlyZero = List(13) { 5_000L } + List(17) { 0L }  // 有効 13 件 -> predict null
     val scenarios = listOf(
         H(10_000, 12_000, flat90),
         H(desc30.last(), 20_000, desc30),
@@ -80,6 +88,9 @@ fun main() {
         H(5_000, 20_000, inflated),
         H(9_200, 12_000, presale),
         H(10_000, 12_000, List(13) { 10_000L }),          // 履歴不足 -> buy_timing null
+        H(5_000, 12_000, tailZero),                       // 末尾 ¥0 汚染
+        H(8_000, 20_000, volZero),                        // ボラタイル系列に ¥0×3
+        H(5_000, 12_000, mostlyZero),                     // 有効 13 件 -> predict null
     )
     for (h in scenarios) {
         val records = hist(h.prices, h.listPrice)

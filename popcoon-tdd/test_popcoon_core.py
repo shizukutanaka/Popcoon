@@ -643,3 +643,67 @@ class TestEnsembleForecast:
         L, T = pc._holt_linear(cleaned, 0.3, 0.1)
         assert pred.predicted_7d == max(0, int(pc.ensemble_forecast(cleaned, 7)))
         assert pred.predicted_30d == max(0, int(L + T * 30))
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 価格予測の ¥0 汚染耐性 (2026-08)
+#
+# FallbackScraper が価格を取れないとき real_price=0 の Product を捏造していた
+# (cdf61dc で停止) が、既存の履歴には 0 円レコードが残りうる。0 円は「実際に
+# 成立した価格」ではないので統計に混ぜてはならない — BuyTimingScorer で
+# 買い時判定を反転させたのと同じクラスの欠陥 (5c0ade0)。
+# ═══════════════════════════════════════════════════════════════════════════
+class TestPredictPriceZeroPoisoning:
+    def _series(self, prices):
+        return [_rec(i, p) for i, p in enumerate(prices)]
+
+    def test_trailing_zero_does_not_become_current_price(self):
+        # 末尾 1 件だけが ¥0。混ぜると current_price=0 が UI に出て、
+        # percentile が 1.0 になり buy_now_probability が跳ね上がっていた。
+        clean = [5000 + (i % 3) * 50 for i in range(30)]
+        poisoned = clean[:-1] + [0]
+        ref = predict_price(self._series(clean[:-1]))
+        got = predict_price(self._series(poisoned))
+        assert got is not None
+        assert got.current_price == clean[-2]
+        # ¥0 を除けば残りは clean[:-1] と同一の系列 → 結果も一致する。
+        assert got == ref
+
+    def test_zero_does_not_drag_historic_low_to_zero(self):
+        prices = [5000] * 15 + [0] + [5000] * 14
+        pred = predict_price(self._series(prices))
+        assert pred is not None
+        assert pred.historic_low == 5000
+        assert pred.historic_high == 5000
+
+    def test_zeros_do_not_evict_the_real_high_via_iqr(self):
+        # ボラタイルな系列では IQR フェンスが ¥0 を外れ値として落とせず、
+        # 四分位が下へ引きずられて **本物の高値の方** が捨てられていた。
+        vol = [3000, 12000, 5000, 8000, 12000, 3000, 5000, 8000,
+               12000, 3000, 5000, 8000, 12000, 3000, 5000, 8000]
+        poisoned = vol[:8] + [0, 0, 0] + vol[8:]
+        clean_pred = predict_price(self._series(vol))
+        got = predict_price(self._series(poisoned))
+        assert got is not None and clean_pred is not None
+        assert got.historic_low == clean_pred.historic_low
+        assert got.historic_high == clean_pred.historic_high
+        assert got == clean_pred
+
+    def test_confidence_counts_valid_records_only(self):
+        # 有効 20 件 + ¥0 が 15 件 = 35 件。頭数で数えると MEDIUM を名乗ってしまう。
+        mixed = [5000] * 20 + [0] * 15
+        pred = predict_price(self._series(mixed))
+        assert pred is not None
+        assert pred.confidence == Confidence.LOW
+
+    def test_fewer_than_14_valid_records_returns_none(self):
+        # 30 件あっても有効なのは 13 件 → 予測しない (母数は有効な観測数)。
+        mixed = [5000] * 13 + [0] * 17
+        assert predict_price(self._series(mixed)) is None
+
+    def test_negative_price_is_also_rejected(self):
+        prices = [5000] * 20 + [-100]
+        pred = predict_price(self._series(prices))
+        assert pred is not None
+        assert pred.current_price == 5000
+        assert pred.historic_low == 5000
