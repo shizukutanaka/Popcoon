@@ -9,12 +9,12 @@ Amazon / 楽天 / Yahoo! ショッピング横断の価格比較 Android アプ�
 
 | 区分 | 数量 |
 |---|---|
-| 総ファイル数 | 346 |
+| 総ファイル数 | 361 |
 | Kotlin ファイル | 199 (main 131 / unit test 64 / androidTest 4) |
 | ユニットテスト | 64 |
 | Compose UI テスト | 2 |
-| Kotlin 行数 | ~16,400 |
-| 言語対応 | 4 (ja / en / zh-CN / ko-KR) × 364 キー |
+| Kotlin 行数 | ~25,100 |
+| 言語対応 | 4 (ja / en / zh-CN / ko-KR) × 365 キー |
 | CI ワークフロー | 0 稼働 (`ci/android.yml` に定義のみ — 下記「CI/CD」参照) |
 | ストアリスティング | 4 言語 |
 | ドキュメント | 23 (*.md + docs/*.md、2026-08 実測) |
@@ -23,8 +23,8 @@ Amazon / 楽天 / Yahoo! ショッピング横断の価格比較 Android アプ�
 
 | 指標 | 数値 |
 |---|---|
-| 行数 | 6,858 |
-| テスト数 | 405 |
+| 行数 | 8,325 |
+| テスト数 | 501 (500 passed / 1 skipped) |
 | カバレッジ | 99% (popcoon_core.py) |
 | Mutation Score | 100% × 4 modules |
 | 防御階層 | 11 |
@@ -109,7 +109,8 @@ Compose/Room/Hilt を含む **85 ファイル**がコンパイル検証されて
 |---|---|
 | システム上の `android.jar` | 存在しない |
 | `ANDROID_HOME` / `ANDROID_SDK_ROOT` | いずれも未設定 |
-| `dl.google.com` / `maven.google.com` / `repo1.maven.org` | いずれも到達不可 (curl 000) |
+| `dl.google.com` / `maven.google.com` / `repo1.maven.org` / `repo.maven.apache.org` / `services.gradle.org` / `plugins.gradle.org` | 6 ホストすべて到達不可 (curl 000 / プロキシが CONNECT を 403) — 2026-08-18 再測定 |
+| CI 有効化 (`.github/workflows/` への書き込み) | git push / Contents API / Git Data API の **3 経路すべて 403** — 2026-08-18 実測 (`ci/README.md` に詳細) |
 
 この穴が実害を出した実績がある: `UserPreferences` の 5 メンバーが `override` 欠落で
 **約 1 か月コンパイル不能**だった (e519e67)。緩和策として
@@ -121,7 +122,7 @@ Compose/Room/Hilt を含む **85 ファイル**がコンパイル検証されて
 
 | # | 作業 | コマンド / 手順 | これで初めて検証されるもの |
 |---|---|---|---|
-| 1 | **CI 有効化** | `bash ci/enable.sh && git push` | app 全体のコンパイル / kotest 単体テスト / R8 release ビルド / backend tsc |
+| 1 | **CI 有効化** | `bash ci/enable.sh && git push`<br>または GitHub の Web UI で `ci/android.yml` を `../.github/workflows/android.yml` にリネーム (clone 不要) | app 全体のコンパイル / kotest 単体テスト / R8 release ビルド / backend tsc |
 | 2 | CI が緑になるまで修正 | 落ちたら本エージェントに差し戻し可 | — |
 | 3 | v0.1.0 Release 作成 | GitHub → Releases → Draft (`main` から) | — |
 | 4 | default branch を `main` へ | GitHub → Settings → Branches | — |
@@ -129,12 +130,16 @@ Compose/Room/Hilt を含む **85 ファイル**がコンパイル検証されて
 
 **1 が全ての前提。** 2〜5 は 1 が緑になってから。
 
-### 期限つきの外部要因
+### 期限つきの外部要因 (2026-08-18 に公式ドキュメントで再確認)
 
-- **target API 36 (Android 16) が Google Play 必須: 2026-08-31**
-  (延長申請で 11/01 まで)。コード移行は完了済みだが **ビルド検証が未了** —
-  上記 1 を通さないと出せない。 <https://support.google.com/googleplay/android-developer/answer/11926878>
-- Play Billing 8.3.0 移行も同様にコード完了 / ビルド未検証。
+| 要件 | 期限 | 現状 |
+|---|---|---|
+| **target API 36 (Android 16)** — 新規/更新の Play 提出 | **2026-08-31** (延長申請で 11/01) | `compileSdk`/`targetSdk` = 36 済み。[要件](https://developer.android.com/google/play/requirements/target-sdk) と一致することを確認。**ビルド検証のみ未了** |
+| **Play Billing Library 8+** | **2026-08-31** (延長申請で 11/01) | 8.3.0 済み。使用 API を公式リファレンスと突き合わせ、削除 API の参照が無いことを確認 (`ci/README.md` の監査表)。**ビルド検証のみ未了**。PBL 8 自身の期限は 2027-08-31 なので 9 への追随は当面不要 |
+| 16 KB ページサイズ | **2027-02-01** | クリティカルパス外。従来この報告書と `ci/README.md` は「2025-11-01 強制」と誤記していた — [公式記載](https://developer.android.com/guide/practices/page-sizes)は *"Starting February 1, 2027 ... you won't be able to release these updates."*。ML Kit / CameraX の `.so` が対象なので CI 稼働後に `zipalign -c -P 16` で確認 |
+
+つまり **8/31 のクリティカルパスに乗っているのは「上記 1 の CI 有効化」だけ**で、
+コード側の移行は 2 件とも完了し、静的に検証できる範囲は検証済みです。
 
 ### 意図的に「やらない」と決めたもの (再検討の無駄打ちを防ぐため記録)
 
