@@ -191,6 +191,13 @@ python3 "$HERE/check_when_exhaustive.py" || exit 1
 #    member が存在するかだけは静的に決まるので、そこだけ塞ぐ。
 python3 "$HERE/check_test_refs.py" || exit 1
 
+# 7. `realPrice` を統計に使うファイルが ¥0 を除外しているかの検査 (歯止め)。
+#    「取得失敗を 0 円として記録したレコード」による判定破壊を 2026-08 に 8 経路で
+#    見つけて直した (買い時スコア / 予測 / 週次ダイジェスト / グラフ / 目標チップ /
+#    スマートカート / ダークパターン検出 / 各種ソート)。9 回目を人間の注意力に
+#    頼らないための規則化。
+python3 "$HERE/check_price_guard.py" || exit 1
+
 if [[ -f "$OUT/core.jar" ]]; then
   echo "CORE COMPILE: OK (${#TARGETS[@]} files)"
 else
