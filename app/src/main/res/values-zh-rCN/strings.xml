@@ -3,20 +3,13 @@
     <string name="app_name">Popcoon</string>
 
     <string name="search_hint">按商品名或条码搜索</string>
-    <string name="search_idle">请搜索商品</string>
     <string name="search_empty">未找到结果</string>
-    <string name="search_loading">搜索中…</string>
-    <string name="search_error">搜索失败</string>
 
     <string name="detail_title">商品详情</string>
-    <string name="detail_score_label">购买时机评分</string>
     <string name="detail_current_price">当前价格</string>
     <string name="detail_list_price">原价</string>
     <string name="detail_shipping">运费</string>
-    <string name="detail_points_back">积分返还</string>
-    <string name="detail_total">实际总额</string>
     <string name="detail_price">价格</string>
-    <string name="detail_score_breakdown">评分详情</string>
     <string name="detail_warnings_title">暗黑模式警告</string>
 
     <!-- 暗黑模式警告标签 (DarkPatternDetector.Warning 的本地化显示文案) -->
@@ -42,7 +35,6 @@
     <string name="dp_text_category_obstruction">阻挠取消订阅</string>
 
     <string name="detail_ai_advice">AI 建议</string>
-    <string name="detail_confidence">可信度</string>
     <string name="confidence_high">高</string>
     <string name="confidence_medium">中</string>
     <string name="confidence_low">低</string>
@@ -51,19 +43,10 @@
     <string name="verdict_neutral">观望</string>
     <string name="verdict_wait">等待</string>
 
-    <string name="warn_always_on_discount">常态促销</string>
-    <string name="warn_inflated_list">虚高原价</string>
-    <string name="warn_pre_sale_markup">促销前涨价</string>
-    <string name="warn_charm_pricing">尾数定价</string>
 
     <string name="bundle_unit_price">单价 %1$s</string>
-    <string name="bundle_savings">优惠率</string>
     <string name="bundle_savings_discount">−%1$d%%</string>
     <string name="bundle_savings_markup">+%1$d%%</string>
-    <string name="bundle_exceptional">超值优惠</string>
-    <string name="bundle_good">优惠</string>
-    <string name="bundle_neutral">一般</string>
-    <string name="bundle_bad">偏贵</string>
 
     <string name="customs_simulate">跨境购买测算</string>
     <string name="customs_foreign_price">当地价格</string>
@@ -113,10 +96,6 @@
     <string name="yahoo_rank_gold">黄金</string>
     <string name="settings_amazon_prime_desc">Amazon Prime 会员享受免费配送</string>
 
-    <string name="eco_score">环保伦理评分</string>
-    <string name="eco_co2">CO2 评分</string>
-    <string name="eco_labor">劳动条件</string>
-    <string name="eco_alternative">考虑替代品</string>
 
     <string name="nav_back">返回</string>
     <string name="a11y_warning">警告</string>
@@ -131,17 +110,10 @@
     <string name="action_retry">重试</string>
     <string name="action_share">分享</string>
     <string name="action_save">保存</string>
-    <string name="action_alert">价格通知</string>
-    <string name="privacy_title">隐私</string>
-    <string name="privacy_zero_telemetry">零遥测</string>
-    <string name="privacy_delete_data">删除全部数据</string>
 
     <string name="barcode_scan">条形码扫描</string>
-    <string name="barcode_scanning">扫描中…</string>
-    <string name="barcode_success">扫描成功</string>
     <string name="barcode_error">扫描失败</string>
     <string name="barcode_retry">重试</string>
-    <string name="barcode_hint">将相机对准条形码</string>
     <string name="barcode_invalid">无效条形码</string>
     <string name="barcode_camera_failed">相机启动失败</string>
     <string name="barcode_unavailable">扫描器不可用</string>
@@ -160,7 +132,6 @@
     <string name="watchlist_empty">收藏列表为空</string>
     <string name="watchlist_empty_hint">在商品详情点击"保存"添加到此处</string>
     <string name="watchlist_add">保存</string>
-    <string name="watchlist_remove">删除</string>
     <string name="watchlist_undo_removed">已删除\"%1$s\"</string>
     <string name="watchlist_undo_action">撤销</string>
     <string name="stock_alert_on">补货提醒 ON</string>
@@ -188,23 +159,12 @@
     <string name="since_added_down">较添加时 ▼%1$s (%2$d%%)</string>
     <string name="since_added_up">较添加时 ▲%1$s (%2$d%%)</string>
 
-    <string name="sale_calendar">促销日历</string>
-    <string name="sale_active_now">进行中</string>
-    <string name="sale_next">下次促销</string>
-    <string name="sale_major">大型促销</string>
-    <string name="sale_recurring">每月定期</string>
 
-    <string name="points_sim_title">积分模拟器</string>
-    <string name="points_sticker">标价</string>
     <string name="points_effective">实际价格</string>
-    <string name="points_back">积分返还</string>
-    <string name="points_breakdown">明细</string>
 
     <string name="share_received">已接收URL</string>
-    <string name="share_comparing">正在比价</string>
 
     <string name="widget_description">显示收藏商品最低价和促销信息</string>
-    <string name="widget_empty_hint">请添加商品到收藏</string>
     <string name="widget_empty">添加到收藏后\n这里会显示价格</string>
     <string name="widget_sale_yahoo_5day">Yahoo! 逢5之日 +4%</string>
     <string name="widget_sale_rakuten_50day">乐天 逢5和0之日 +1%</string>
@@ -358,7 +318,6 @@
     <string name="tco_alt_savings">换成%1$s可在%2$d年内节省%3$s</string>
     <string name="prediction_margin_a11y">%1$s 误差正负%2$s</string>
     <string name="price_a11y_yen">%1$s日元</string>
-    <string name="review_trust_no_data">无评价</string>
     <string name="review_trust_few_reviews">评价过少参考度低</string>
     <string name="review_trust_too_perfect">评分过高(注意刷单)</string>
     <string name="review_trust_label">评价可信度</string>

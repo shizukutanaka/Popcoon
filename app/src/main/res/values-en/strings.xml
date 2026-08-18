@@ -3,20 +3,13 @@
     <string name="app_name">Popcoon</string>
 
     <string name="search_hint">Search by product name or barcode</string>
-    <string name="search_idle">Search for a product</string>
     <string name="search_empty">No results found</string>
-    <string name="search_loading">Searching…</string>
-    <string name="search_error">Search failed</string>
 
     <string name="detail_title">Product Details</string>
-    <string name="detail_score_label">Buy Timing Score</string>
     <string name="detail_current_price">Current price</string>
     <string name="detail_list_price">List price</string>
     <string name="detail_shipping">Shipping</string>
-    <string name="detail_points_back">Points back</string>
-    <string name="detail_total">Effective total</string>
     <string name="detail_price">Price</string>
-    <string name="detail_score_breakdown">Score breakdown</string>
     <string name="detail_warnings_title">Dark Pattern Warnings</string>
 
     <!-- Dark pattern warning labels (localized display text for DarkPatternDetector.Warning) -->
@@ -42,7 +35,6 @@
     <string name="dp_text_category_obstruction">Cancellation obstruction</string>
 
     <string name="detail_ai_advice">AI Advice</string>
-    <string name="detail_confidence">Confidence</string>
     <string name="confidence_high">High</string>
     <string name="confidence_medium">Medium</string>
     <string name="confidence_low">Low</string>
@@ -51,19 +43,10 @@
     <string name="verdict_neutral">Watch</string>
     <string name="verdict_wait">Wait</string>
 
-    <string name="warn_always_on_discount">Always-on sale</string>
-    <string name="warn_inflated_list">Inflated list price</string>
-    <string name="warn_pre_sale_markup">Pre-sale markup</string>
-    <string name="warn_charm_pricing">Charm pricing</string>
 
     <string name="bundle_unit_price">%1$s / item</string>
-    <string name="bundle_savings">Savings</string>
     <string name="bundle_savings_discount">−%1$d%%</string>
     <string name="bundle_savings_markup">+%1$d%%</string>
-    <string name="bundle_exceptional">Exceptional deal</string>
-    <string name="bundle_good">Good deal</string>
-    <string name="bundle_neutral">Neutral</string>
-    <string name="bundle_bad">Overpriced</string>
 
     <string name="customs_simulate">Import cost estimate</string>
     <string name="customs_foreign_price">Foreign price</string>
@@ -113,10 +96,6 @@
     <string name="yahoo_rank_gold">Gold</string>
     <string name="settings_amazon_prime_desc">Amazon Prime members receive free shipping</string>
 
-    <string name="eco_score">Eco ethics score</string>
-    <string name="eco_co2">CO2 score</string>
-    <string name="eco_labor">Labor conditions</string>
-    <string name="eco_alternative">Consider alternative</string>
 
     <string name="nav_back">Back</string>
     <string name="a11y_warning">Warning</string>
@@ -131,17 +110,10 @@
     <string name="action_retry">Retry</string>
     <string name="action_share">Share</string>
     <string name="action_save">Save</string>
-    <string name="action_alert">Price alert</string>
-    <string name="privacy_title">Privacy</string>
-    <string name="privacy_zero_telemetry">Zero telemetry</string>
-    <string name="privacy_delete_data">Delete all data</string>
 
     <string name="barcode_scan">Barcode scan</string>
-    <string name="barcode_scanning">Scanning…</string>
-    <string name="barcode_success">Scan successful</string>
     <string name="barcode_error">Scan failed</string>
     <string name="barcode_retry">Retry</string>
-    <string name="barcode_hint">Point camera at barcode</string>
     <string name="barcode_invalid">Invalid barcode</string>
     <string name="barcode_camera_failed">Failed to start camera</string>
     <string name="barcode_unavailable">Scanner unavailable</string>
@@ -161,7 +133,6 @@
     <string name="watchlist_empty">Watchlist is empty</string>
     <string name="watchlist_empty_hint">Tap "Save" on a product to add it here</string>
     <string name="watchlist_add">Save</string>
-    <string name="watchlist_remove">Remove</string>
     <string name="watchlist_undo_removed">Removed \"%1$s\"</string>
     <string name="watchlist_undo_action">Undo</string>
     <string name="stock_alert_on">Stock alert ON</string>
@@ -189,23 +160,12 @@
     <string name="since_added_down">▼%1$s (%2$d%%) since added</string>
     <string name="since_added_up">▲%1$s (%2$d%%) since added</string>
 
-    <string name="sale_calendar">Sale calendar</string>
-    <string name="sale_active_now">Active now</string>
-    <string name="sale_next">Next sale</string>
-    <string name="sale_major">Major sale</string>
-    <string name="sale_recurring">Monthly recurring</string>
 
-    <string name="points_sim_title">Points simulator</string>
-    <string name="points_sticker">List price</string>
     <string name="points_effective">Effective price</string>
-    <string name="points_back">Points earned</string>
-    <string name="points_breakdown">Breakdown</string>
 
     <string name="share_received">URL received</string>
-    <string name="share_comparing">Comparing prices</string>
 
     <string name="widget_description">Show watchlist lowest prices and sale info</string>
-    <string name="widget_empty_hint">Add products to your watchlist</string>
     <string name="widget_empty">Add items to your watchlist\nto see prices here</string>
     <string name="widget_sale_yahoo_5day">Yahoo! 5/15/25 day +4%</string>
     <string name="widget_sale_rakuten_50day">Rakuten 5 &amp; 0 day +1%</string>
@@ -365,7 +325,6 @@
     <string name="tco_alt_savings">Switching to %1$s could save %3$s over %2$d yr</string>
     <string name="prediction_margin_a11y">%1$s, margin plus or minus %2$s</string>
     <string name="price_a11y_yen">%1$s yen</string>
-    <string name="review_trust_no_data">No review rating</string>
     <string name="review_trust_few_reviews">Too few reviews to trust</string>
     <string name="review_trust_too_perfect">Suspiciously high rating</string>
     <string name="review_trust_label">Review reliability</string>

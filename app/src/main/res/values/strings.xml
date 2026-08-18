@@ -4,21 +4,14 @@
 
     <!-- 検索画面 -->
     <string name="search_hint">商品名・バーコードで検索</string>
-    <string name="search_idle">商品を検索してください</string>
     <string name="search_empty">結果が見つかりません</string>
-    <string name="search_loading">検索中…</string>
-    <string name="search_error">検索に失敗しました</string>
 
     <!-- 詳細画面 -->
     <string name="detail_title">商品詳細</string>
-    <string name="detail_score_label">買い時スコア</string>
     <string name="detail_current_price">現在価格</string>
     <string name="detail_list_price">定価</string>
     <string name="detail_shipping">送料</string>
-    <string name="detail_points_back">ポイント還元</string>
-    <string name="detail_total">実質合計</string>
     <string name="detail_price">価格</string>
-    <string name="detail_score_breakdown">スコア内訳</string>
     <string name="detail_warnings_title">景品表示法 注意</string>
 
     <!-- ダークパターン警告ラベル (DarkPatternDetector.Warning のローカライズ済み表示文言) -->
@@ -171,7 +164,6 @@
     <string name="sort_price_desc">高い順</string>
     <string name="sort_discount_desc">割引率順</string>
     <string name="sort_rating_desc">評価順</string>
-    <string name="detail_confidence">信頼度</string>
     <string name="confidence_high">高</string>
     <string name="confidence_medium">中</string>
     <string name="confidence_low">低</string>
@@ -182,20 +174,11 @@
     <string name="verdict_wait">待ち</string>
 
     <!-- Dark pattern warnings -->
-    <string name="warn_always_on_discount">常設セール</string>
-    <string name="warn_inflated_list">参考価格誇張</string>
-    <string name="warn_pre_sale_markup">セール前値上げ</string>
-    <string name="warn_charm_pricing">端数価格</string>
 
     <!-- Bundle pack -->
     <string name="bundle_unit_price">1個 %1$s</string>
-    <string name="bundle_savings">お得率</string>
     <string name="bundle_savings_discount">−%1$d%%</string>
     <string name="bundle_savings_markup">+%1$d%%</string>
-    <string name="bundle_exceptional">驚異のお得</string>
-    <string name="bundle_good">お得</string>
-    <string name="bundle_neutral">普通</string>
-    <string name="bundle_bad">割高</string>
 
     <!-- Customs -->
     <string name="customs_simulate">越境EC試算</string>
@@ -247,30 +230,19 @@
     <string name="settings_amazon_prime_desc">Amazon Prime 会員の場合、配送料無料が適用されます</string>
 
     <!-- Eco -->
-    <string name="eco_score">エコ倫理スコア</string>
-    <string name="eco_co2">CO2 スコア</string>
-    <string name="eco_labor">労働条件</string>
-    <string name="eco_alternative">代替品を検討</string>
 
     <!-- Nav -->
 
     <!-- Actions -->
     <string name="action_share">共有</string>
     <string name="action_save">保存</string>
-    <string name="action_alert">価格通知設定</string>
 
     <!-- Privacy -->
-    <string name="privacy_title">プライバシー</string>
-    <string name="privacy_zero_telemetry">テレメトリ未送信</string>
-    <string name="privacy_delete_data">全データ削除</string>
 
     <!-- バーコードスキャン -->
     <string name="barcode_scan">バーコードスキャン</string>
-    <string name="barcode_scanning">スキャン中…</string>
-    <string name="barcode_success">読み取り成功</string>
     <string name="barcode_error">スキャン失敗</string>
     <string name="barcode_retry">再試行</string>
-    <string name="barcode_hint">バーコードにカメラを向けてください</string>
     <string name="barcode_invalid">無効なバーコード</string>
     <string name="barcode_camera_failed">カメラ起動に失敗しました</string>
     <string name="barcode_unavailable">スキャナーが利用できません</string>
@@ -291,7 +263,6 @@
     <string name="watchlist_empty">ウォッチリストは空</string>
     <string name="watchlist_empty_hint">商品詳細から「保存」を押すとここに表示</string>
     <string name="watchlist_add">保存</string>
-    <string name="watchlist_remove">削除</string>
     <string name="watchlist_undo_removed">「%1$s」を削除しました</string>
     <string name="watchlist_undo_action">元に戻す</string>
 
@@ -326,26 +297,15 @@
     <string name="since_added_up">追加時から ▲%1$s (%2$d%%)</string>
 
     <!-- セールカレンダー -->
-    <string name="sale_calendar">セールカレンダー</string>
-    <string name="sale_active_now">開催中</string>
-    <string name="sale_next">次回セール</string>
-    <string name="sale_major">大型セール</string>
-    <string name="sale_recurring">毎月恒例</string>
 
     <!-- ポイントシミュレーター -->
-    <string name="points_sim_title">ポイントシミュレーター</string>
-    <string name="points_sticker">表示価格</string>
     <string name="points_effective">実質価格</string>
-    <string name="points_back">ポイント還元</string>
-    <string name="points_breakdown">内訳</string>
 
     <!-- Share Intent -->
     <string name="share_received">URLを受け取りました</string>
-    <string name="share_comparing">価格比較中</string>
 
     <!-- ウィジェット -->
     <string name="widget_description">ウォッチリストの最安値とセール情報を表示</string>
-    <string name="widget_empty_hint">ウォッチリストに商品を追加してください</string>
     <string name="widget_empty">ウォッチリストに追加すると\nここに価格が表示されます</string>
     <string name="widget_sale_yahoo_5day">Yahoo! 5のつく日 +4%</string>
     <string name="widget_sale_rakuten_50day">楽天 5と0のつく日 +1%</string>
@@ -390,7 +350,6 @@
     <string name="tco_alt_savings">%1$sなら%2$d年で%3$sお得</string>
     <string name="prediction_margin_a11y">%1$s 誤差プラスマイナス%2$s</string>
     <string name="price_a11y_yen">%1$s円</string>
-    <string name="review_trust_no_data">レビュー評価なし</string>
     <string name="review_trust_few_reviews">レビュー数が少なく参考度低</string>
     <string name="review_trust_too_perfect">高評価が多すぎる (サクラ注意)</string>
     <string name="review_trust_label">レビュー信頼度</string>

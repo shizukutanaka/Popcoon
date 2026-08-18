@@ -3,20 +3,13 @@
     <string name="app_name">Popcoon</string>
 
     <string name="search_hint">상품명 또는 바코드로 검색</string>
-    <string name="search_idle">상품을 검색하세요</string>
     <string name="search_empty">결과를 찾을 수 없습니다</string>
-    <string name="search_loading">검색 중…</string>
-    <string name="search_error">검색 실패</string>
 
     <string name="detail_title">상품 상세</string>
-    <string name="detail_score_label">구매 타이밍 점수</string>
     <string name="detail_current_price">현재 가격</string>
     <string name="detail_list_price">정가</string>
     <string name="detail_shipping">배송비</string>
-    <string name="detail_points_back">포인트 적립</string>
-    <string name="detail_total">실제 합계</string>
     <string name="detail_price">가격</string>
-    <string name="detail_score_breakdown">점수 내역</string>
     <string name="detail_warnings_title">다크 패턴 경고</string>
 
     <!-- 다크 패턴 경고 라벨 (DarkPatternDetector.Warning의 현지화된 표시 문구) -->
@@ -42,7 +35,6 @@
     <string name="dp_text_category_obstruction">해지 방해</string>
 
     <string name="detail_ai_advice">AI 조언</string>
-    <string name="detail_confidence">신뢰도</string>
     <string name="confidence_high">높음</string>
     <string name="confidence_medium">보통</string>
     <string name="confidence_low">낮음</string>
@@ -51,19 +43,10 @@
     <string name="verdict_neutral">관망</string>
     <string name="verdict_wait">대기</string>
 
-    <string name="warn_always_on_discount">상시 할인</string>
-    <string name="warn_inflated_list">참고가 과장</string>
-    <string name="warn_pre_sale_markup">세일 전 가격 인상</string>
-    <string name="warn_charm_pricing">단수 가격</string>
 
     <string name="bundle_unit_price">개당 %1$s</string>
-    <string name="bundle_savings">할인율</string>
     <string name="bundle_savings_discount">−%1$d%%</string>
     <string name="bundle_savings_markup">+%1$d%%</string>
-    <string name="bundle_exceptional">파격 할인</string>
-    <string name="bundle_good">이득</string>
-    <string name="bundle_neutral">보통</string>
-    <string name="bundle_bad">비쌈</string>
 
     <string name="customs_simulate">해외직구 견적</string>
     <string name="customs_foreign_price">현지 가격</string>
@@ -113,10 +96,6 @@
     <string name="yahoo_rank_gold">골드</string>
     <string name="settings_amazon_prime_desc">Amazon Prime 회원은 무료 배송 혜택이 적용됩니다</string>
 
-    <string name="eco_score">에코 윤리 점수</string>
-    <string name="eco_co2">CO2 점수</string>
-    <string name="eco_labor">노동 조건</string>
-    <string name="eco_alternative">대체품 검토</string>
 
     <string name="nav_back">뒤로</string>
     <string name="a11y_warning">경고</string>
@@ -131,17 +110,10 @@
     <string name="action_retry">재시도</string>
     <string name="action_share">공유</string>
     <string name="action_save">저장</string>
-    <string name="action_alert">가격 알림</string>
-    <string name="privacy_title">개인정보</string>
-    <string name="privacy_zero_telemetry">텔레메트리 미전송</string>
-    <string name="privacy_delete_data">모든 데이터 삭제</string>
 
     <string name="barcode_scan">바코드 스캔</string>
-    <string name="barcode_scanning">스캔 중…</string>
-    <string name="barcode_success">스캔 성공</string>
     <string name="barcode_error">스캔 실패</string>
     <string name="barcode_retry">재시도</string>
-    <string name="barcode_hint">바코드에 카메라를 맞추세요</string>
     <string name="barcode_invalid">잘못된 바코드</string>
     <string name="barcode_camera_failed">카메라 시작 실패</string>
     <string name="barcode_unavailable">스캐너를 사용할 수 없습니다</string>
@@ -160,7 +132,6 @@
     <string name="watchlist_empty">즐겨찾기가 비어 있습니다</string>
     <string name="watchlist_empty_hint">상품 상세에서 저장을 눌러 추가</string>
     <string name="watchlist_add">저장</string>
-    <string name="watchlist_remove">삭제</string>
     <string name="watchlist_undo_removed">\"%1$s\"을(를) 삭제했습니다</string>
     <string name="watchlist_undo_action">실행 취소</string>
     <string name="stock_alert_on">재입고 알림 ON</string>
@@ -188,23 +159,12 @@
     <string name="since_added_down">추가 후 ▼%1$s (%2$d%%)</string>
     <string name="since_added_up">추가 후 ▲%1$s (%2$d%%)</string>
 
-    <string name="sale_calendar">세일 캘린더</string>
-    <string name="sale_active_now">진행 중</string>
-    <string name="sale_next">다음 세일</string>
-    <string name="sale_major">대형 세일</string>
-    <string name="sale_recurring">매월 정기</string>
 
-    <string name="points_sim_title">포인트 시뮬레이터</string>
-    <string name="points_sticker">표시 가격</string>
     <string name="points_effective">실질 가격</string>
-    <string name="points_back">포인트 환급</string>
-    <string name="points_breakdown">상세</string>
 
     <string name="share_received">URL 수신</string>
-    <string name="share_comparing">가격 비교 중</string>
 
     <string name="widget_description">즐겨찾기 최저가와 세일 정보 표시</string>
-    <string name="widget_empty_hint">상품을 즐겨찾기에 추가하세요</string>
     <string name="widget_empty">즐겨찾기에 추가하면\n여기에 가격이 표시됩니다</string>
     <string name="widget_sale_yahoo_5day">Yahoo! 5가 붙는 날 +4%</string>
     <string name="widget_sale_rakuten_50day">라쿠텐 5와 0이 붙는 날 +1%</string>
@@ -358,7 +318,6 @@
     <string name="tco_alt_savings">%1$s(으)로 바꾸면 %2$d년간 %3$s 절약</string>
     <string name="prediction_margin_a11y">%1$s 오차 플러스마이너스%2$s</string>
     <string name="price_a11y_yen">%1$s엔</string>
-    <string name="review_trust_no_data">평가 없음</string>
     <string name="review_trust_few_reviews">리뷰 수가 적어 신뢰도 낮음</string>
     <string name="review_trust_too_perfect">평점이 너무 높음 (주의)</string>
     <string name="review_trust_label">리뷰 신뢰도</string>
