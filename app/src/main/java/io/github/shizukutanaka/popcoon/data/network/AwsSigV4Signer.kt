@@ -35,6 +35,14 @@ internal class AwsSigV4Signer(
 
     /**
      * リクエストに署名する。
+     *
+     * @param now 署名時刻。既定は現在時刻で、本番はこれを使う。
+     *   **テストから固定できるようにしてある**: 時刻が内部で生成されていた頃は
+     *   出力が毎回変わるため既知応答テスト (AWS 公開ベクタとの突き合わせ) が書けず、
+     *   テストは「64 文字の hex か」「必須ヘッダーが揃っているか」といった
+     *   **構造の検査だけ**だった。署名鍵の導出順や canonical request の組み立てを
+     *   間違えても全て通ってしまう — PA-API が 403 を返してスクレイピングに
+     *   黙って退化するまで誰も気付けない状態だった。
      * @return Authorization ヘッダー + x-amz-date ヘッダー値のペア
      */
     fun sign(
@@ -45,8 +53,8 @@ internal class AwsSigV4Signer(
         amzTarget: String,
         contentType: String = "application/json; charset=utf-8",
         contentEncoding: String = "amz-1.0",
+        now: Date = Date(),
     ): SignedRequest {
-        val now = Date()
         val amzDate = formatAmzDate(now)
         val dateStamp = formatDateStamp(now)
 
@@ -91,7 +99,12 @@ internal class AwsSigV4Signer(
         return SignedRequest(authHeader, amzDate)
     }
 
-    private fun deriveSigningKey(
+    /**
+     * SigV4 の署名鍵導出。`internal` にしてテストから直接 AWS 公開ベクタと
+     * 突き合わせられるようにする (鍵導出は 4 段 HMAC の順序を間違えても
+     * 出力の見た目が変わらないため、構造テストでは絶対に捕まらない)。
+     */
+    internal fun deriveSigningKey(
         secret: String, date: String, region: String, service: String,
     ): ByteArray {
         val kSecret = ("AWS4$secret").toByteArray(Charsets.UTF_8)
@@ -115,7 +128,7 @@ internal class AwsSigV4Signer(
         return digest.digest(data.toByteArray(Charsets.UTF_8)).toHex()
     }
 
-    private fun ByteArray.toHex(): String =
+    internal fun ByteArray.toHex(): String =
         joinToString("") { "%02x".format(it) }
 
     private fun formatAmzDate(d: Date): String {
