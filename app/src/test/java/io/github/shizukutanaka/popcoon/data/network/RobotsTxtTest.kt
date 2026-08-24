@@ -135,4 +135,23 @@ class RobotsTxtTest : StringSpec({
         RobotsTxt.isAllowed(robots, "/post?replytocom=42", ua) shouldBe false
         RobotsTxt.isAllowed(robots, "/post?id=42", ua) shouldBe true
     }
+
+    // ── robots.txt が「取得不能」(429 / 5xx) のときの合成規則 (2026-08) ──────────
+    // FallbackScraper は以前 HTTP ステータスを一切見ずに bodyAsText() を robots.txt として
+    // 解釈していた。サイトが 503 / 429 で「今は来ないでくれ」と明示していても、
+    // エラーページ本文が「規則なし」とパースされて全許可になり、相手が最も負荷を
+    // 受けている瞬間に叩き続けていた (RFC 9309 §2.3.1.4 は unavailable = 全面禁止)。
+    // 専用の状態型を足さず、全面禁止を意味する robots.txt そのものをキャッシュする方式に
+    // したので、その合成文字列が本当に全面禁止になることをここで固定する。
+    "DENY_ALL_ROBOTS はあらゆるパスを禁止する" {
+        listOf("/", "/dp/B0ABC", "/gp/product/X?ref=1", "/item/12345").forEach { path ->
+            RobotsTxt.isAllowed(
+                FallbackScraper.DENY_ALL_ROBOTS, path, FallbackScraper.USER_AGENT,
+            ) shouldBe false
+        }
+    }
+
+    "robots.txt 無し (4xx 相当の空文字) は従来どおり全許可" {
+        RobotsTxt.isAllowed("", "/dp/B0ABC", FallbackScraper.USER_AGENT) shouldBe true
+    }
 })

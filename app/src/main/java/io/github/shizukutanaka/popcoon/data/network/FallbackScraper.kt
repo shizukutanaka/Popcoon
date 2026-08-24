@@ -48,6 +48,15 @@ class FallbackScraper {
         const val USER_AGENT =
             "Popcoon-Fallback/0.1 (+https://github.com/shizukutanaka/popcoon)"
 
+        /**
+         * robots.txt が「取得不能」(429 / 5xx) のときにキャッシュする合成 robots.txt。
+         *
+         * 専用の状態型を増やさず、**全面禁止を意味する robots.txt そのもの**を入れることで
+         * 既存の [RobotsTxt.isAllowed] をそのまま通す。判定経路が 1 本のままなので、
+         * 「禁止状態だけ別扱いにして片方の分岐を直し忘れる」余地が無い。
+         */
+        internal const val DENY_ALL_ROBOTS = "User-agent: *\nDisallow: /"
+
         // JSON-LD 抽出パターンは定数なので 1 度だけコンパイルする。
         private val JSON_LD_PATTERN = Regex(
             """<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>""",
@@ -100,7 +109,22 @@ class FallbackScraper {
 
     /**
      * robots.txt を取得・キャッシュして対象パスの許可可否を返す。
-     * ネットワーク失敗・robots.txt 不存在の場合は許可 (true)。
+     *
+     * **HTTP ステータスで扱いを変える** (RFC 9309 §2.3.1)。以前はステータスを一切見ずに
+     * `bodyAsText()` をそのまま robots.txt として解釈していたため、サイトが
+     * 503 / 429 を返して「今は来ないでくれ」と明示している状況でも、
+     * エラーページ本文が「規則なし」とパースされて **全許可** になり、そのまま
+     * スクレイピングを続けていた。相手が最も負荷を受けている瞬間に叩き続ける挙動で、
+     * robots.txt を尊重すると謳っている以上いちばん避けるべきケースだった。
+     *
+     *  - 2xx        → 本文をそのまま規則として解釈
+     *  - 429 / 5xx  → **全面禁止**として扱う (§2.3.1.4「unavailable」)
+     *  - その他 4xx → robots.txt 無し = 全許可 (§2.3.1.3)
+     *  - ネットワーク失敗 → 全許可 (従来どおり。この場合は続く本文 GET も失敗するため
+     *    実質スクレイピングは進まない)
+     *
+     * 禁止状態はプロセス生存中キャッシュされる。次回起動で再取得されるので、
+     * 一時的な 5xx で恒久的に諦めることはない (保守的側に倒している)。
      */
     private suspend fun isPathAllowedByRobots(uri: java.net.URI, path: String): Boolean {
         val host = uri.host ?: return true
@@ -108,7 +132,12 @@ class FallbackScraper {
         val robotsBody = robotsCache[host] ?: run {
             val scheme = uri.scheme ?: "https"
             val body = runCatching {
-                client.get("$scheme://$host/robots.txt").bodyAsText()
+                val resp = client.get("$scheme://$host/robots.txt")
+                when {
+                    resp.status.isSuccess() -> resp.bodyAsText()
+                    resp.status.value == 429 || resp.status.value >= 500 -> DENY_ALL_ROBOTS
+                    else -> ""
+                }
             }.getOrElse { e ->
                 if (e is CancellationException) throw e
                 null
