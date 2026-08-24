@@ -35,7 +35,7 @@ ci/           android.yml (未稼働 — workflows 権限が無く人手で ci/e
 | 個別 parity | `bash popcoon-tdd/kotlin_parity/run_matcher.sh` 等 | "all assertions passed" |
 | backend 型検査 | `cd backend && npx tsc --noEmit` | エラー 0 |
 | backend テスト | `cd backend && npx vitest run` | **96 tests / 4 files pass** |
-| i18n キー数一致 | `for f in values values-en values-ko values-zh-rCN; do grep -c '<string name=' app/src/main/res/$f/strings.xml; done` | **全ロケール 365** (plurals 3 は別) |
+| i18n キー数一致 | `for f in values values-en values-ko values-zh-rCN; do grep -c '<string name=' app/src/main/res/$f/strings.xml; done` | **全ロケール 365** (plurals 4 は別) |
 | Kotlin 構文 (ビルド不可の代替) | brace/paren カウント一致を Python ワンライナーで確認 | `{`=`}`, `(`=`)` |
 
 ## 環境制約 (重要 — 回避不能)

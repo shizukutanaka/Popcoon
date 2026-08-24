@@ -316,13 +316,13 @@ fun SettingsScreen(
         )
     }
 
-    state.restoreResultMessage?.let { message ->
+    state.resultMessage?.let { message ->
         AlertDialog(
-            onDismissRequest = viewModel::clearRestoreResult,
+            onDismissRequest = viewModel::clearResultMessage,
             title = { Text(stringResource(R.string.watchlist_restore)) },
             text = { Text(message.asString()) },
             confirmButton = {
-                TextButton(onClick = viewModel::clearRestoreResult) {
+                TextButton(onClick = viewModel::clearResultMessage) {
                     Text(stringResource(R.string.action_dismiss))
                 }
             },

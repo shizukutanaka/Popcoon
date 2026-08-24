@@ -437,4 +437,7 @@
     <string name="settings_notifications">알림</string>
     <string name="settings_notif_drop_pct">가격 알림 민감도</string>
     <string name="settings_notif_drop_pct_desc">이 비율 이상 가격이 내려가면 알림을 보냅니다</string>
+    <plurals name="csv_export_partial">
+        <item quantity="other">%1$d개 상품의 가격 이력을 가져오지 못해 CSV에 포함되지 않았습니다. 연결 상태를 확인한 뒤 다시 시도하세요.</item>
+    </plurals>
 </resources>

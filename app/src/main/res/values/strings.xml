@@ -469,4 +469,7 @@
     <string name="settings_notifications">通知</string>
     <string name="settings_notif_drop_pct">価格アラートの感度</string>
     <string name="settings_notif_drop_pct_desc">このパーセント以上値下がりしたら通知します</string>
+    <plurals name="csv_export_partial">
+        <item quantity="other">%1$d件の商品は価格履歴を取得できず、CSV に含まれていません。通信環境を確認して再実行してください。</item>
+    </plurals>
 </resources>

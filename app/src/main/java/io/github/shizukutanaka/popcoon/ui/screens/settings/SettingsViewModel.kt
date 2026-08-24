@@ -46,8 +46,8 @@ data class SettingsUiState(
     val amazonPrime: Boolean = false,
     // 通知感度 — 値下がり通知の最小変動率（%）
     val notifDropPercent: Int = 3,
-    /** ウォッチリスト バックアップ復元の結果 (一時表示、null で非表示)。 */
-    val restoreResultMessage: UiText? = null,
+    /** 復元 / エクスポート等の操作結果 (一時表示、null で非表示)。 */
+    val resultMessage: UiText? = null,
 )
 
 @HiltViewModel
@@ -232,14 +232,28 @@ class SettingsViewModel @Inject constructor(
     fun exportCsv() {
         viewModelScope.launch {
             try {
-                val intent = csvExporter.shareIntent(context)
-                if (intent != null) {
+                val request = csvExporter.shareIntent(context)
+                if (request != null) {
                     context.startActivity(
                         android.content.Intent.createChooser(
-                            intent,
+                            request.intent,
                             context.getString(R.string.csv_share_chooser_title),
                         ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                     )
+                    // 一部商品の価格履歴が取れなかった場合は必ず伝える。
+                    // 黙っていると、ユーザーは欠落に気付かないまま「完全な履歴」として
+                    // 表計算ソフトで分析してしまう (以前は握り潰していた)。
+                    if (request.failedItems > 0) {
+                        _state.value = _state.value.copy(
+                            resultMessage = UiText.DynamicString(
+                                context.resources.getQuantityString(
+                                    R.plurals.csv_export_partial,
+                                    request.failedItems,
+                                    request.failedItems,
+                                ),
+                            ),
+                        )
+                    }
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -292,7 +306,7 @@ class SettingsViewModel @Inject constructor(
                     is WatchlistBackupManager.ImportResult.Failure ->
                         UiText.StringResource(R.string.watchlist_restore_failed)
                 }
-                _state.value = _state.value.copy(restoreResultMessage = message)
+                _state.value = _state.value.copy(resultMessage = message)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -302,14 +316,14 @@ class SettingsViewModel @Inject constructor(
                 // メッセージも表示されなかった (機能過不足監査で発見)。
                 PopcoonLogger.w(this@SettingsViewModel, "restoreWatchlist failed: ${e.message}", e)
                 _state.value = _state.value.copy(
-                    restoreResultMessage = UiText.StringResource(R.string.watchlist_restore_failed),
+                    resultMessage = UiText.StringResource(R.string.watchlist_restore_failed),
                 )
             }
         }
     }
 
-    fun clearRestoreResult() {
-        _state.value = _state.value.copy(restoreResultMessage = null)
+    fun clearResultMessage() {
+        _state.value = _state.value.copy(resultMessage = null)
     }
 
     fun openPrivacy() {

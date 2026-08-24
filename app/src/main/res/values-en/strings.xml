@@ -445,4 +445,8 @@
     <string name="settings_notifications">Notifications</string>
     <string name="settings_notif_drop_pct">Price alert sensitivity</string>
     <string name="settings_notif_drop_pct_desc">Notify when the price drops by at least this percentage</string>
+    <plurals name="csv_export_partial">
+        <item quantity="one">Price history for %1$d item could not be fetched and is missing from the CSV. Check your connection and try again.</item>
+        <item quantity="other">Price history for %1$d items could not be fetched and is missing from the CSV. Check your connection and try again.</item>
+    </plurals>
 </resources>
