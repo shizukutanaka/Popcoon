@@ -10,7 +10,6 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 
 /**
@@ -31,19 +30,26 @@ class RakutenClient(
 
     suspend fun search(keyword: String, hits: Int = 30): List<Product> {
         if (appId.isBlank()) return emptyList()
-        val resp = runCatching {
-            retryOnce {
-                val httpResp = client.get("https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601") {
-                    parameter("format", "json")
-                    parameter("applicationId", appId)
-                    parameter("keyword", keyword)
-                    parameter("hits", hits.coerceIn(1, 30))
-                }
-                check(httpResp.status.isSuccess()) { "Rakuten API error: ${httpResp.status}" }
-                httpResp.body<RakutenResponse>()
+        // **失敗は握り潰さず呼び出し元へ伝える**。以前はここで runCatching + getOrNull により
+        // 例外を emptyList() に変換していたため、呼び出し元の
+        // ProductRepository.searchWithBreaker から見ると「API 成功・0 件」と区別が付かず、
+        //  (a) recordSuccess() が呼ばれ **CircuitBreaker が永久に開かない**
+        //      (連続障害中の無駄なリクエストを止めるという存在理由そのものが機能しない)
+        //  (b) SourceOutcome.failed が常に false になり「全滅」判定が働かず、
+        //      通信障害と「該当商品なし」を UI が区別できない
+        // という 2 つの機能が丸ごと死んでいた。searchWithBreaker は例外を捕捉して
+        // 記録・フォールバックする実装になっているので、ここは素通しでよい。
+        // retryOnce は CancellationException を再 throw し、2 回目の失敗もそのまま伝播する。
+        val resp = retryOnce {
+            val httpResp = client.get("https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601") {
+                parameter("format", "json")
+                parameter("applicationId", appId)
+                parameter("keyword", keyword)
+                parameter("hits", hits.coerceIn(1, 30))
             }
-        }.onFailure { if (it is CancellationException) throw it }
-            .getOrNull() ?: return emptyList()
+            check(httpResp.status.isSuccess()) { "Rakuten API error: ${httpResp.status}" }
+            httpResp.body<RakutenResponse>()
+        }
 
         // DTO → Product の変換は純粋関数 (RakutenMapper.kt) に集約。
         // itemPrice <= 0 は価格比較の対象にならず、ウォッチリストへ追加されると

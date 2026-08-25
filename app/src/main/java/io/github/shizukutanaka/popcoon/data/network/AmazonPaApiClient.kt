@@ -14,7 +14,6 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.content.TextContent
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.time.Instant
@@ -101,35 +100,39 @@ class AmazonPaApiClient(
         val bodyJson = json.encodeToString(
             SearchItemsRequest.serializer(), request)
 
-        val response = runCatching {
-            retryOnce {
-                // content-type は SignedHeaders に含まれるため、署名値と実際にワイヤに乗る値を
-                // 厳密に一致させる必要がある (不一致は SignatureDoesNotMatch / 403 を招く)。
-                // 単一の定数を署名と TextContent の双方に渡して取り違えを防ぐ。
-                // リトライ時は signer.sign() をブロック内で再実行するため、x-amz-date も
-                // 再署名時点の時刻で作り直される (古い日時のまま再送すると
-                // クロックスキュー許容範囲外でサーバーに拒否されうるため、これは正しい)。
-                val signed = signer.sign(
-                    method = "POST",
-                    path = "/paapi5/searchitems",
-                    payload = bodyJson,
-                    host = HOST,
-                    amzTarget = AMZ_TARGET_PREFIX + "SearchItems",
-                    contentType = SIGNED_CONTENT_TYPE,
-                )
-                val httpResp = client.post("https://$HOST/paapi5/searchitems") {
-                    header("host", HOST)
-                    header("content-encoding", "amz-1.0")
-                    header("x-amz-date", signed.amzDate)
-                    header("x-amz-target", AMZ_TARGET_PREFIX + "SearchItems")
-                    header("authorization", signed.authorizationHeader)
-                    setBody(TextContent(bodyJson, ContentType.parse(SIGNED_CONTENT_TYPE)))
-                }
-                check(httpResp.status.isSuccess()) { "PAAPI error: ${httpResp.status}" }
-                httpResp.body<SearchItemsResponse>()
+        // **失敗は握り潰さず呼び出し元へ伝える** (RakutenClient / YahooClient と同方針)。
+        // 以前はここで例外を emptyList() に変換しており、ProductRepository.searchWithBreaker
+        // から見ると「API 成功・0 件」と区別が付かなかった。結果として
+        //  (a) recordSuccess() が呼ばれ CircuitBreaker が永久に開かない
+        //  (b) SourceOutcome.failed が常に false で「全滅」判定が働かない
+        // という 2 機能が死んでいた。資格情報未設定の早期 return (上) は
+        // 「障害」ではなく「未構成」なので従来どおり emptyList() のままにする。
+        val response = retryOnce {
+            // content-type は SignedHeaders に含まれるため、署名値と実際にワイヤに乗る値を
+            // 厳密に一致させる必要がある (不一致は SignatureDoesNotMatch / 403 を招く)。
+            // 単一の定数を署名と TextContent の双方に渡して取り違えを防ぐ。
+            // リトライ時は signer.sign() をブロック内で再実行するため、x-amz-date も
+            // 再署名時点の時刻で作り直される (古い日時のまま再送すると
+            // クロックスキュー許容範囲外でサーバーに拒否されうるため、これは正しい)。
+            val signed = signer.sign(
+                method = "POST",
+                path = "/paapi5/searchitems",
+                payload = bodyJson,
+                host = HOST,
+                amzTarget = AMZ_TARGET_PREFIX + "SearchItems",
+                contentType = SIGNED_CONTENT_TYPE,
+            )
+            val httpResp = client.post("https://$HOST/paapi5/searchitems") {
+                header("host", HOST)
+                header("content-encoding", "amz-1.0")
+                header("x-amz-date", signed.amzDate)
+                header("x-amz-target", AMZ_TARGET_PREFIX + "SearchItems")
+                header("authorization", signed.authorizationHeader)
+                setBody(TextContent(bodyJson, ContentType.parse(SIGNED_CONTENT_TYPE)))
             }
-        }.onFailure { if (it is CancellationException) throw it }
-            .getOrNull() ?: return emptyList()
+            check(httpResp.status.isSuccess()) { "PAAPI error: ${httpResp.status}" }
+            httpResp.body<SearchItemsResponse>()
+        }
 
         return response.searchResult?.items.orEmpty().mapNotNull { it.toProduct() }
     }
