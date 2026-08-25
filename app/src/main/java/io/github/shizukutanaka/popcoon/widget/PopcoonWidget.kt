@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import io.github.shizukutanaka.popcoon.ui.theme.Spacing
+import io.github.shizukutanaka.popcoon.feature.watchlist.WidgetVerdict
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
@@ -66,7 +67,8 @@ class PopcoonWidget : GlanceAppWidget() {
         return (0 until minOf(count, 3)).mapNotNull { i ->
             val title = prefs.getString("title_$i", null) ?: return@mapNotNull null
             val price = prefs.getLong("price_$i", -1L)
-            val verdict = prefs.getString("verdict_$i", "NEUTRAL") ?: "NEUTRAL"
+            val verdict = prefs.getString("verdict_$i", WidgetVerdict.NEUTRAL)
+                ?: WidgetVerdict.NEUTRAL
             if (price < 0) null
             else WidgetItem(title = title.take(20), price = price, verdict = verdict)
         }
@@ -193,9 +195,15 @@ private fun WidgetItemRow(
     textColor: ColorProvider,
     subtleColor: ColorProvider,
 ) {
+    // 判定値は WidgetVerdict が単一の真実源。**文字列リテラルで比較しないこと** —
+    // 以前ここは "BUY_NOW" / "WAIT" をベタ書きしており、WidgetVerdict 側の定数を
+    // 変えると書き込み側 (WidgetUpdater) だけが追随して、この when は黙って
+    // else に落ちる = 全アイテムが無地の色で描画される。コンパイルエラーにも
+    // テスト失敗にもならない (ウィジェットは Glance 依存でこの環境では検証不能)。
+    // 同じ値を読む WatchlistScreen.watchlistBuyVerdict は既に定数を参照している。
     val verdictColor = when (item.verdict) {
-        "BUY_NOW" -> ColorProvider(Color(0xFF118A4E))
-        "WAIT" -> ColorProvider(Color(0xFFC0392B))
+        WidgetVerdict.BUY_NOW -> ColorProvider(Color(0xFF118A4E))
+        WidgetVerdict.WAIT -> ColorProvider(Color(0xFFC0392B))
         else -> subtleColor
     }
 
