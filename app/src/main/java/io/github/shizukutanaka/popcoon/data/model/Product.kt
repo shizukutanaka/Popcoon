@@ -86,3 +86,18 @@ data class PriceRecord(
     @Serializable(with = InstantIso8601Serializer::class)
     val recordedAt: Instant,
 )
+
+
+/**
+ * 送料の概算 (円)。EC 各社の検索 API は実額を返さないため、送料別の商品に一律で計上する。
+ *
+ * **全モールで同じ値を使うこと**が要件。[Product.totalPrice] と
+ * `PointSimulator.effectivePrice` (= sticker + shipping - points) は検索結果の並び順・
+ * 名寄せグループの代表選択・スマートカート最適化のすべての基準になっており、
+ * 一部のモールにだけ送料を計上すると、そのモールが**系統的に不利**に並ぶ。
+ * 実際 2026-08 まで Yahoo だけが 500 円を計上し、楽天は API が `postageFlag` を
+ * 返すのに `shippingFee = 0L` 固定で、横断比較そのものが歪んでいた。
+ *
+ * 値は `SmartCartService.DEFAULT_MALL_CONFIGS` の各モール送料とも揃えてある。
+ */
+const val SHIPPING_APPROX_YEN = 500L

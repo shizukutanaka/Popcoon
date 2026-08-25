@@ -2,6 +2,7 @@ package io.github.shizukutanaka.popcoon.data.network
 
 import io.github.shizukutanaka.popcoon.data.model.Platform
 import io.github.shizukutanaka.popcoon.data.model.Product
+import io.github.shizukutanaka.popcoon.data.model.SHIPPING_APPROX_YEN
 import kotlinx.serialization.Serializable
 
 /**
@@ -47,8 +48,11 @@ internal fun YahooResponse.Hit.toProduct(): Product {
     // defaultPrice = 通常価格(参考価格)。premiumPrice はプレミアム会員割引で realPrice を
     // 下回り得るため list price には使わない。
     val computedListPrice = priceLabel?.defaultPrice ?: price
-    // shipping.code == 2 を送料無料とみなす。それ以外は近似 500 円。
-    val shippingFee = shipping?.takeIf { it.code == 2 }?.let { 0L } ?: 500L
+    // shipping.code == 2 を送料無料とみなす。それ以外は概算を計上する。
+    // 概算値は全モール共有 (data.model.SHIPPING_APPROX_YEN) — 片方のモールだけ送料を載せると
+    // PointSimulator.effectivePrice (検索の並び順・代表選択・カート最適化の基準) が
+    // そのモールに不利に偏るため、同じ基準でなければならない。
+    val shippingFee = shipping?.takeIf { it.code == 2 }?.let { 0L } ?: SHIPPING_APPROX_YEN
     return Product(
         sku = code,
         title = name,
