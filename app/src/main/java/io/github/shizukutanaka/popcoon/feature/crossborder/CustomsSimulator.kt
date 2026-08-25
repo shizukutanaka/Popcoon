@@ -65,7 +65,11 @@ object CustomsSimulator {
         val (duty, ctax, fee) = if (isExempt) {
             Triple(0L, 0L, 0L)
         } else {
-            val rate = DUTY_RATES[category] ?: DUTY_RATES.getOrDefault("その他", 0.05)
+            // Python (popcoon_core.simulate_customs) は `DUTY_RATES.get(category, DUTY_RATES["その他"])`。
+            // 以前はここが `?: DUTY_RATES.getOrDefault("その他", 0.05)` で、"その他" は必ず
+            // 存在するため 0.05 は到達不能なうえ、実際の "その他" = 0.06 と食い違っていた。
+            // 「読んだ人が 0.05 を有効な既定値だと信じる」種類の死んだ記述なので消す。
+            val rate = DUTY_RATES[category] ?: DUTY_RATES.getValue("その他")
             val taxRate = if (category == "食品") REDUCED_TAX_RATE else STANDARD_TAX_RATE
             val d = (dutiable * rate).toLong()
             val t = ((dutiable + d) * taxRate).toLong()
