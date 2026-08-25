@@ -9,6 +9,8 @@ import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
+import io.kotest.property.arbitrary.enum
+import io.kotest.property.arbitrary.list
 import io.kotest.property.arbitrary.long
 import io.kotest.property.arbitrary.string
 import io.kotest.property.checkAll
@@ -201,6 +203,63 @@ class DarkPatternDetectorTest : StringSpec({
     "Drip Pricing はどんな入力でも例外なし" {
         checkAll(Arb.long(0L..1_000_000L), Arb.long(0L..2_000_000L)) { base, total ->
             DarkPatternDetector.detectDripPricing(base, total)
+        }
+    }
+
+    // ── prioritize (表示前の深刻度並べ替え) ──────────────────────────────
+    // ProductRow は warnings.take(2) しか出せないので、切る前の並びが
+    // 「どの警告が見えるか」を決める。以下は実 Kotlin 実行で確認した実シナリオ。
+    "回帰: 検出順のまま切ると HIGH の DRIP_PRICING が LOW/MEDIUM に押し出される" {
+        // ¥9,980 の商品 + 送料 ¥3,000 (総額 12,980 = 本体比 +30.06% → DRIP HIGH)、
+        // 定価 12,000 に対し 40 日間ずっと 9,980 (→ CHARM_PRICING LOW)、
+        // タイトルに在庫煽り (→ FAKE_SCARCITY MEDIUM)。
+        val h = history(List(40) { 9_980L }, listPrice = 12_000L)
+        val price = DarkPatternDetector.detect(
+            currentPrice = 12_980L, listPrice = null, history = h)
+        val text = DarkPatternDetector.detectInText("【在庫わずか】限定モデル ワイヤレスイヤホン")
+        val drip = DarkPatternDetector.detectDripPricing(basePrice = 9_980L, totalPrice = 12_980L)
+        val detected = price + text + listOfNotNull(drip)
+
+        // フィクスチャの有効性 — 3 種の深刻度が実際に揃っていること
+        detected.map { it.severity } shouldBe listOf(
+            DarkPatternDetector.Severity.LOW,
+            DarkPatternDetector.Severity.MEDIUM,
+            DarkPatternDetector.Severity.HIGH,
+        )
+        // 修正前の表示: HIGH が落ちる
+        detected.take(2).map { it.type } shouldBe listOf(
+            DarkPatternDetector.WarningType.CHARM_PRICING,
+            DarkPatternDetector.WarningType.FAKE_SCARCITY,
+        )
+        // 修正後: HIGH が必ず残る
+        DarkPatternDetector.prioritize(detected).take(2).map { it.type } shouldBe listOf(
+            DarkPatternDetector.WarningType.DRIP_PRICING,
+            DarkPatternDetector.WarningType.FAKE_SCARCITY,
+        )
+    }
+
+    "prioritize は同深刻度の検出順を保つ (安定ソート)" {
+        fun w(label: String, s: DarkPatternDetector.Severity) = DarkPatternDetector.Warning(
+            type = DarkPatternDetector.WarningType.CHARM_PRICING, label = label, severity = s)
+        val ws = listOf(
+            w("a", DarkPatternDetector.Severity.MEDIUM),
+            w("b", DarkPatternDetector.Severity.LOW),
+            w("c", DarkPatternDetector.Severity.MEDIUM),
+            w("d", DarkPatternDetector.Severity.LOW),
+        )
+        DarkPatternDetector.prioritize(ws).map { it.label } shouldBe listOf("a", "c", "b", "d")
+    }
+
+    "prioritize は件数を変えない" {
+        checkAll(Arb.list(Arb.enum<DarkPatternDetector.Severity>(), 0..12)) { sevs ->
+            val ws = sevs.mapIndexed { i, s ->
+                DarkPatternDetector.Warning(
+                    type = DarkPatternDetector.WarningType.CHARM_PRICING,
+                    label = "w$i", severity = s)
+            }
+            val out = DarkPatternDetector.prioritize(ws)
+            out.size shouldBe ws.size
+            out.map { it.label }.toSet() shouldBe ws.map { it.label }.toSet()
         }
     }
 })

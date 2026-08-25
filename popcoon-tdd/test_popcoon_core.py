@@ -398,6 +398,62 @@ class TestDarkPatterns:
         pass  # この境界は上のテストでカバー済み
 
 
+class TestPrioritizeWarnings:
+    """警告の深刻度並べ替え。
+
+    表示側 (検索結果の行) は 2 件までしか出せないので、**切る前の並び**が
+    「どの警告がユーザーに見えるか」を決める。
+    """
+
+    @staticmethod
+    def _w(label, severity):
+        return pc.PsychWarning(type=WarningType.CHARM_PRICING, label=label,
+                               severity=severity)
+
+    def _labels(self, warnings):
+        return [w.label for w in pc.prioritize_warnings(warnings)]
+
+    def test_high_first(self):
+        ws = [self._w("charm", Severity.LOW), self._w("stock", Severity.MEDIUM),
+              self._w("drip", Severity.HIGH)]
+        assert self._labels(ws) == ["drip", "stock", "charm"]
+
+    def test_stable_within_same_severity(self):
+        """同深刻度は検出順を保つ (検出順 = 価格履歴の確度順なので崩さない)。"""
+        ws = [self._w("a", Severity.MEDIUM), self._w("b", Severity.LOW),
+              self._w("c", Severity.MEDIUM), self._w("d", Severity.LOW)]
+        assert self._labels(ws) == ["a", "c", "b", "d"]
+
+    def test_already_sorted_is_unchanged(self):
+        ws = [self._w("a", Severity.HIGH), self._w("b", Severity.MEDIUM),
+              self._w("c", Severity.LOW)]
+        assert self._labels(ws) == ["a", "b", "c"]
+
+    def test_empty_and_single(self):
+        assert pc.prioritize_warnings([]) == []
+        assert self._labels([self._w("only", Severity.LOW)]) == ["only"]
+
+    def test_does_not_drop_or_duplicate(self):
+        ws = [self._w(str(i), s) for i, s in enumerate(
+            [Severity.LOW, Severity.HIGH, Severity.MEDIUM, Severity.HIGH,
+             Severity.LOW, Severity.MEDIUM])]
+        out = pc.prioritize_warnings(ws)
+        assert len(out) == len(ws)
+        assert sorted(w.label for w in out) == sorted(w.label for w in ws)
+
+    def test_truncating_to_two_keeps_the_most_severe(self):
+        """本来の目的 — 上位 2 件に HIGH が必ず残ること。
+
+        検出順 [CHARM_PRICING(LOW), 在庫煽り(MEDIUM), DRIP_PRICING(HIGH)] を
+        そのまま切ると HIGH だけが落ちる。実 Kotlin 実行でも同じ並びを確認済み
+        (docs/RESEARCH-2026-08.md §11)。
+        """
+        ws = [self._w("charm", Severity.LOW), self._w("stock", Severity.MEDIUM),
+              self._w("drip", Severity.HIGH)]
+        assert [w.label for w in ws[:2]] == ["charm", "stock"]      # 修正前の表示
+        assert self._labels(ws)[:2] == ["drip", "stock"]            # 修正後の表示
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 6. Trie (autocomplete)
 # ═══════════════════════════════════════════════════════════════════════════

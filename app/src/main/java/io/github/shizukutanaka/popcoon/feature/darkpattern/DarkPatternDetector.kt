@@ -38,6 +38,31 @@ object DarkPatternDetector {
     )
 
     /**
+     * 深刻度の高い順 (HIGH → MEDIUM → LOW) に並べ替える。**安定ソート**。
+     *
+     * 表示側が件数を絞る前に必ず通すこと。検索結果の行 (ui/screens/search/ProductRow.kt) は
+     * `warnings.take(2)` しか出せないため、検出順のまま切ると実害の大きい警告が
+     * 軽微な警告に押し出される。実際に起きていた組み合わせ:
+     *
+     *   「¥9,980 + 送料 ¥3,000」で、タイトルに「在庫わずか」がある商品
+     *     検出順 = priceWarnings + textWarnings + drip
+     *            = [CHARM_PRICING(LOW), 在庫煽り(MEDIUM), DRIP_PRICING(HIGH)]
+     *     take(2) → 「端数価格」「在庫わずか」だけが出て、
+     *     **総額が 3 割増える DRIP_PRICING が落ちる**。
+     *
+     * 同深刻度どうしは検出順を保つ (安定ソート)。検出順は detect() 内の判定順
+     * = 価格履歴の確度が高い順なので崩す理由が無い。
+     *
+     * `Severity` は LOW, MEDIUM, HIGH の**昇順**に宣言されているので、
+     * ordinal の降順が深刻度の降順になる (SaleCalendar.Tier は逆に重要度順の宣言なので
+     * 昇順が正しい — enum の宣言順は毎回確認すること)。
+     *
+     * Python 参照 (popcoon_core.prioritize_warnings) と完全一致。
+     */
+    fun prioritize(warnings: List<Warning>): List<Warning> =
+        warnings.sortedByDescending { it.severity.ordinal }
+
+    /**
      * 価格履歴からダークパターンを検出する。
      *
      * `realPrice <= 0` のレコードは統計に入れない。取得失敗を 0 円として記録した

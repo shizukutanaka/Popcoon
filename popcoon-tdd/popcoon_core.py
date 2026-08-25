@@ -511,6 +511,27 @@ class PsychWarning:
     severity: Severity
 
 
+def prioritize_warnings(warnings: List["PsychWarning"]) -> List["PsychWarning"]:
+    """深刻度の高い順 (HIGH → MEDIUM → LOW) に並べ替える。**安定ソート**。
+
+    表示側が件数を絞る (検索結果の行は 2 件までしか出せない) 前に必ず通すこと。
+    検出順のまま切ると、実害の大きい警告が軽微な警告に押し出される:
+
+      「¥9,980 + 送料 ¥3,000」の商品タイトルに「在庫わずか」がある場合、
+      検出順は [CHARM_PRICING(LOW), 在庫煽り(MEDIUM), DRIP_PRICING(HIGH)] となり、
+      先頭 2 件は LOW と MEDIUM。**実際に金銭的損失につながる「総額が 3 割増」
+      (DRIP_PRICING) だけが落ちる**。
+
+    同深刻度どうしの順序は検出順を保つ (安定ソート)。検出順は
+    detect_dark_patterns 内の判定順 = 価格履歴の確度が高い順なので、
+    それを崩す理由が無い。
+
+    Severity は LOW=1 < MEDIUM=2 < HIGH=3 の昇順で定義されているので、
+    value の**降順**が深刻度の降順になる。
+    """
+    return sorted(warnings, key=lambda w: -w.severity.value)
+
+
 def detect_dark_patterns(
     current_price: int,
     list_price: Optional[int],

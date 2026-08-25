@@ -250,7 +250,11 @@ class SearchViewModel @Inject constructor(
                 )
                 // .label は日本語固定文字列 (BuyTimingScorer 内部識別用) なので UI 表示には使わない。
                 // toLabelResource() で type/severity からロケール対応の文字列リソースへ変換する。
-                val warnings = (priceWarnings + textWarnings + listOfNotNull(dripWarning))
+                // ProductRow は take(2) しか表示できないので、**切る前に深刻度順へ**。
+                // 検出順のままだと [CHARM_PRICING(LOW), 在庫煽り(MEDIUM), DRIP_PRICING(HIGH)]
+                // のような並びで、実害の大きい DRIP_PRICING が落ちていた。
+                val warnings = DarkPatternDetector
+                    .prioritize(priceWarnings + textWarnings + listOfNotNull(dripWarning))
                     .map { w ->
                         val (resId, args) = w.toLabelResource()
                         UiText.StringResource(resId, *args.toTypedArray())

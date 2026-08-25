@@ -175,7 +175,10 @@ class ProductDetailViewModel @Inject constructor(
                 // SearchViewModel と異なり UiText 経由の Composable 解決を要しない)。
                 // textSignals (DarkPatternTextDetector) の evidence は商品タイトルから抽出した
                 // 生テキストそのもの (翻訳不能・翻訳すべきでない) のため、そのまま残す。
-                val warnings = (priceWarnings + listOfNotNull(dripWarning))
+                // 詳細画面は全件表示するので切り捨ては起きないが、検索結果
+                // (SearchViewModel) と並び順を揃えるためここでも深刻度順にする。
+                val warnings = DarkPatternDetector
+                    .prioritize(priceWarnings + listOfNotNull(dripWarning))
                     .map { w ->
                         val (resId, args) = w.toLabelResource()
                         val label = context.getString(resId, *args.toTypedArray())

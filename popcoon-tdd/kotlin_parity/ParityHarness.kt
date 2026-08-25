@@ -436,6 +436,37 @@ fun main() {
         println("TCOCAT\t$title\t${TCOCalculator.inferCategory(title) ?: "null"}")
     }
 
+    // ── WPRIO: 警告の深刻度並べ替え (popcoon_core.prioritize_warnings と照合) ────
+    // 表示側が take(2) で切るため、切る前の並びが「どの警告が見えるか」を決める。
+    // 安定性 (同深刻度は検出順維持) も含めて両言語で固定する。
+    // 入力は "ラベル:深刻度" の並び、出力は並べ替え後のラベル列。
+    val wprioCases = listOf(
+        // 実際に起きていた組み合わせ: ¥9,980 + 送料 ¥3,000 + タイトルに「在庫わずか」。
+        // 検出順のまま take(2) すると HIGH の DRIP_PRICING だけが落ちる。
+        "charm:LOW|stock:MEDIUM|drip:HIGH",
+        // 価格系 HIGH が先頭に来るケース (現状でも正しく出ていた並び)
+        "alwayson:HIGH|charm:LOW|stock:MEDIUM",
+        // 安定性: 同深刻度は検出順を保つ
+        "a:HIGH|b:HIGH|c:HIGH",
+        "a:MEDIUM|b:LOW|c:MEDIUM|d:LOW",
+        // 全種混在 + 逆順入力
+        "a:LOW|b:LOW|c:MEDIUM|d:HIGH|e:MEDIUM|f:HIGH",
+        // 境界
+        "only:HIGH",
+        "only:LOW",
+    )
+    for (enc in wprioCases) {
+        val ws = enc.split("|").map { pair ->
+            val (label, sev) = pair.split(":")
+            DarkPatternDetector.Warning(
+                type = DarkPatternDetector.WarningType.CHARM_PRICING,
+                label = label,
+                severity = DarkPatternDetector.Severity.valueOf(sev),
+            )
+        }
+        println("WPRIO\t$enc\t${DarkPatternDetector.prioritize(ws).joinToString(",") { it.label }}")
+    }
+
     for (cart in carts) {
         val r: CrossMallCartOptimizer.Result = CrossMallCartOptimizer.optimize(cart.items, cart.malls)
         val assignParts = ArrayList<String>()

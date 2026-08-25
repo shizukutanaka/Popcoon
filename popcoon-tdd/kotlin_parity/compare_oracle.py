@@ -22,7 +22,8 @@ from proto_seasonal_decomp_forecast import seasonal_decompose_forecast
 from proto_cross_mall_cart import optimize_basket
 from proto_darkpattern_signals import detect_dark_patterns as detect_text_patterns
 from proto_seasonal_signal import seasonal_buy_signal
-from popcoon_core import calculate_tco, infer_tco_category
+from popcoon_core import (calculate_tco, infer_tco_category, prioritize_warnings,
+                          PsychWarning, WarningType, Severity)
 
 
 def _parse_cart_items(enc):
@@ -192,6 +193,16 @@ for line in sys.stdin:
         exp = (f"{r.consumables_total};{r.energy_total};{r.maintenance};"
                f"{r.residual_value};{r.total_tco};{r.tco_per_month}")
         check(got == exp, f"tco ({category},y={years},i={intensity})", got, exp)
+
+    elif kind == "WPRIO":
+        enc, got = p[1], p[2]
+        ws = []
+        for pair in enc.split("|"):
+            label, sev = pair.split(":")
+            ws.append(PsychWarning(type=WarningType.CHARM_PRICING, label=label,
+                                   severity=Severity[sev]))
+        exp = ",".join(w.label for w in prioritize_warnings(ws))
+        check(got == exp, f"wprio ({enc})", got, exp)
 
     elif kind == "TCOCAT":
         title, got = p[1], p[2]
