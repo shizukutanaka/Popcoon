@@ -48,5 +48,7 @@ object DatabaseModule {
         db.searchHistoryDao()
 
     @Provides @Singleton
+    // ⚠️ 未配線: この DAO を注入しているクラスは無い (PopcoonDatabase.kt の注記参照)。
+    // Hilt の @Provides があるため「使われている」ように見えるが、消費者がいない。
     fun providePriceCacheDao(db: PopcoonDatabase): PriceCacheDao = db.priceCacheDao()
 }

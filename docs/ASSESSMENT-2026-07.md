@@ -116,3 +116,31 @@
 - ファイル数: Kotlin main 131 / unit test 64 / androidTest 4、Python 38
 
 この基準線を下回る変更は原因を特定するまで push しない。
+
+## 判断待ち: `price_cache` テーブルの扱い (2026-08 発見)
+
+`PriceCacheEntry` / `PriceCacheDao` / `price_cache` テーブル / Hilt の `@Provides` が
+一式そろっているが、**読み書きするコードがアプリ内に一切存在しない**。
+`PriceCacheDao` はどのクラスにも注入されていない (全ソース grep で確認)。
+Entity のコメントは「オフライン閲覧用」とだけ書かれており、オフラインで価格履歴を
+見られる機能があるかのように読めるが、そのような経路は無い —
+`ProductRepository.getPriceHistory` は毎回 backend を叩く。
+
+本セッションで見つけた「配線されているように見えて実際は到達不能」の 3 例目
+(他: `CircuitBreaker` が例外の握り潰しで永久に OPEN にならなかった、
+`darkPatternA11yLabel` が呼び出し元ゼロ)。CLAUDE.md の禁止事項
+「配線されない機能・デッドコードの追加」に該当する。
+
+**選択肢:**
+
+| | 内容 | 影響 |
+|---|---|---|
+| A | 削除する | Room version 7 → 8 + `DROP TABLE price_cache` の移行が必要。リリース 0 件なので実データ影響なし。コードは Entity/DAO/Provides/移行内の CREATE を撤去 |
+| B | 実際に配線する | `ProductRepository.getPriceHistory` にキャッシュ層を挟む。オフライン時に履歴を表示できるようになる。UI 側の「オフライン表示中」の扱いも要設計 |
+| C | 現状維持 | 実態どおりの「未配線」注記だけ残す (2026-08 に実施済み) |
+
+**スキーマ変更を伴う設計判断**のため、CLAUDE.md の方針に従いエージェント側では
+A/B を実施していない。C として注記のみ入れてある。
+なお `MIGRATION_5_6` に `price_cache` の CREATE TABLE が欠けていた件は
+到達性と無関係な移行の欠陥なので別途修正済み。
+

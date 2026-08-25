@@ -93,7 +93,18 @@ data class SearchHistoryEntry(
     val timestamp: Long = Instant.now().toEpochMilli(),
 )
 
-// ── Entity: PriceCache (オフライン閲覧用) ──────────────────────────────────
+// ── Entity: PriceCache ─────────────────────────────────────────────────────
+//
+// ⚠️ **未配線**。この表を読み書きするコードはアプリ内に存在しない
+// (2026-08 に全ソースを grep して確認: PriceCacheDao は DatabaseModule が
+//  @Provides するだけで、どのクラスにも注入されていない)。
+// 以前ここには「オフライン閲覧用」とだけ書かれており、オフラインで価格履歴を
+// 見られる機能があるかのように読めたが、実際にはそのような経路は無い。
+// ProductRepository.getPriceHistory は毎回 backend を叩く。
+//
+// 削除するか実際に配線するかは **スキーマ変更を伴う設計判断** なので、
+// CLAUDE.md の方針に従い独断で実施しない (docs/ASSESSMENT-2026-07.md に
+// 判断待ち項目として記録)。それまでは実態どおりの注記を残す。
 @Entity(tableName = "price_cache")
 data class PriceCacheEntry(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -203,6 +214,7 @@ interface SearchHistoryDao {
     }
 }
 
+/** ⚠️ **未配線** — このインタフェースを注入しているクラスは無い (上の Entity の注記参照)。 */
 @Dao
 interface PriceCacheDao {
     @Query("SELECT * FROM price_cache WHERE productKey = :key ORDER BY recordedAt DESC LIMIT :limit")
