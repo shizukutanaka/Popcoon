@@ -72,12 +72,27 @@ class SaleCalendarTest : StringSpec({
         sales.shouldExist { it.name.contains("プライムデー") }
     }
 
-    "活性セールリストは tier 降順" {
-        val d = LocalDate.of(2026, 7, 17)  // プライムデー中 + 多数の繰り返し
+    // 回帰: この検査は元々 2026-07-17 (金曜・17 日) を使っており、
+    // 「プライムデー中 + 多数の繰り返し」というコメントに反して monthlyRecurring が
+    // 1 件も返さない日だった (5のつく日でも 5と0でも 11/22 でも日曜でもない)。
+    // 活性セールがプライムデー 1 件だけなので `first().tier == MAJOR` は並び順と
+    // 無関係に成立し、実装が `sortedByDescending { it.tier.ordinal }` で
+    // 真逆に並んでいたことを検出できなかった。両 tier が同時に活性な日へ差し替え、
+    // フィクスチャが本当に条件を踏んでいることも表明する。
+    // 全 365 日の実行検証は kotlin_parity/run_calendar.sh。
+    "活性セールリストは重要度の高い順 (MAJOR → MEDIUM → RECURRING)" {
+        // 2026-12-06 は日曜。楽天スーパーセール冬 (12/4-11) と
+        // サイバーマンデー (12/6-12) が MAJOR、Yahoo! 日曜 +5% が RECURRING。
+        val d = LocalDate.of(2026, 12, 6)
         val sales = SaleCalendar.activeSales(d)
-        // MAJOR が先頭
-        sales.shouldNotBeEmpty()
+
+        // フィクスチャ自体の有効性 — 両 tier が実際に含まれること
+        sales.count { it.tier == SaleCalendar.Tier.MAJOR } shouldBe 2
+        sales.any { it.tier == SaleCalendar.Tier.RECURRING } shouldBe true
+
         sales.first().tier shouldBe SaleCalendar.Tier.MAJOR
+        val ordinals = sales.map { it.tier.ordinal }
+        ordinals shouldBe ordinals.sorted()
     }
 
     // 年境界回帰: 12月後半は当年の大型セールが全て過去 → 翌年春を返すべき

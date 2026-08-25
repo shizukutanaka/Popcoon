@@ -51,14 +51,29 @@ object SaleCalendar {
         val description: String,
     )
 
-    /** ある日 (today) が今アクティブなセール一覧 */
+    /**
+     * ある日 (today) が今アクティブなセール一覧。**重要度の高い順** (MAJOR → MEDIUM →
+     * RECURRING) で返す。SaleBanner / SaleCalendarScreen はこの順でチップを並べるので、
+     * 並び順は表示仕様そのものである。
+     *
+     * `Tier` は重要度順に宣言してあるので **ordinal の昇順**が正しい。
+     * 以前は `sortedByDescending { it.tier.ordinal }` で真逆に並んでいた
+     * (例: 2026-03-05 は `[RECURRING, RECURRING, MAJOR]` となり、楽天スーパーセールが
+     * 「Yahoo! 5のつく日 +4%」「楽天 5と0のつく日 +1%」の下に埋もれていた)。
+     * kotest 側の「活性セールリストは tier 降順」は 2026-07-17 (金曜・17 日) を
+     * 使っており、この日は monthlyRecurring が 1 件も返さないため活性セールが
+     * プライムデー 1 件だけ。`first().tier == MAJOR` が並び順と無関係に成立しており、
+     * 不変条件を宣言しながら一度も踏んでいなかった。
+     * 実行検証は kotlin_parity/run_calendar.sh (両 tier が同時活性な日を数えて
+     * フィクスチャが空回りしていないことも同時に表明する)。
+     */
     fun activeSales(date: LocalDate, platform: Platform? = null): List<Event> {
         val events = mutableListOf<Event>()
         events += monthlyRecurring(date)
         events += seasonalSales(date)
         return events.filter { it.startDate <= date && date <= it.endDate }
             .filter { platform == null || it.platform == null || it.platform == platform }
-            .sortedByDescending { it.tier.ordinal }
+            .sortedBy { it.tier.ordinal }
     }
 
     /** 次に来る大型セール (今日以降で最も近いもの) */

@@ -33,6 +33,7 @@ harnesses=(
   "run_deeplinks.sh" # DeepLinks: producer/consumer round-trip (notif/widget vs MainActivity)
   "run_currency.sh" # CurrencyFormatter: locale-independent yen formatting (de_DE/ar guard)
   "run_alerts.sh"   # PriceAlertEvaluator: target-price edge-trigger (Tier 53/54 regression guard)
+  "run_calendar.sh" # SaleCalendar: activeSales の重要度順 / nextMajorSale の最小性 (365 日走査)
 )
 
 # ハーネスは互いに独立している (それぞれ自前の mktemp -d へ出力し、ソースは読むだけ) ため
