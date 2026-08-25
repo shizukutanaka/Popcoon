@@ -205,6 +205,13 @@ python3 "$HERE/check_price_guard.py" || exit 1
 #    静的に決まる。
 python3 "$HERE/check_migrations.py" || exit 1
 
+# 9. 「上限を掛ける前に優先順位を付けているか」検査。同じ形の欠陥を 2 回見つけた:
+#    通知上限が超過分を破棄して二度と再通知されなくなった件 (RESEARCH-2026-08 §6) と、
+#    検索結果の警告 take(2) が支払額 3 割増の DRIP_PRICING(HIGH) を
+#    CHARM_PRICING(LOW) に押し出していた件 (§12)。どちらもユーザーに見える情報が
+#    静かに落ちる。3 回目を人間の注意力に頼らないための規則化。
+python3 "$HERE/check_truncation.py" || exit 1
+
 if [[ -f "$OUT/core.jar" ]]; then
   echo "CORE COMPILE: OK (${#TARGETS[@]} files)"
 else

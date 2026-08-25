@@ -43,8 +43,12 @@ fun SearchSuggestions(
     modifier: Modifier = Modifier,
 ) {
     val items = if (query.isBlank()) {
+        // truncate-order-ok: SearchHistoryDao.observeRecent が
+        // `ORDER BY timestamp DESC` で返すので、先頭 5 件 = 直近 5 件。
         recentSearches.take(5).map { SuggestionItem(it, isHistory = true) }
     } else {
+        // truncate-order-ok: Trie.suggest() の返り順は仕様として固定されており
+        // (popcoon_core.Trie と run_trie.sh で照合済み)、先頭ほど良い候補。
         suggestions.take(6).map { SuggestionItem(it, isHistory = false) }
     }
 

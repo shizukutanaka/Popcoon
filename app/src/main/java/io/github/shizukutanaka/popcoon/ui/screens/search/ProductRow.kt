@@ -130,6 +130,9 @@ internal fun ProductRow(
             if (row.warnings.isNotEmpty()) {
                 Spacer(Modifier.height(Spacing.sm))
                 Row {
+                    // truncate-order-ok: SearchViewModel が DarkPatternDetector.prioritize()
+                    // で深刻度降順に並べてから渡す。severity は UiText 変換で失われるため
+                    // ここでは並べ替えられない — 呼び出し側の責務である。
                     row.warnings.take(2).forEach { w ->
                         val text = w.asString()
                         Surface(

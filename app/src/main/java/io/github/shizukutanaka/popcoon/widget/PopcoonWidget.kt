@@ -64,7 +64,7 @@ class PopcoonWidget : GlanceAppWidget() {
         // SharedPreferences にキャッシュした最新価格を使用
         val prefs = context.getSharedPreferences("widget_cache", Context.MODE_PRIVATE)
         val count = prefs.getInt("count", 0)
-        return (0 until minOf(count, 3)).mapNotNull { i ->
+        return (0 until minOf(count, WidgetVerdict.WIDGET_ITEM_LIMIT)).mapNotNull { i ->
             val title = prefs.getString("title_$i", null) ?: return@mapNotNull null
             val price = prefs.getLong("price_$i", -1L)
             val verdict = prefs.getString("verdict_$i", WidgetVerdict.NEUTRAL)

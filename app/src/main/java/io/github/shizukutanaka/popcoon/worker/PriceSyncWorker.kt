@@ -169,6 +169,8 @@ class PriceSyncWorker @AssistedInject constructor(
             notificationManager.sendPriceDropSummary(
                 context = applicationContext,
                 suppressedCount = plan.suppressed.size,
+                // truncate-order-ok: PriceSyncPlanner.plan() が
+                // 「目標到達 → 下落率」の順に並べた残りを suppressed として返す。
                 titles = plan.suppressed.take(SUMMARY_TITLE_LIMIT).map { it.title },
             )
         }

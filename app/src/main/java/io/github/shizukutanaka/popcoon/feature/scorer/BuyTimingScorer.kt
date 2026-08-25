@@ -247,6 +247,9 @@ object BuyTimingScorer {
         if (names.isEmpty()) return Signal("", 0)
         penalty = max(-20, penalty)
         return Signal(
+            // truncate-order-ok: 直前の when が ALWAYS_ON_DISCOUNT / INFLATED_LIST_PRICE /
+            // PRE_SALE_MARKUP の 3 種だけを names に積む。いずれも Severity.HIGH なので
+            // 同順位内の切り捨てであり、深刻な項目が押し出されることはない。
             "ダークパターン検出 (${names.take(2).joinToString("/")})",
             penalty,
             SignalKind.DARK_PATTERN_DETECTED,

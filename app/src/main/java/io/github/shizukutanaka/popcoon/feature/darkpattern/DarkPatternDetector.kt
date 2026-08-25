@@ -104,6 +104,8 @@ object DarkPatternDetector {
 
         // 3. セール前値上げ: 直近7日 vs 前7日で平均+10%超え + 今セール中
         if (valid.size >= 14) {
+            // truncate-order-ok: history は時系列順で渡る契約 (PriceRecord.recordedAt 昇順)。
+            // ここでの takeLast(7) は「直近 7 日」という時間窓であって優先度の切り捨てではない。
             val recentAvg = valid.takeLast(7).map { it.realPrice }.average()
             val prevAvg = valid.subList(valid.size - 14, valid.size - 7)
                 .map { it.realPrice }.average()

@@ -55,7 +55,16 @@ object WidgetUpdater {
             val prefs = context.getSharedPreferences("widget_cache", Context.MODE_PRIVATE)
             // apply() — UI スレッドブロックなし、非同期書き込み
             prefs.edit().apply {
-                val topItems = items.take(3)
+                // 行動可能な順 (BUY_NOW → 下落率) に並べてから切る。DAO の
+                // ORDER BY addedAt DESC のまま take(3) すると、目標価格に到達した項目が
+                // 「最近追加した 3 件」に押し出されて見えなくなっていた。
+                val topItems = WidgetVerdict.topForWidget(items, WidgetVerdict.WIDGET_ITEM_LIMIT) {
+                    WidgetVerdict.Candidate(
+                        realPrice = it.realPrice,
+                        targetPrice = it.targetPrice,
+                        addedPrice = it.addedPrice,
+                    )
+                }
                 putInt("count", topItems.size)
                 topItems.forEachIndexed { i, item ->
                     putString("title_$i", item.title)

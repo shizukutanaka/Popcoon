@@ -35,6 +35,7 @@ harnesses=(
   "run_alerts.sh"   # PriceAlertEvaluator: target-price edge-trigger (Tier 53/54 regression guard)
   "run_sanitizer.sh" # LogSanitizer: PII 除去規則を backend (TypeScript) と共有コーパスで一致検証
   "run_calendar.sh" # SaleCalendar: activeSales の重要度順 / nextMajorSale の最小性 (365 日走査)
+  "run_widget.sh"   # WidgetVerdict: ウィジェット上位 3 件の「切る前に並べる」不変条件
 )
 
 # ハーネスは互いに独立している (それぞれ自前の mktemp -d へ出力し、ソースは読むだけ) ため

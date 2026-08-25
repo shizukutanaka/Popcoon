@@ -52,6 +52,8 @@ fun SaleBanner(
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
+        // truncate-order-ok: SaleCalendar.activeSales() が重要度の高い順
+        // (MAJOR → MEDIUM → RECURRING) で返す契約。実行検証は run_calendar.sh。
         activeSales.take(5).forEach { event ->
             SaleChip(event = event)
         }
