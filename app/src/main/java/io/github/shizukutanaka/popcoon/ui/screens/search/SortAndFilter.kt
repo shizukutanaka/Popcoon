@@ -23,26 +23,44 @@ enum class SortOption(@androidx.annotation.StringRes val labelRes: Int) {
     ;
 
     companion object {
+        /**
+         * 決定的なタイブレーク。同値の行が API の返却順に依存して並ぶと、
+         * 同じ検索を繰り返すだけで一覧が入れ替わって見える (EC の検索 API は
+         * 並び順を保証しない)。`WatchlistSort` が既に同じ理由で productKey を
+         * 最終キーにしているので揃える。
+         */
+        private val byKey = compareBy<SearchRow> { it.product.key }
+
         fun apply(rows: List<SearchRow>, option: SortOption): List<SearchRow> = when (option) {
             BUY_TIMING ->
-                rows.sortedByDescending { it.score }
+                rows.sortedWith(compareByDescending<SearchRow> { it.score }.then(byKey))
             PRICE_ASC ->
-                rows.sortedBy { it.effectivePrice }
+                rows.sortedWith(compareBy<SearchRow> { it.effectivePrice }.then(byKey))
             PRICE_DESC ->
-                rows.sortedByDescending { it.effectivePrice }
+                rows.sortedWith(compareByDescending<SearchRow> { it.effectivePrice }.then(byKey))
             DISCOUNT_DESC ->
-                rows.sortedByDescending { row ->
-                    val list = row.product.listPrice
-                    val real = row.product.realPrice
-                    // real <= 0 は価格取得に失敗したレコード。割引率 100% と計算されて
-                    // 先頭に並ぶため「割引率が高い順」が壊れる。判定不能として 0 扱い。
-                    if (list <= 0 || real <= 0) 0.0
-                    else (list - real).toDouble() / list
-                }
+                rows.sortedWith(compareByDescending<SearchRow> { discountFraction(it) }.then(byKey))
+            // ⚠️ Amazon には評価データが無い (PA-API 5.0 は星評価を返さず、
+            // AmazonPaApiClient は rating/reviewCount を設定しない)。null は
+            // NEGATIVE_INFINITY として最後尾に送られるため、この並び順は
+            // **モール横断の品質ランキングにはならない** — 楽天/Yahoo の中での
+            // 評価順で、Amazon は一律に後ろへ回る。データが取れない以上ここでは
+            // 是正できないので、少なくとも実態を記録しておく。
             RATING_DESC ->
                 rows.sortedWith(
                     compareByDescending<SearchRow> { it.product.rating ?: Float.NEGATIVE_INFINITY }
+                        .then(byKey)
                 )
+        }
+
+        /** 参考価格からの割引率 (0.0-1.0)。判定不能なら 0。 */
+        private fun discountFraction(row: SearchRow): Double {
+            val list = row.product.listPrice
+            val real = row.product.realPrice
+            // real <= 0 は価格取得に失敗したレコード。割引率 100% と計算されて
+            // 先頭に並ぶため「割引率が高い順」が壊れる。判定不能として 0 扱い。
+            if (list <= 0 || real <= 0) return 0.0
+            return (list - real).toDouble() / list
         }
     }
 }
