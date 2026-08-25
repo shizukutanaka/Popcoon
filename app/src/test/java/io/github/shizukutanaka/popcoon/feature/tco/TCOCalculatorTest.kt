@@ -155,6 +155,61 @@ class TCOCalculatorTest : StringSpec({
         TCOCalculator.inferCategory("Apple iPhone 15 128GB ブルー SIMフリー") shouldBe "smartphone"
     }
 
+    // 回帰: 付属品・消耗品・別ジャンルへの誤検出。TCO の電力/消耗品は購入価格と
+    // 独立した実額なので、誤検出すると表示が桁で壊れる。旧実装では例えば
+    //  「エアコン洗浄スプレー ¥980」 → air_conditioner → 電力 5 年 275,940 円 (本体価格の 283 倍)
+    //  「サプリメント カプセル ¥1,500」 → coffee_capsule → カプセル代 146,000 円
+    //  「3Dプリンター」 → inkjet_printer → 無関係なインク代 106,000 円
+    // が実際に ProductDetailScreen に出ていた。Python オラクル
+    // (popcoon_core.infer_tco_category) と kotlin_parity の TCOCAT で両言語同時に固定。
+    listOf(
+        "エアコン洗浄スプレー 3本セット",
+        "エアコン用 リモコン 汎用",
+        "エアコン 標準取付工事",
+        "冷蔵庫マット 透明 Mサイズ",
+        "冷蔵庫用 脱臭剤 3個パック",
+        "iPhone 15 ケース 耐衝撃 クリア",
+        "スマホスタンド 折りたたみ アルミ",
+        "スマホリング 落下防止",
+        "ノートパソコン スタンド 角度調整",
+        "プリンターインク 互換カートリッジ 4色セット",
+        "プリンター用紙 A4 500枚",
+        "3Dプリンター FDM 高精度 組立済み",
+        "ラベルプリンター テプラ PRO SR170",
+        "感熱式 レシートプリンター 80mm",
+        "カーエアコン ガス R134a 2本",
+        "Android タブレット 10インチ Wi-Fiモデル",
+        "スマートウォッチ Android iPhone対応",
+        "サプリメント カプセル 120粒 ビタミンD",
+        "ガチャガチャ カプセルトイ 空カプセル 50個",
+        "洗濯洗剤 ジェルボール カプセル 詰め替え",
+        "ネスプレッソ カプセル 50個入り 詰め合わせ",
+    ).forEach { title ->
+        "付属品・別ジャンルは TCO 対象外: $title" {
+            TCOCalculator.inferCategory(title) shouldBe null
+        }
+    }
+
+    "カプセル式コーヒーメーカー本体は検出する (棄却しすぎていないことの確認)" {
+        TCOCalculator.inferCategory("ネスプレッソ コーヒーメーカー エッセンサミニ") shouldBe "coffee_capsule"
+    }
+
+    "エアコン本体は検出する (カーエアコン除外が本体を巻き込まないこと)" {
+        TCOCalculator.inferCategory("ダイキン エアコン 6畳 S223ATES") shouldBe "air_conditioner"
+    }
+
+    "inferCategory の戻り値は calculate が知るカテゴリのみ" {
+        listOf("プリンター", "レーザープリンター", "iPhone", "ノートpc", "冷蔵庫",
+            "エアコン", "コーヒーメーカー").forEach { title ->
+            val category = TCOCalculator.inferCategory(title)
+            category shouldNotBe null
+            // 未知カテゴリなら consumables/energy/residual が全て generic に落ちて
+            // 購入価格そのものになる。そうなっていないことで対応表の存在を確認する。
+            val r = TCOCalculator.calculate(100_000, category!!, years = 1)
+            (r.consumablesTotal + r.energyTotal + r.residualValue) shouldBeGreaterThan 0L
+        }
+    }
+
     "inferCategory はどんな入力でも例外なし" {
         checkAll(Arb.string(0..100)) { s ->
             TCOCalculator.inferCategory(s)

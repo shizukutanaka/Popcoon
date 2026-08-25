@@ -18,7 +18,8 @@ sys.path.insert(0, '/home/claude/popcoon-tdd')
 from popcoon_core import (
     Platform, Product, PriceRecord, Confidence,
     predict_price, simulate_customs, CustomsVerdict,
-    calculate_tco, detect_dark_patterns, WarningType, Severity,
+    calculate_tco, infer_tco_category, detect_dark_patterns, WarningType, Severity,
+    CONSUMABLES_DB, ENERGY_DB, RESIDUAL_RATE_DB,
     Trie, AlertCondition, eval_condition,
     score_eco_ethics,
 )
@@ -265,6 +266,81 @@ class TestTCO:
         """3年以下は修理費ゼロ"""
         r = calculate_tco(50_000, "generic", years=3)
         assert r.maintenance == 0
+
+
+class TestInferTcoCategory:
+    """タイトル → TCO カテゴリ推定。
+
+    TCO の電力・消耗品は購入価格と独立した実額なので、誤検出は表示を桁で壊す
+    (取りこぼしは TCO パネルが出ないだけ)。よって誤検出側を厚く固定する。
+    """
+
+    @pytest.mark.parametrize("title,expected", [
+        ("キヤノン インクジェットプリンター PIXUS TS3530", "inkjet_printer"),
+        ("エプソン プリンター EW-452A 家庭用", "inkjet_printer"),
+        ("ブラザー レーザープリンター モノクロ HL-L2375DW", "laser_printer"),
+        ("キヤノン レーザー複合機 Satera MF264dw", "laser_printer"),
+        ("ノートパソコン 15.6インチ Windows11 メモリ16GB", "laptop"),
+        ("パナソニック 冷蔵庫 500L NR-F507", "refrigerator"),
+        ("ダイキン エアコン 6畳 S223ATES", "air_conditioner"),
+        ("Apple iPhone 15 128GB ブルー SIMフリー", "smartphone"),
+        ("ネスプレッソ コーヒーメーカー エッセンサミニ", "coffee_capsule"),
+    ])
+    def test_true_positives(self, title, expected):
+        assert infer_tco_category(title) == expected
+
+    @pytest.mark.parametrize("title", [
+        # 付属品・消耗品・工事 (本体前提の TCO モデルを当ててはいけない)
+        "エアコン洗浄スプレー 3本セット",
+        "エアコン用 リモコン 汎用",
+        "エアコン 標準取付工事",
+        "冷蔵庫マット 透明 Mサイズ",
+        "冷蔵庫用 脱臭剤 3個パック",
+        "iPhone 15 ケース 耐衝撃 クリア",
+        "スマホスタンド 折りたたみ アルミ",
+        "スマホリング 落下防止",
+        "ノートパソコン スタンド 角度調整",
+        "プリンターインク 互換カートリッジ 4色セット",
+        "プリンター用紙 A4 500枚",
+        # 語は共通だが消耗品体系が別のジャンル
+        "3Dプリンター FDM 高精度 組立済み",
+        "ラベルプリンター テプラ PRO SR170",
+        "感熱式 レシートプリンター 80mm",
+        "カーエアコン ガス R134a 2本",
+        # スマートフォン語を含む別カテゴリ
+        "Android タブレット 10インチ Wi-Fiモデル",
+        "スマートウォッチ Android iPhone対応",
+        # 単独の「カプセル」— 以前はここが全て coffee_capsule だった
+        "サプリメント カプセル 120粒 ビタミンD",
+        "ガチャガチャ カプセルトイ 空カプセル 50個",
+        "洗濯洗剤 ジェルボール カプセル 詰め替え",
+        "ネスプレッソ カプセル 50個入り 詰め合わせ",
+        # そもそも対象外
+        "ワイヤレスイヤホン WH-1000XM5",
+        "",
+    ])
+    def test_false_positives_rejected(self, title):
+        assert infer_tco_category(title) is None
+
+    def test_accessory_marker_beats_category_word(self):
+        """付属品判定はカテゴリ判定より先に効く (順序の固定)。"""
+        assert infer_tco_category("インクジェットプリンター 用 交換用インク") is None
+
+    def test_case_insensitive_for_ascii(self):
+        assert infer_tco_category("APPLE IPHONE 15") == "smartphone"
+        assert infer_tco_category("Gaming LAPTOP RTX4060") == "laptop"
+
+    def test_never_raises(self):
+        for s in ["", " ", "\t\n", "🎁" * 50, "プリンター" * 200, "?" * 1000]:
+            infer_tco_category(s)
+
+    def test_result_is_a_known_tco_category(self):
+        """返り値は必ず calculate_tco が知っているキーか None。"""
+        known = set(CONSUMABLES_DB) | set(ENERGY_DB) | set(RESIDUAL_RATE_DB)
+        for title in ["プリンター", "レーザープリンター", "iPhone", "ノートpc",
+                      "冷蔵庫", "エアコン", "コーヒーメーカー"]:
+            got = infer_tco_category(title)
+            assert got is not None and got in known, title
 
 
 # ═══════════════════════════════════════════════════════════════════════════

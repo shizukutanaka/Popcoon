@@ -396,6 +396,46 @@ fun main() {
             "${r.consumablesTotal};${r.energyTotal};${r.maintenance};${r.residualValue};${r.totalTco};${r.tcoPerMonth}")
     }
 
+    // ── TCOCAT: タイトル → TCO カテゴリ推定 (popcoon_core.infer_tco_category と照合) ──
+    // 誤検出は電力/消耗品という「価格と独立した実額」を無関係な商品に積むため、
+    // 表示が桁で壊れる。付属品・別ジャンル語の棄却を両言語で固定する。
+    val tcoTitles = listOf(
+        "キヤノン インクジェットプリンター PIXUS TS3530",
+        "エプソン プリンター EW-452A 家庭用",
+        "ブラザー レーザープリンター モノクロ HL-L2375DW",
+        "キヤノン レーザー複合機 Satera MF264dw",
+        "ノートパソコン 15.6インチ Windows11 メモリ16GB",
+        "パナソニック 冷蔵庫 500L NR-F507",
+        "ダイキン エアコン 6畳 S223ATES",
+        "Apple iPhone 15 128GB ブルー SIMフリー",
+        "ネスプレッソ コーヒーメーカー エッセンサミニ",
+        "エアコン洗浄スプレー 3本セット",
+        "エアコン用 リモコン 汎用",
+        "冷蔵庫マット 透明 Mサイズ",
+        "iPhone 15 ケース 耐衝撃 クリア",
+        "スマホスタンド 折りたたみ アルミ",
+        "ノートパソコン スタンド 角度調整",
+        "プリンターインク 互換カートリッジ 4色セット",
+        "プリンター用紙 A4 500枚",
+        "3Dプリンター FDM 高精度 組立済み",
+        "ラベルプリンター テプラ PRO SR170",
+        "感熱式 レシートプリンター 80mm",
+        "カーエアコン ガス R134a 2本",
+        "Android タブレット 10インチ Wi-Fiモデル",
+        "スマートウォッチ Android iPhone対応",
+        "サプリメント カプセル 120粒 ビタミンD",
+        "ガチャガチャ カプセルトイ 空カプセル 50個",
+        "ネスプレッソ カプセル 50個入り 詰め合わせ",
+        "インクジェットプリンター 用 交換用インク",
+        "APPLE IPHONE 15",
+        "Gaming LAPTOP RTX4060",
+        "ワイヤレスイヤホン WH-1000XM5",
+        "",
+    )
+    for (title in tcoTitles) {
+        println("TCOCAT\t$title\t${TCOCalculator.inferCategory(title) ?: "null"}")
+    }
+
     for (cart in carts) {
         val r: CrossMallCartOptimizer.Result = CrossMallCartOptimizer.optimize(cart.items, cart.malls)
         val assignParts = ArrayList<String>()

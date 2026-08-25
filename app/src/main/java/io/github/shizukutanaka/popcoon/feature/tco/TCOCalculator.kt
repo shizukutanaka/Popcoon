@@ -116,34 +116,67 @@ object TCOCalculator {
     }
 
     /**
+     * 「本体」ではなく本体の付属品・消耗品・工事を指す語。
+     *
+     * TCO は本体前提のモデルで、電力・消耗品は**購入価格と独立した実額**を積む。
+     * そのため付属品に当てると誤差が桁で出る。実測例 (years=5, intensity=1.0):
+     *  - 「エアコン洗浄スプレー ¥980」→ 電力だけで 275,940 円、TCO 277,018 円 (本体価格の 283 倍)
+     *  - 「サプリメント カプセル ¥1,500」→ カプセル代 146,000 円、TCO 147,650 円
+     *  - 「3Dプリンター」→ 無関係なインク代 106,000 円
+     */
+    private val ACCESSORY_MARKERS = listOf(
+        "ケース", "カバー", "フィルム", "保護", "スタンド", "ホルダー", "ストラップ",
+        "リング", "クリーナー", "洗浄", "脱臭", "消臭", "スプレー", "マット",
+        "収納", "ラック", "フィルター", "詰め替え", "交換用", "互換",
+        "カートリッジ", "リモコン", "工事", "ケーブル", "充電器", "アダプタ", "用紙",
+    )
+
+    /** 「プリンター」を含むが消耗品体系が全く違う製品。 */
+    private val NON_INKJET_PRINTER = listOf("3d", "ラベル", "レシート", "感熱", "シール")
+
+    /** スマートフォン語を含むが本体ではない製品 (タブレット・TV 端末・ウォッチ等)。 */
+    private val NON_PHONE = listOf("タブレット", "tablet", "ipad", "ウォッチ", "watch", "tv", "ナビ")
+
+    /**
      * 商品タイトルから TCO 対象カテゴリを推定する。
      *
      * TCO (総保有コスト) が購入価格と大きく乖離するのは消耗品・電力を伴う製品。
      * 該当しない商品では TCO 表示は無意味なため null を返す。
      *
+     * 設計方針は **取りこぼし優先** — 誤検出は上記のとおり表示を桁で壊すが、
+     * 取りこぼしは TCO パネルが出ないだけで害がない。よって曖昧な語
+     * (単独の「カプセル」= カプセルトイ/サプリ/ジェルボール等) は積極的に捨てる。
+     *
+     * Python 実装 (popcoon_core.py::infer_tco_category) と同一。判定順序も含めて一致させること。
+     *
      * @return ENERGY_MAP / consumables 対応カテゴリ、該当なしは null
      */
     fun inferCategory(title: String): String? {
         val t = title.lowercase()
+        if (ACCESSORY_MARKERS.any { t.contains(it) }) return null
+        if (t.contains("プリンター") && NON_INKJET_PRINTER.any { t.contains(it) }) return null
         return when {
-            t.contains("インクジェット") || (t.contains("プリンター") && !t.contains("レーザー")) ->
-                "inkjet_printer"
             t.contains("レーザープリンター") || t.contains("レーザー複合機") ->
                 "laser_printer"
+            t.contains("インクジェット") || (t.contains("プリンター") && !t.contains("レーザー")) ->
+                "inkjet_printer"
             // RESIDUAL_RATE_DB (calculate() 内) には "smartphone" 用の残存価値式が
             // 元々存在したが、ここに検出条件が無かったため実商品では一度も到達できない
-            // 死んだ分岐だった (機能過不足監査で発見)。5年で残存価値がほぼ0になる
-            // 他カテゴリと異なり、中古スマホ市場は現実的な残存価値を持つため意義が大きい。
+            // 死んだ分岐だった (機能過不足監査で発見)。
             t.contains("スマホ") || t.contains("スマートフォン") || t.contains("iphone") ||
                 t.contains("android") || t.contains("携帯電話") ->
-                "smartphone"
+                if (NON_PHONE.any { t.contains(it) }) null else "smartphone"
             t.contains("ノートpc") || t.contains("ノートパソコン") || t.contains("laptop") ->
                 "laptop"
             t.contains("冷蔵庫") || t.contains("refrigerator") ->
                 "refrigerator"
-            t.contains("エアコン") || t.contains("air conditioner") ->
+            // カーエアコンは車載 (電力モデルが家庭用と別) なので対象外。
+            (t.contains("エアコン") && !t.contains("カーエアコン")) || t.contains("air conditioner") ->
                 "air_conditioner"
-            t.contains("コーヒーメーカー") || t.contains("カプセル") ->
+            // 単独の「カプセル」は使わない。本体は日本の EC では概ね
+            // 「〜メーカー」「〜マシン」と表記される。
+            t.contains("コーヒーメーカー") || t.contains("コーヒーマシン") ||
+                t.contains("エスプレッソマシン") || t.contains("カプセルマシン") ->
                 "coffee_capsule"
             else -> null
         }

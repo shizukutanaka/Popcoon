@@ -22,7 +22,7 @@ from proto_seasonal_decomp_forecast import seasonal_decompose_forecast
 from proto_cross_mall_cart import optimize_basket
 from proto_darkpattern_signals import detect_dark_patterns as detect_text_patterns
 from proto_seasonal_signal import seasonal_buy_signal
-from popcoon_core import calculate_tco
+from popcoon_core import calculate_tco, infer_tco_category
 
 
 def _parse_cart_items(enc):
@@ -192,6 +192,11 @@ for line in sys.stdin:
         exp = (f"{r.consumables_total};{r.energy_total};{r.maintenance};"
                f"{r.residual_value};{r.total_tco};{r.tco_per_month}")
         check(got == exp, f"tco ({category},y={years},i={intensity})", got, exp)
+
+    elif kind == "TCOCAT":
+        title, got = p[1], p[2]
+        exp = infer_tco_category(title) or "null"
+        check(got == exp, f"tcocat ({title!r})", got, exp)
 
     elif kind == "SDOW":
         hist = []

@@ -388,6 +388,59 @@ RESIDUAL_RATE_DB = {
 }
 
 
+# 「本体」ではなく本体の付属品・消耗品・工事を指す語。TCO は本体前提のモデル
+# (電力・消耗品が購入価格と独立した実額) なので、付属品に適用すると誤差が桁で出る。
+# 例: 「エアコン洗浄スプレー ¥980」に air_conditioner を当てると電力だけで
+# 5 年 275,940 円 = 本体価格の 283 倍という TCO が表示される。
+_TCO_ACCESSORY_MARKERS = (
+    "ケース", "カバー", "フィルム", "保護", "スタンド", "ホルダー", "ストラップ",
+    "リング", "クリーナー", "洗浄", "脱臭", "消臭", "スプレー", "マット",
+    "収納", "ラック", "フィルター", "詰め替え", "交換用", "互換",
+    "カートリッジ", "リモコン", "工事", "ケーブル", "充電器", "アダプタ", "用紙",
+)
+
+# 「プリンター」を含むが消耗品体系が全く違う製品。インクジェット扱いすると
+# インク代 (5 年 106,000 円) を無関係な製品に加算する。
+_TCO_NON_INKJET_PRINTER = ("3d", "ラベル", "レシート", "感熱", "シール")
+
+# スマートフォン語を含むが本体ではない製品 (タブレット・TV 端末・ウォッチ等)。
+_TCO_NON_PHONE = ("タブレット", "tablet", "ipad", "ウォッチ", "watch", "tv", "ナビ")
+
+
+def infer_tco_category(title: str) -> Optional[str]:
+    """商品タイトルから TCO 対象カテゴリを推定する (該当なしは None)。
+
+    設計方針: **取りこぼし (None) より誤検出のほうが有害**。
+    TCO の電力・消耗品は購入価格と独立した実額なので、付属品や別ジャンルに
+    誤適用すると「¥1,500 のサプリに 5 年 147,650 円」のような表示になる。
+    逆に取りこぼした場合は TCO パネルが出ないだけで害がない。
+    したがって曖昧な語 (単独の「カプセル」等) は積極的に捨てる。
+    """
+    t = title.lower()
+    if any(m in t for m in _TCO_ACCESSORY_MARKERS):
+        return None
+    if "プリンター" in t and any(m in t for m in _TCO_NON_INKJET_PRINTER):
+        return None
+    if "レーザープリンター" in t or "レーザー複合機" in t:
+        return "laser_printer"
+    if "インクジェット" in t or ("プリンター" in t and "レーザー" not in t):
+        return "inkjet_printer"
+    if any(m in t for m in ("スマホ", "スマートフォン", "iphone", "android", "携帯電話")):
+        return None if any(m in t for m in _TCO_NON_PHONE) else "smartphone"
+    if any(m in t for m in ("ノートpc", "ノートパソコン", "laptop")):
+        return "laptop"
+    if "冷蔵庫" in t or "refrigerator" in t:
+        return "refrigerator"
+    # カーエアコンは車載 (電力モデルが家庭用と別) なので対象外。
+    if ("エアコン" in t and "カーエアコン" not in t) or "air conditioner" in t:
+        return "air_conditioner"
+    # 単独の「カプセル」はカプセルトイ・サプリ・洗剤ジェルボールを巻き込むため使わない。
+    # 本体は日本の EC では概ね「〜メーカー」「〜マシン」と表記される。
+    if any(m in t for m in ("コーヒーメーカー", "コーヒーマシン", "エスプレッソマシン", "カプセルマシン")):
+        return "coffee_capsule"
+    return None
+
+
 def calculate_tco(
     purchase_price: int,
     category: str,
