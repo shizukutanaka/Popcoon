@@ -1,80 +1,22 @@
 /**
  * AlertCondition ツリー評価エンジンのテスト。
  *
- * Kotlin 側からの仕様確認 — backend が price_below/above/atl/discount_pct/AND/OR/NOT を
- * 正しく評価することを保証する。境界値・プロパティレベルの網羅は再実装コピーで行い、
- * 実ハンドラー越しの HTTP 層・KV 実処理・認可検証は worker.test.ts が担う
- * (vitest.config.ts で @cloudflare/vitest-pool-workers を 2026-07 に有効化済み)。
+ * **本番の evaluateCondition を直接 import して検証する**。以前このファイルは
+ * 評価器を丸ごと再実装したコピーを対象にしており (「仕様文書化」の名目)、
+ * 本番コードの分岐は 1 行も通っていなかった。コピーは本番と一緒に更新されない限り
+ * 乖離するし、実際に本番側にあった fail-open の欠陥
+ * (空 children の and が vacuous truth で常に真、子無し not が常に真、
+ *  value 無し price_above が `>= 0` で常に真) を、このコピーは同じバグごと
+ * 写していたため誰も気付けなかった。
+ *
+ * HTTP 層・KV 実処理・認可検証は worker.test.ts が実ハンドラー越しに担う。
  */
 
 import { describe, it, expect } from "vitest";
-
-// 条件評価エンジンを再実装 (実装部分の仕様文書化)
-interface AlertCondition {
-  type: "price_below" | "price_above" | "atl" | "discount_pct" | "and" | "or" | "not";
-  value?: number;
-  children?: AlertCondition[];
-}
-
-interface PriceRecord {
-  real_price: number;
-  list_price: number;
-}
-
-const MAX_CONDITION_DEPTH = 10;
-
-function evaluateCondition(c: AlertCondition, current: PriceRecord, history: PriceRecord[], depth = 0): boolean {
-  if (depth > MAX_CONDITION_DEPTH) return false;  // fail-closed: 深すぎるツリーは不発火扱い
-  switch (c.type) {
-    case "price_below":
-      return current.real_price <= (c.value ?? 0);
-    case "price_above":
-      return current.real_price >= (c.value ?? 0);
-    case "atl": {
-      if (history.length < 2) return false;
-      // history は新しい順で current === history[0]。過去最安は current を除いた history.slice(1)。
-      const historicLow = Math.min(...history.slice(1).map(r => r.real_price));
-      return current.real_price <= historicLow;
-    }
-    case "discount_pct": {
-      if (current.list_price <= 0) return false;
-      const pct = (current.list_price - current.real_price) / current.list_price * 100;
-      return pct >= (c.value ?? 0);
-    }
-    case "and": {
-      const children = Array.isArray(c.children) ? c.children : [];
-      return children.every(child => evaluateCondition(child, current, history, depth + 1));
-    }
-    case "or": {
-      const children = Array.isArray(c.children) ? c.children : [];
-      return children.some(child => evaluateCondition(child, current, history, depth + 1));
-    }
-    case "not": {
-      const child = Array.isArray(c.children) ? c.children[0] : undefined;
-      return !(evaluateCondition(child ?? { type: "price_below" }, current, history, depth + 1));
-    }
-    default:
-      return false;
-  }
-}
+import { evaluateCondition, isValidCondition, MAX_CONDITION_DEPTH } from "../src/index";
+import type { AlertCondition, PriceRecord } from "../src/index";
 
 const MAX_CONDITION_JSON_LENGTH = 2000;
-const VALID_CONDITION_TYPES = new Set([
-  "price_below", "price_above", "atl", "discount_pct", "and", "or", "not",
-]);
-
-function isValidCondition(value: unknown, depth = 0): value is AlertCondition {
-  if (depth > MAX_CONDITION_DEPTH) return false;
-  if (typeof value !== "object" || value === null) return false;
-  const c = value as Record<string, unknown>;
-  if (typeof c.type !== "string" || !VALID_CONDITION_TYPES.has(c.type)) return false;
-  if (c.value !== undefined && typeof c.value !== "number") return false;
-  if (c.children !== undefined) {
-    if (!Array.isArray(c.children)) return false;
-    if (!c.children.every(child => isValidCondition(child, depth + 1))) return false;
-  }
-  return true;
-}
 
 describe("AlertCondition evaluation", () => {
 
@@ -437,5 +379,100 @@ describe("recorded_at 検証", () => {
     const good = ["2026-01-01T00:00:00Z", "2026-02-01T00:00:00Z", "2026-03-01T00:00:00Z"];
     expect(sortDesc(good)[0]).toBe("2026-03-01T00:00:00Z");
     expect(sortDesc([...good, "today"])[0]).toBe("today");  // 検証が無いとこうなる
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// fail-open だった経路 (2026-08)
+//
+// evaluateCondition の深さガードには「fail-closed: 深すぎるツリーは不発火扱い」と
+// 明記されているのに、壊れた条件の 3 経路は逆に **必ず発火** していた:
+//   - {"type":"and"}        → children=[] に .every() で vacuous truth = true
+//   - {"type":"not"}        → 既定 {type:"price_below"} (value 無し) = real_price<=0 が
+//                             false → 反転して true
+//   - {"type":"price_above"} → value ?? 0 で real_price >= 0 = 常に true
+// どれも isValidCondition が children / value を必須にしていなかったため
+// POST /v1/alerts から素通りで保存でき、毎サイクル誤通知を出し続ける
+// 「壊れたアラート」を作れた。評価側・書き込み側の両方で塞ぐ。
+// ─────────────────────────────────────────────────────────────────────────────
+describe("壊れた条件は発火させない (fail-closed)", () => {
+  const current: PriceRecord = {
+    product_key: "amazon:B0", platform: "amazon",
+    list_price: 5000, real_price: 4000, recorded_at: "2026-08-18T00:00:00Z",
+  };
+  const history: PriceRecord[] = [current, { ...current, real_price: 3000 }];
+
+  it("children が空の and は発火しない (vacuous truth を潰す)", () => {
+    expect(evaluateCondition({ type: "and", children: [] }, current, history)).toBe(false);
+    expect(evaluateCondition({ type: "and" } as AlertCondition, current, history)).toBe(false);
+  });
+
+  it("children が空の or は発火しない", () => {
+    expect(evaluateCondition({ type: "or", children: [] }, current, history)).toBe(false);
+  });
+
+  it("子の無い not は発火しない", () => {
+    expect(evaluateCondition({ type: "not" } as AlertCondition, current, history)).toBe(false);
+    expect(evaluateCondition({ type: "not", children: [] }, current, history)).toBe(false);
+  });
+
+  it("value の無い比較条件は発火しない", () => {
+    for (const type of ["price_below", "price_above", "discount_pct"] as const) {
+      expect(evaluateCondition({ type } as AlertCondition, current, history)).toBe(false);
+    }
+  });
+
+  it("正当な条件は従来どおり発火する (締めすぎていないこと)", () => {
+    expect(evaluateCondition({ type: "price_below", value: 4500 }, current, history)).toBe(true);
+    expect(evaluateCondition({ type: "price_above", value: 3500 }, current, history)).toBe(true);
+    expect(evaluateCondition(
+      { type: "and", children: [{ type: "price_below", value: 4500 }] }, current, history,
+    )).toBe(true);
+    expect(evaluateCondition(
+      { type: "not", children: [{ type: "price_below", value: 100 }] }, current, history,
+    )).toBe(true);
+  });
+
+  it("書き込み時バリデーションも同じものを拒否する (多層防御)", () => {
+    expect(isValidCondition({ type: "and" })).toBe(false);
+    expect(isValidCondition({ type: "and", children: [] })).toBe(false);
+    expect(isValidCondition({ type: "or", children: [] })).toBe(false);
+    expect(isValidCondition({ type: "not" })).toBe(false);
+    expect(isValidCondition({ type: "price_above" })).toBe(false);
+    expect(isValidCondition({ type: "discount_pct" })).toBe(false);
+    // not は 1 つだけ評価するので、余分な子は誤解を招くため拒否
+    expect(isValidCondition({
+      type: "not",
+      children: [{ type: "price_below", value: 1 }, { type: "price_above", value: 2 }],
+    })).toBe(false);
+    // 正当なものは受理
+    expect(isValidCondition({ type: "atl" })).toBe(true);
+    expect(isValidCondition({ type: "price_below", value: 1000 })).toBe(true);
+    expect(isValidCondition({
+      type: "and", children: [{ type: "atl" }, { type: "price_below", value: 1000 }],
+    })).toBe(true);
+  });
+});
+
+// ── atl は ¥0 汚染レコードを最小値に混ぜない ────────────────────────────────
+describe("atl の ¥0 汚染耐性", () => {
+  const mk = (p: number): PriceRecord => ({
+    product_key: "amazon:B0", platform: "amazon",
+    list_price: 5000, real_price: p, recorded_at: "2026-08-18T00:00:00Z",
+  });
+
+  it("履歴に混ざった ¥0 が historicLow を 0 にして ATL を永久に潰さない", () => {
+    // 現在 2900 は過去 (3000/3500) の最安を下回る = 本物の ATL。
+    // ¥0 を最小値に含めると historicLow=0 となり、二度と発火しなくなっていた。
+    const history = [mk(2900), mk(3000), mk(0), mk(3500)];
+    expect(evaluateCondition({ type: "atl" }, mk(2900), history)).toBe(true);
+  });
+
+  it("有効な過去レコードが無ければ発火しない", () => {
+    expect(evaluateCondition({ type: "atl" }, mk(2900), [mk(2900), mk(0)])).toBe(false);
+  });
+
+  it("現在価格が ¥0 (取得失敗) なら発火しない", () => {
+    expect(evaluateCondition({ type: "atl" }, mk(0), [mk(0), mk(3000)])).toBe(false);
   });
 });

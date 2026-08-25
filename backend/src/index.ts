@@ -39,7 +39,7 @@ export interface Env {
   ADVICE_RATE_LIMITER?: RateLimit;
 }
 
-interface PriceRecord {
+export interface PriceRecord {
   product_key: string;
   platform: string;
   list_price: number;
@@ -508,7 +508,7 @@ async function handleRequest(req: Request, env: Env): Promise<Response> {
 }
 
 // ── AlertCondition 評価エンジン ──────────────────────────────────────────────
-interface AlertCondition {
+export interface AlertCondition {
   type: "price_below" | "price_above" | "atl" | "discount_pct" | "and" | "or" | "not";
   value?: number;
   children?: AlertCondition[];
@@ -520,50 +520,57 @@ interface AlertCondition {
 // 独立して深さを打ち切る (多層防御 — 機能過不足監査で発見: 深いネストで JS のコールスタックが
 // 枯渇すると evaluateAlerts の for ループ全体が例外で中断し、それ以降のアラートが
 // 二度と評価されなくなる恐れがあった)。
-const MAX_CONDITION_DEPTH = 10;
+export const MAX_CONDITION_DEPTH = 10;
 
-function evaluateCondition(
+export function evaluateCondition(
   condition: AlertCondition, current: PriceRecord, history: PriceRecord[], depth = 0,
 ): boolean {
   if (depth > MAX_CONDITION_DEPTH) return false;  // fail-closed: 深すぎるツリーは不発火扱い
 
+  // 比較系は閾値が無ければ発火させない。`condition.value ?? 0` で代用すると
+  // price_above が `real_price >= 0` となり **常に発火** する (fail-open)。
+  const threshold = typeof condition.value === "number" ? condition.value : null;
+  // and/or/not の子。空なら発火させない (下記の理由)。
+  const children = Array.isArray(condition.children) ? condition.children : [];
+
   switch (condition.type) {
     case "price_below":
-      return current.real_price <= (condition.value ?? 0);
+      return threshold !== null && current.real_price <= threshold;
 
     case "price_above":
-      return current.real_price >= (condition.value ?? 0);
+      return threshold !== null && current.real_price >= threshold;
 
     case "atl": {
-      if (history.length < 2) return false;
-      // history は新しい順 (appendPriceHistory が降順ソート) で current === history[0]。
-      // 過去最安は「current を除く全履歴」= history.slice(1) の最小値。
-      // 旧実装は slice(0,-1) で最古を除外しており、最古が真の最安だった場合に
-      // ATL を誤発火していた (= 偽の「過去最安」通知でユーザーの信頼を損なう)。
-      const historicLow = Math.min(...history.slice(1).map(r => r.real_price));
-      return current.real_price <= historicLow;
+      // real_price <= 0 は取得失敗を 0 円として記録した汚染レコードで、実際に成立した
+      // 価格ではない。最小値に混ざると historicLow が 0 になり、**本物の過去最安に
+      // 到達しても永久に発火しない**。書き込み側は塞いだが既存レコードは残るため、
+      // 評価側でも無視する (アプリ側の読み出し防御と同じ方針)。
+      const past = history.slice(1).map(r => r.real_price).filter(p => p > 0);
+      if (past.length === 0 || current.real_price <= 0) return false;
+      return current.real_price <= Math.min(...past);
     }
 
     case "discount_pct": {
+      if (threshold === null) return false;
       if (current.list_price <= 0) return false;
       const pct = (current.list_price - current.real_price) / current.list_price * 100;
-      return pct >= (condition.value ?? 0);
+      return pct >= threshold;
     }
 
-    case "and": {
-      const children = Array.isArray(condition.children) ? condition.children : [];
-      return children.every(c => evaluateCondition(c, current, history, depth + 1));
-    }
+    // 空の children で `every` は **真** を返す (vacuous truth) ため、
+    // `{"type":"and"}` だけのアラートが毎サイクル無条件に発火していた。
+    case "and":
+      return children.length > 0 &&
+        children.every(c => evaluateCondition(c, current, history, depth + 1));
 
-    case "or": {
-      const children = Array.isArray(condition.children) ? condition.children : [];
+    case "or":
       return children.some(c => evaluateCondition(c, current, history, depth + 1));
-    }
 
-    case "not": {
-      const child = Array.isArray(condition.children) ? condition.children[0] : undefined;
-      return !(evaluateCondition(child ?? { type: "price_below" }, current, history, depth + 1));
-    }
+    // 子が無い `not` は以前 `{ type: "price_below" }` (= value 無し = real_price <= 0)
+    // を既定にしており、正常な価格なら false → 反転して **常に発火** していた。
+    case "not":
+      return children.length > 0 &&
+        !evaluateCondition(children[0], current, history, depth + 1);
 
     default:
       return false;
@@ -580,7 +587,7 @@ const VALID_CONDITION_TYPES = new Set([
  * KV に保存させない (以前は body.condition を JSON として一切検証せず、任意の
  * 文字列がそのまま保存されていた — 機能過不足監査で発見)。
  */
-function isValidCondition(value: unknown, depth = 0): value is AlertCondition {
+export function isValidCondition(value: unknown, depth = 0): value is AlertCondition {
   if (depth > MAX_CONDITION_DEPTH) return false;
   if (typeof value !== "object" || value === null) return false;
   const c = value as Record<string, unknown>;
@@ -590,7 +597,27 @@ function isValidCondition(value: unknown, depth = 0): value is AlertCondition {
     if (!Array.isArray(c.children)) return false;
     if (!c.children.every(child => isValidCondition(child, depth + 1))) return false;
   }
-  return true;
+  // 型ごとの必須項目。以前はここが無く、`{"type":"and"}` や `{"type":"price_above"}` が
+  // そのまま保存できてしまい、評価側で毎サイクル無条件に発火する「壊れたアラート」が
+  // 作れた。深さ制限と同じく**書き込み時と評価時の両方**で塞ぐ (評価側だけでは
+  // このガード導入前に保存済みのものを防げず、書き込み側だけでは KV の既存分を防げない)。
+  const childCount = Array.isArray(c.children) ? c.children.length : 0;
+  switch (c.type) {
+    case "and":
+    case "or":
+    case "not":
+      // not は 1 つだけ評価するので余分な子は誤解を招く
+      if (childCount === 0) return false;
+      if (c.type === "not" && childCount !== 1) return false;
+      return true;
+    case "price_below":
+    case "price_above":
+    case "discount_pct":
+      return typeof c.value === "number" && Number.isFinite(c.value);
+    default:
+      // atl は閾値も子も取らない
+      return true;
+  }
 }
 
 // ── FCM 通知送信 ─────────────────────────────────────────────────────────────
