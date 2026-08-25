@@ -11,7 +11,20 @@ package io.github.shizukutanaka.popcoon.data.repository
  *
  * 状態遷移:
  *  CLOSED (通常) → 連続失敗が閾値到達 → OPEN (openDurationMs 秒間リクエストをスキップ)
- *  → 経過後 HALF_OPEN (1件だけ試行を許可) → 成功で CLOSED / 失敗で OPEN に戻る
+ *  → 経過後 HALF_OPEN (試行を通す) → 成功で CLOSED / 失敗で OPEN に戻る
+ *
+ * **HALF_OPEN は「同時に 1 件だけ」を強制しない** — 結果が記録される (recordSuccess /
+ * recordFailure) までは通る。以前ここには「1件だけ試行を許可」と書いてあったが
+ * 実装はそうなっておらず、テスト名も同じ主張をしながら 2 回目が弾かれることを
+ * 検証していなかった。実装に合わせて記述を正した。
+ *
+ * 単一試行の強制を入れていない理由: このブレーカーは **端末ごと・プラットフォームごと**
+ * に独立しており、サーバ側で多数のクライアントが共有する構成のような
+ * 「復旧時のなだれ込み」は起きない。加えて呼び出し側 (ProductRepository.search) は
+ * 1 回の検索でプラットフォームごとに 1 コールしか出さず、失敗すれば即 OPEN に戻るため、
+ * 実運用の試行数は事実上 1 件になる。in-flight フラグを足すと、
+ * CancellationException で結果が記録されなかった場合に枠が返らず
+ * **恒久的に閉じたまま**になる危険の方が大きい。
  *
  * Context 非依存の純粋な状態機械。呼び出し側 (ProductRepository) が
  * 実行前に [allowRequest]、結果に応じて [recordSuccess]/[recordFailure] を呼ぶ。

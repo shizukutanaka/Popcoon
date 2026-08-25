@@ -35,11 +35,31 @@ class CircuitBreakerTest : StringSpec({
         breaker.allowRequest(59_999L) shouldBe false
     }
 
-    "openDurationMs 経過後は HALF_OPEN として 1 回だけ許可" {
+    // 旧テスト名は「1 回だけ許可」だったが、2 回目が弾かれることは検証しておらず
+    // 実装もそうなっていなかった (HALF_OPEN 中は結果が記録されるまで通る)。
+    // 実際の契約を名前どおりに検証する。単一試行を強制しない理由は CircuitBreaker の
+    // KDoc 参照 — 端末ごとに独立したブレーカーなので復旧時のなだれ込みが起きない。
+    "openDurationMs 経過後は HALF_OPEN へ遷移して試行を通す" {
         val breaker = CircuitBreaker(failureThreshold = 1, openDurationMs = 60_000L)
         breaker.recordFailure(0L)
         breaker.allowRequest(60_000L) shouldBe true
         breaker.currentState() shouldBe CircuitBreaker.State.HALF_OPEN
+    }
+
+    "HALF_OPEN 中は結果が記録されるまで後続の試行も通る (単一試行は強制しない)" {
+        val breaker = CircuitBreaker(failureThreshold = 1, openDurationMs = 60_000L)
+        breaker.recordFailure(0L)
+        breaker.allowRequest(60_000L) shouldBe true
+        breaker.allowRequest(60_001L) shouldBe true
+        breaker.currentState() shouldBe CircuitBreaker.State.HALF_OPEN
+    }
+
+    "OPEN 中は openDurationMs 未満のリクエストを弾き続ける" {
+        val breaker = CircuitBreaker(failureThreshold = 1, openDurationMs = 60_000L)
+        breaker.recordFailure(0L)
+        breaker.allowRequest(1L) shouldBe false
+        breaker.allowRequest(59_999L) shouldBe false
+        breaker.currentState() shouldBe CircuitBreaker.State.OPEN
     }
 
     "HALF_OPEN 中の成功は CLOSED に戻り、以後は連続失敗閾値がリセットされる" {
