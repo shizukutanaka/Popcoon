@@ -103,11 +103,6 @@ class PrivacyCrashReporter(
     private fun sanitize(stack: String): String = sanitizeStack(stack)
 
     companion object {
-        /**
-         * スタックトレース・ログから個人情報を除去する純関数。
-         * PopcoonLogger の共通パターン + クラッシュログ固有のファイルパスパターン。
-         * `internal` 可視性はテスト用。
-         */
         /** 同意ありで取得したクラッシュ。[uploadPendingCrashes] の送信対象。 */
         internal const val DIR_UPLOADABLE = "crashes"
 
@@ -125,33 +120,14 @@ class PrivacyCrashReporter(
         internal fun crashDirFor(consented: Boolean): String =
             if (consented) DIR_UPLOADABLE else DIR_LOCAL_ONLY
 
-        internal fun sanitizeStack(text: String): String = text
-            // メールアドレス
-            .replace(Regex("""[\w.-]+@[\w.-]+\.\w+"""), "[email]")
-            // URL クエリパラメータ（マルチパラメータ対応: ?k=v&k2=v2）
-            .replace(Regex("""([?&][^=\s&#]+=)[^\s&#"')]+"""), "$1[redacted]")
-            // AWS アクセスキー ID
-            .replace(Regex("""AKIA[0-9A-Z]{16}"""), "[aws-key]")
-            // Authorization ヘッダ (任意スキーム)
-            .replace(Regex("""(?i)(authorization\s*[:=]\s*)(?:\w+\s+)?[^\s"',;]+"""), "$1[redacted]")
-            // api_key / secret / token / password / credential の値。
-            // 開き引用符は **キャプチャ側に含める**: capture の外に置くと
-            // `api_key="secret"` → `api_key=[redacted]"` と開き引用符だけ消え、
-            // 出力が入力として安定しない (冪等でない)。backend 側は
-            // 「サニタイズしても変わらない = PII 無し」で二重チェックしているため、
-            // 冪等でないと正当なレポートが全て 400 で拒否される。両者で規則を揃える。
-            .replace(
-                Regex("""(?i)("?\w*(?:api[_-]?key|secret|token|password|credential)\w*"?\s*[:=]\s*["']?)[^\s"',&}]+"""),
-                "$1[redacted]",
-            )
-            // IPv4
-            .replace(Regex("""\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b"""), "[ip]")
-            // 電話番号 (日本 国内/国際)
-            .replace(Regex("""\b\+?81[-\s]?\d{1,4}[-\s]?\d{1,4}[-\s]?\d{4}\b"""), "[tel]")
-            .replace(Regex("""\b0\d{1,4}[-\s]?\d{1,4}[-\s]?\d{4}\b"""), "[tel]")
-            // Android ファイルパスのユーザー名部分
-            .replace(Regex("""/data/user/0/[^/]+/files/[^/\s]+"""), "/data/user/0/[pkg]/files/[user]")
-            .replace(Regex("""/storage/emulated/\d+/[^/\s]+"""), "/storage/emulated/[u]/[user]")
+        /**
+         * スタックトレース・ログから個人情報を除去する純関数。
+         * 実体は [io.github.shizukutanaka.popcoon.core.LogSanitizer] 一本
+         * (PopcoonLogger / backend の `sanitizePii` と同一規則)。
+         * `internal` 可視性はテスト用。
+         */
+        internal fun sanitizeStack(text: String): String =
+            io.github.shizukutanaka.popcoon.core.LogSanitizer.sanitize(text)
     }
 
     /**

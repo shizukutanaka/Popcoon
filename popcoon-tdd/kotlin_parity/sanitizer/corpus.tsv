@@ -1,0 +1,21 @@
+# LogSanitizer (Kotlin) / sanitizePii (TypeScript) の共有コーパス。
+# 列: 入力 <TAB> 期待出力 <TAB> 根拠。期待値は正規表現から手導出したもので、
+# **どちらの実装の出力でもない** (実装を疑える出所であることが要件)。
+# 規則を変えるときは Kotlin / TypeScript / このファイルを同時に更新すること。
+contact taro@example.com now	contact [email] now	メール: [\w.-]+@[\w.-]+\.\w+
+GET https://api.example.com/v1?token=abc123&user=taro	GET https://api.example.com/v1?token=[redacted]&user=[redacted]	クエリ値: ?k= と &k= の 2 回マッチ。値は & で停止
+AKIAIOSFODNN7EXAMPLE	[aws-key]	AKIA + 大文字英数 16 桁
+Authorization: Bearer eyJhbGciOi	Authorization: [redacted]	(?:\w+\s+)? がスキーム Bearer を飲み、資格情報まで伏せる
+api_key="sk-abc123"	api_key="[redacted]"	開き引用符がキャプチャ側なので再出力される (冪等性の要)
+{"password":"hunter2"}	{"password":"[redacted]"}	JSON 形式のキーと値
+MY_SECRET_KEY=topsecret	MY_SECRET_KEY=[redacted]	\w* が前後に付いた接頭辞/接尾辞つきキー
+server 192.168.1.100 down	server [ip] down	IPv4
+tel +81-90-1234-5678	tel +[tel]	\b が + の前で成立しないためマッチは 81 から。先頭の + は残る (既知の見た目上の限界)
+tel 090-1234-5678	tel [tel]	国内携帯。+81 パターンでは一致しない — PopcoonLogger に欠けていた分
+03-1234-5678	[tel]	国内固定。同上
+/data/user/0/io.github.shizukutanaka.popcoon/files/backup_taro.json	/data/user/0/[pkg]/files/[user]	アプリ内部パス。ファイル名にユーザー由来の語が入る — PopcoonLogger に欠けていた分
+/storage/emulated/0/TaroDocs/x.txt	/storage/emulated/[u]/[user]/x.txt	外部ストレージ 1 階層目まで。同上
+api_key="[redacted]"	api_key="[redacted]"	冪等性: サニタイズ済み文字列を再投入しても不変 (backend の二重チェックが依存)
+sync finished: 42 products in 1200ms	sync finished: 42 products in 1200ms	PII なしの通常ログは無改変 (誤爆ゼロの確認)
+user taro@example.com from 10.0.0.5 token=abc	user [email] from [ip] token=[redacted]	複数分類の同時適用 (適用順: メール→秘密キー→IPv4)
+{"password": "correct horse"}	{"password": "[redacted] horse"}	既知の限界: 値の文字クラスが空白で停止するため引用符つき値の続きが残る

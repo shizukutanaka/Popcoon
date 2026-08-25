@@ -33,6 +33,7 @@ harnesses=(
   "run_deeplinks.sh" # DeepLinks: producer/consumer round-trip (notif/widget vs MainActivity)
   "run_currency.sh" # CurrencyFormatter: locale-independent yen formatting (de_DE/ar guard)
   "run_alerts.sh"   # PriceAlertEvaluator: target-price edge-trigger (Tier 53/54 regression guard)
+  "run_sanitizer.sh" # LogSanitizer: PII 除去規則を backend (TypeScript) と共有コーパスで一致検証
   "run_calendar.sh" # SaleCalendar: activeSales の重要度順 / nextMajorSale の最小性 (365 日走査)
 )
 

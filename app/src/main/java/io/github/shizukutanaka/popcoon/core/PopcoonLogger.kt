@@ -14,7 +14,7 @@ import io.github.shizukutanaka.popcoon.BuildConfig
  * このロガー:
  *  - リリースビルド時は INFO 以上のみ Logcat に出力
  *  - `tag` を Class クラス名から自動取得
- *  - PII フィルタ統合 (`PrivacyCrashReporter` と同じ regex)
+ *  - PII フィルタは [LogSanitizer] に一本化 (`PrivacyCrashReporter` / backend と同一規則)
  *  - 実装は薄い (依存追加せず標準 Log にラップ)
  */
 object PopcoonLogger {
@@ -68,31 +68,9 @@ object PopcoonLogger {
     }
 
     /**
-     * PII / 秘密情報フィルタ。
+     * PII / 秘密情報フィルタ。実体は [LogSanitizer] 一本
+     * (以前はここに独自のコピーがあり、`PrivacyCrashReporter` より 3 パターン古かった)。
      * `internal` 可視性はテストからの直接検証用 (本来は実装詳細)。
      */
-    internal fun sanitize(message: String): String {
-        return message
-            .replace(Regex("""[\w.-]+@[\w.-]+\.\w+"""), "[email]")
-            // URL クエリパラメータの「値」を全て伏せる (?k=v&k2=v2 のマルチパラメータ対応)
-            .replace(Regex("""([?&][^=\s&#]+=)[^\s&#"')]+"""), "$1[redacted]")
-            // AWS アクセスキー ID
-            .replace(Regex("""AKIA[0-9A-Z]{16}"""), "[aws-key]")
-            // Authorization ヘッダ (任意スキーム Bearer/Basic/Digest の資格情報まで伏せる)
-            .replace(
-                Regex("""(?i)(authorization\s*[:=]\s*)(?:\w+\s+)?[^\s"',;]+"""),
-                "$1[redacted]",
-            )
-            // api_key / secret / token / password / credential の値。
-            // key=value / key: value / JSON "key":"value" / 接頭辞付き MY_SECRET_KEY=... に対応
-            .replace(
-                Regex(
-                    """(?i)("?\w*(?:api[_-]?key|secret|token|password|credential)\w*"?""" +
-                        """\s*[:=]\s*)["']?[^\s"',&}]+""",
-                ),
-                "$1[redacted]",
-            )
-            .replace(Regex("""\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b"""), "[ip]")
-            .replace(Regex("""\b\+?81[-\s]?\d{1,4}[-\s]?\d{1,4}[-\s]?\d{4}\b"""), "[tel]")
-    }
+    internal fun sanitize(message: String): String = LogSanitizer.sanitize(message)
 }

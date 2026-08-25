@@ -177,7 +177,7 @@ async function appendPriceHistory(
  * これにより「サニタイズしても変わらない = PII を含まない」と判定でき、
  * 正規のクライアントからの正当なレポートを誤って拒否しない。
  */
-function sanitizePii(text: string): string {
+export function sanitizePii(text: string): string {
   return text
     // メールアドレス
     .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "[email]")
