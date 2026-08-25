@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -94,8 +95,20 @@ class ProductDetailViewModel @Inject constructor(
     // (機能過不足監査で発見)。1トグル操作を完全に直列化して防ぐ。
     private val toggleWatchlistMutex = Mutex()
 
+    /**
+     * 進行中の読み込み。再入時に前回をキャンセルする。
+     *
+     * load() は `LaunchedEffect(productKey)` のほか **エラー画面の再試行ボタン**からも
+     * 呼ばれる。ガードが無いと連打で複数の読み込みが並走し、遅れて終わった**古い方**が
+     * 後から `_state` を上書きして、新しい試行が成功していてもエラー画面のままになる
+     * (逆に古い成功で新しいエラーが隠れることもある)。SearchViewModel が
+     * `searchJob?.cancel()` で既に解決している同じ問題なので、同じ形で揃える。
+     */
+    private var loadJob: Job? = null
+
     fun load(productKey: String) {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _state.value = DetailUiState.Loading
             if (!isValidProductKey(productKey)) {
                 PopcoonLogger.w(this@ProductDetailViewModel, "Malformed productKey: $productKey")
