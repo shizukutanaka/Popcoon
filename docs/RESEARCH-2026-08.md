@@ -338,6 +338,8 @@
 | `inferCategory` の「該当しない商品では TCO 表示は無意味なため null」 | 部分一致だけで判定し、付属品・消耗品・別ジャンルを本体として拾う。「エアコン洗浄スプレー ¥980」に 5 年 277,018 円 (本体価格の 283 倍) を表示していた (§8) |
 | `Tier` を MAJOR → MEDIUM → RECURRING の重要度順に宣言 | `sortedByDescending { it.tier.ordinal }` で並びが真逆。楽天スーパーセールが「5のつく日 +4%」の下に埋もれる (§9) |
 | `TAX_EXEMPT_THRESHOLD = 16,666` の根拠コメント「商品代 ¥10,000 相当」 (= 個人輸入の 0.6 掛け) | 比較対象が `商品代 + 送料` で、個人輸入でも商業輸入でもない第三の体系になっている (§10) |
+| `PopcoonLogger` の「PII フィルタ統合 (`PrivacyCrashReporter` と同じ regex)」 | 実際は 3 パターン古く、**本番の全ログが通る経路**で国内電話番号と Android のユーザーパスが素通り (§11) |
+| ダークパターン警告は深刻度つきで検出される | 表示は `take(2)` なのに検出順のまま渡され、支払額が 3 割増える `DRIP_PRICING(HIGH)` が `CHARM_PRICING(LOW)` に押し出されていた (§12) |
 
 ### テストが発見を遅らせていた事例
 
@@ -485,6 +487,66 @@ fuzz テストが動く **製品挙動変更**であり、CLAUDE.md の「設計
 `docs/ASSESSMENT-2026-07.md`「判断待ち: 越境EC 試算の課税体系」を参照。
 なお UI には既に `customs_disclaimer` (「関税率・手数料はカテゴリ別の概算です」) があるが、
 上記 2 点の構造的なズレは開示していない。
+
+## 11. PII サニタイザが 3 か所に複製され、本番ログ経路だけ古かった (2026-08、修正済み)
+
+同じ規則が `PrivacyCrashReporter.sanitizeStack` (10 パターン) /
+`PopcoonLogger.sanitize` (**7 パターン**) / backend `sanitizePii` (10 パターン) に
+複製されていた。`PopcoonLogger` は **本番の全ログが通る経路**でありながら 3 パターン古く、
+国内電話番号 (`090-…` / `03-…`)、`/data/user/0/<pkg>/files/<user>`、
+`/storage/emulated/0/<user>` が素通りしていた。KDoc は
+「`PrivacyCrashReporter` と同じ regex」と宣言していた。
+
+さらに `api_key="secret"` → `api_key=[redacted]"` と開き引用符だけ消える非冪等な置換が
+残っていた。backend は「サニタイズしても変わらない = PII を含まない」で二重チェックするので、
+クライアントが冪等でないと **正当なクラッシュレポートが全て 400 で拒否される**。
+
+対処: 純関数 `core/LogSanitizer.kt` へ一本化 (Android 非依存 → 実コンパイル対象)。
+歯止めとして `kotlin_parity/sanitizer/corpus.tsv` (17 ケース) を作り、
+
+- `run_sanitizer.sh` が実 Kotlin をコンパイル・実行して照合 + 全ケースの冪等性を検査
+- `backend/test/sanitizer-corpus.test.ts` が **同じ corpus.tsv** を TypeScript の
+  本番実装 (`sanitizePii` を export して直接 import) に対して回す
+
+という形で **2 言語の一致を fixture drift 無しに**検証する。
+期待値は正規表現から手導出したもので、どちらの実装の出力でもない。
+各行に導出根拠と既知の限界を併記し、PII 無しの通常ログが無改変であること (誤爆ゼロ) も固定した。
+第 3 の独立実装 (Python `re`) で 17 ケース全てを検算し 0 件乖離。
+
+## 12. 警告の表示上限が「一番深刻なもの」を捨てていた (2026-08、修正済み)
+
+`ProductRow` は行あたり `warnings.take(2)` しか出せないが、`SearchViewModel` は
+`priceWarnings + textWarnings + drip` を **検出順のまま**渡していた。
+`severity` は `UiText` へ変換する時点で捨てられるので、表示側では並べ替えようがない。
+
+実 Kotlin (実物の `DarkPatternDetector`) を実行して確認した実シナリオ:
+
+```
+¥9,980 の商品 + 送料 ¥3,000 (総額 12,980 = 本体比 +30.06%)、
+定価 12,000 に対し 40 日間 9,980、タイトルに「在庫わずか」
+
+検出順     : CHARM_PRICING(LOW), FAKE_SCARCITY(MEDIUM), DRIP_PRICING(HIGH)
+take(2) 旧 : CHARM_PRICING(LOW), FAKE_SCARCITY(MEDIUM)      ← HIGH が落ちる
+take(2) 新 : DRIP_PRICING(HIGH), FAKE_SCARCITY(MEDIUM)
+```
+
+「端数価格」と「在庫わずか」だけが出て、**実際に支払額が 3 割増える警告が消えていた**。
+`a11yDescription` も `take(2)` の 2 件にしか付かないため、スクリーンリーダー利用者も同様。
+`CHARM_PRICING` は末尾 80/98/99 の価格で広く発火し、`detect()` 内で必ず
+価格系 HIGH より後・text/drip より前に積まれるので、この並びは日常的に起きる。
+
+これは §6 の「通知の上限が情報を捨てていた」と**同じ形**の欠陥である
+(上限を掛ける前に優先順位を付けていない)。**上限・truncate を書いたら、
+その直前に順序付けがあるかを必ず確認する**こと。
+
+### enum の向きは宣言順で決まる
+
+同じセッションで逆向きの 2 件を修正した。取り違えると静かに壊れる:
+
+| enum | 宣言順 | 正しいソート |
+|---|---|---|
+| `SaleCalendar.Tier` | MAJOR, MEDIUM, RECURRING (**重要度順**) | `sortedBy { ordinal }` |
+| `DarkPatternDetector.Severity` | LOW, MEDIUM, HIGH (**昇順**) | `sortedByDescending { ordinal }` |
 
 ---
 
