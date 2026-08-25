@@ -316,6 +316,55 @@
 
 ---
 
+## 7. 「宣言と実装の食い違い」という単一の欠陥クラス (2026-08)
+
+本セッションで見つけた欠陥は、分野が違っても **すべて同じ形**をしていた:
+コメント・KDoc・README・テスト名が保証を宣言し、実装がそれを満たしていない。
+機能の有無ではなく **宣言の検証** が抜けている、という構造的な問題。
+
+| 宣言 | 実装 |
+|---|---|
+| `realPrice <= 0` は統計から除外する (`WidgetVerdict` / `WatchlistPriceDelta` が実践) | 8 経路が除外していなかった (§5) |
+| 通知上限は割り込みの制御 | 超過分を `take()` で破棄し、基準価格は書き戻し済みなので**二度と再通知されない** (§6) |
+| 「Opt-in only: 同意なしには 1 byte も送信しない」 | 同意前に取得したクラッシュを、後から ON にした瞬間に遡って送信 |
+| 「サーバー側でも PII を二重に検査」 | クライアントが除去する 9 分類のうち **2 分類しか見ていない** |
+| 「robots.txt を尊重」 | HTTP ステータスを見ず、503/429 のエラーページを「規則なし = 全許可」と解釈 |
+| `evaluateCondition` の「fail-closed: 不発火扱い」 | 空 `and` / 子無し `not` / value 無し `price_above` が **必ず発火** |
+| `CircuitBreaker` は「連続障害中の無駄なリクエストを止める」 | 3 クライアントが例外を `emptyList()` に潰すため **OPEN に遷移する経路が存在しない** |
+| `searchWithBreaker` の「failed=true は例外、0 件は failed=false」 | 上記により常に `failed=false` で全滅判定が働かない |
+| `MIGRATION_5_6` が v6 のスキーマへ移行する | 同時に追加された `price_cache` の CREATE TABLE が無く、更新時に起動不能 |
+| `HALF_OPEN` は「1 件だけ試行を許可」 | 実装もテストも単一試行を強制していない |
+| CSV エクスポートは価格履歴を出力する | 取得失敗を握り潰し、**欠けたことを伝えずに**共有まで進む |
+
+### テストが発見を遅らせていた事例
+
+「テストがある」ことが安心材料にならなかったケースが 3 つあった。いずれも
+**本番コードを 1 行も通っていない**か、**通っていても壊れていることを検知できない**:
+
+- `alerts.test.ts` — `evaluateCondition` / `isValidCondition` を丸ごと再実装したコピーを
+  検証。しかもコピーは fail-open のバグをそのまま写しており、34 件通っていることが
+  欠陥の存在を隠していた。→ 本番から export して直接 import する形に変更。
+- `AwsSigV4SignerTest` — 7 件すべて構造検査 (「64 文字の hex か」「必須ヘッダーが揃うか」)。
+  署名鍵の 4 段 HMAC の順序を入れ替えても全て通る。誤署名は形だけ正しいので
+  PA-API が 403 を返すまで気付けない。→ 時刻を注入可能にし、AWS 公開の鍵導出ベクタと
+  Python 独立実装の 2 つの外部アンカーに固定 (実装自体にバグは無かった)。
+- `CircuitBreakerTest` — 「1 回だけ許可」という名前で 2 回目が弾かれることを検証していない。
+- `worker.test.ts` の PII 検査も同様に再実装コピーだったため、実ハンドラー越しに置き換えた。
+
+**教訓**: 期待値が実装の出力そのものだったり、実装のコピーを検証していたりすると、
+テスト件数は増えても検証力はゼロになる。期待値は **実装を疑える出所** (公開ベクタ /
+独立実装 / 数式からの手導出) から取ること。
+
+### 歯止め
+
+同じ欠陥を 8 回別々に見つけた ¥0 汚染は `check_price_guard.py` として規則化した。
+その他の静的ゲート (override / `R.*` 参照 / enum `when` 網羅 / テスト参照 / Room 移行) と
+併せて 6 種。**全て欠陥注入で検出力を実証**しており、うち 2 件は自分の検査ツール側の
+バグ (コメント内の文字列に正規表現が当たる、入れ子クラスの見落とし) を
+ベースライン実行が捕まえたもの。
+
+---
+
 ## 本セッションの実装サマリ (このブランチ)
 
 | 項目 | コミット種別 | 検証 |
@@ -345,12 +394,23 @@
 | `check_when_exhaustive.py` 新設 (enum `when` の網羅漏れ) | test | 29 enum-when / skip 0 / Glance と実際の回帰再現の 2 件で実証 / 初版の偽陽性 1 件 (多行ラベル) を修正 |
 | `check_test_refs.py` 新設 (テスト→本番シンボル 1,139 件) | test | kotest はコンパイル不能 / 改名の追随漏れ注入で実証 / 初版の偽陽性 1 件 (入れ子クラス) を修正 |
 | 実コンパイルを 34 → 46 ファイルへ拡張 | test | KDoc の型名が「参照」と誤判定され対象が縮んでいた + coroutines/javax.inject の実 jar が手元にあった |
+| クラッシュ同意の遡及送信を停止 | fix | 取得時点の同意で保存先を分離 / PRIVACY.md に記載を追加 |
+| サーバー PII 検査をクライアントと同じ 9 分類へ | fix | backend 84 → 96 tests / 冪等性の回帰ガードを追加 |
+| robots.txt の 429・5xx を全面禁止として扱う (RFC 9309) | fix | 本番 RobotsTxt に合成規則を通して 10 assertion |
+| Room `MIGRATION_5_6` の `price_cache` 作成漏れ | fix | 到達性を list_releases で評価 / check_migrations.py を新設 |
+| CSV エクスポートの失敗握り潰しと逐次 HTTP | fix | 失敗件数を UI へ / Semaphore(8) / 4 ロケール plurals |
+| アラート条件の fail-open 3 経路 | fix | backend 96 → 105 tests / 評価側と検証側の両方で塞ぐ |
+| 検索クライアントの例外握り潰し (ブレーカー不達) | fix | 3 クライアントで伝播へ / 全滅判定も回復 |
+| SigV4 テストを AWS 公開ベクタ + 独立実装に固定 | test | 時刻注入で既知応答テストが可能に (実装のバグは無し) |
+| 商品詳細の再試行連打による stale 上書き | fix | loadJob のキャンセル (SearchViewModel と同形) |
+| 静的ゲートを 6 種へ拡張 | test | 全て欠陥注入で検出力を実証 / 自ツールのバグ 2 件も検出 |
 
 ## 検証基準線 (2026-08 実測)
 
 すべて `python3 ci/verify.py` で一括実行・自動照合できる (CLAUDE.md の表が基準線の単一の源)。
 
-- Python: **500 passed / 1 skipped** (`popcoon-tdd/`)
-- Kotlin parity: **run_all.sh 14 ハーネス全 pass** (run.sh 164 matched / 0 mismatched、core compile 46 ファイル)
-- backend: **tsc 0 errors / vitest 84 tests pass**
-- i18n: **4 ロケール × 365 strings** (+3 plurals) 完全一致
+- Python: **507 passed / 1 skipped** (`popcoon-tdd/`)
+- Kotlin parity: **run_all.sh 14 ハーネス全 pass** (run.sh 164 matched / 0 mismatched、core compile 47 ファイル)
+- backend: **tsc 0 errors / vitest 105 tests pass**
+- i18n: **4 ロケール × 365 strings** (+4 plurals) 完全一致
+- 静的ゲート: **6 種**すべて OK (`run_compile_core.sh` が一括実行)

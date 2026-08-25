@@ -24,7 +24,7 @@ Amazon / 楽天 / Yahoo! ショッピング横断の価格比較 Android アプ�
 | 指標 | 数値 |
 |---|---|
 | 行数 | 8,325 |
-| テスト数 | 501 (500 passed / 1 skipped) |
+| テスト数 | 508 (507 passed / 1 skipped) |
 | カバレッジ | 99% (popcoon_core.py) |
 | Mutation Score | 100% × 4 modules |
 | 防御階層 | 11 |
@@ -119,11 +119,15 @@ Compose/Room/Hilt/ktor を含む **85 ファイル**がコンパイル検証さ�
 
 | ゲート | 対象 | 内容 |
 |---|---|---|
-| `run_compile_core.sh` | 46 / 131 ファイル | Gradle 同梱の実 jar (stdlib / serialization / coroutines / javax.inject) で**実コンパイル** |
+| `run_compile_core.sh` | 47 / 131 ファイル | Gradle 同梱の実 jar (stdlib / serialization / coroutines / javax.inject) で**実コンパイル** |
 | `check_overrides.py` | 全 131 + テスト | インタフェース実装の `override` 欠落 (実際に 1 か月ビルドを壊した回帰クラス) |
-| `check_resources.py` | 全 131 | `R.*` 参照 388 件の実在 (string/drawable/color/plurals/xml/style/mipmap/id) |
+| `check_resources.py` | 全 131 | `R.*` 参照 389 件の実在 (string/drawable/color/plurals/xml/style/mipmap/id) |
 | `check_when_exhaustive.py` | 全 131 | enum に対する `when` の網羅漏れ (Kotlin 2.x ではエラー) |
-| `check_test_refs.py` | テスト 64 ファイル | テストが参照する本番シンボル 1,139 件の実在 (kotest はコンパイル不能) |
+| `check_test_refs.py` | テスト 64 ファイル | テストが参照する本番シンボル 1,167 件の実在 (kotest はコンパイル不能) |
+| `check_price_guard.py` | 全 131 | `realPrice` を統計に使うファイルの ¥0 除外 (同じ欠陥を 8 経路で見つけたため規則化) |
+| `check_migrations.py` | Room スキーマ | 移行チェーンの連続性と `addMigrations()` への登録漏れ (更新時の起動不能を防ぐ) |
+
+いずれも **欠陥注入で検出力を実証済み** — 「チェックがある」ではなく「壊したら落ちる」ことを確認している。
 
 それでも **残り 85 ファイルの型検査と、kotest の実行そのものは CI でしか行えない**。
 
