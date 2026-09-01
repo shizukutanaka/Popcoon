@@ -38,6 +38,7 @@ fun runSpecs(specs: List<Pair<String, () -> StringSpec>>): Int {
         }
         for ((testName, body) in tests) {
             try {
+                spec.beforeHooks.forEach { it() }
                 body()
                 passed++
             } catch (e: Throwable) {

@@ -97,6 +97,7 @@ PY
   set +e
   java -cp "$LIB/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
     -cp "$ST:$SER:$OUT/core.jar:$OUT/shim.jar" -d "$OUT/specs.jar" -nowarn \
+    -Xfriend-paths="$OUT/core.jar" \
     "$OUT/GeneratedSpecList.kt" "${SPECS[@]}" > "$OUT/compile.log" 2>&1
   rc=$?
   set -e

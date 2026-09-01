@@ -257,11 +257,15 @@ class DarkPatternTextDetectorTest : StringSpec({
         )
     }
 
+    // ⚠️ 括弧は必須。Kotlin では infix 関数呼び出しが `in` より強く結合するため、
+    // `X in c shouldBe true` は `X in (c shouldBe true)` と解釈され **コンパイルできない**。
+    // このファイルは kotest が一度も実行されなかったため、コンパイル不能なまま
+    // 気付かれずに残っていた (check_test_refs.py は参照シンボルの実在しか見ない)。
     "英語パターン: SCARCITY + URGENCY + SOCIAL_PROOF" {
         val c = cats("Only 1 left, hurry! 5 people are viewing this")
-        DarkPatternTextDetector.Category.SCARCITY in c shouldBe true
-        DarkPatternTextDetector.Category.URGENCY in c shouldBe true
-        DarkPatternTextDetector.Category.SOCIAL_PROOF in c shouldBe true
+        (DarkPatternTextDetector.Category.SCARCITY in c) shouldBe true
+        (DarkPatternTextDetector.Category.URGENCY in c) shouldBe true
+        (DarkPatternTextDetector.Category.SOCIAL_PROOF in c) shouldBe true
     }
 
     "出力は category 昇順・各カテゴリ最大1件" {

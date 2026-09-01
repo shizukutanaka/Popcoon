@@ -616,7 +616,7 @@ spec スタイルは **63 ファイル全てが StringSpec** だった。表面�
 `run_kotest.sh` が production の `core.jar` (対象選定は `run_compile_core.sh` に委譲) と
 シムに対して **テストファイルを 1 行も変えずに**コンパイル・実行する。
 
-### 結果: 409 アサーション中 11 件が偽 (2.7%)
+### 結果: 初回 409 アサーション中 11 件が偽 (2.7%)
 
 `app/src/test` の 63 spec は**一度も実行されたことがなかった**。
 `check_test_refs.py` は参照シンボルの実在しか見ておらず、アサーションの真偽は未検証。
@@ -648,13 +648,30 @@ parity ハーネスで既に守られていることの裏付けでもある。
 誰も走らせないので気付かれない**」。前者は静的検査で拾いにくいが、後者は
 **実行しさえすれば必ず落ちる** — 実行環境を用意することが唯一の対策だった。
 
+### さらに 3 段階で対象を広げた (31 → 36 spec / 409 → 542 アサーション)
+
+初回の除外理由を 1 件ずつ潰した。いずれも**依存の不足ではなくシム側の不備**だった:
+
+| 対処 | 増分 | 内容 |
+|---|---|---|
+| `-Xfriend-paths=core.jar` | +3 spec / +89 | Gradle の test source set と同じ扱いにして `internal` を可視化。AwsSigV4Signer / ProductMatcher / PricePredictionEngine という**最も価値の高い 3 領域**が動くようになり、全て green |
+| `beforeTest` をシムに追加 | +1 spec / +6 | 各テスト前フック。ランナーが `beforeHooks` を実行 |
+| 演算子優先順位の誤りを修正 | +1 spec / +38 | 下記 |
+
+**`DarkPatternTextDetectorTest` は kotest があってもコンパイルできなかった。**
+`X in c shouldBe true` は Kotlin の優先順位規則 (infix 関数呼び出し > `in`) により
+`X in (c shouldBe true)` と解釈される。括弧が必須。
+`check_test_refs.py` は参照シンボルの実在しか見ないので、**コンパイル不能なテストファイルが
+まるごと 1 つ**、誰にも気付かれずに存在していた。同種の誤りが他に無いか全テストを走査し、
+残る 2 箇所 (`DatabaseIntegrityTest`) は正しく括弧が付いていることを確認した。
+
 ### 明示した限界 (過大評価しない)
 
 実行のたびに件数を表示する。63 spec 中:
 
-- **31 実行**、3 は Android/coroutines import で除外、
-  29 は production 側が Room/Hilt/ktor 依存でコンパイル不能、
-  3 は `internal` 可視性 (`-Xfriend-paths` で救済可能 — 未実施)
+- **36 実行**、3 は Android/coroutines import で除外、
+  24 は production 側が Room/Hilt/ktor 依存でコンパイル不能
+  (最多の詰まりは Room エンティティ `WatchlistItem` の 4 spec)
 - プロパティテストは kotest 既定 1000 回ではなく **300 回**をシード固定 (shrinking なし)
 - 非対応の kotest 機能を使った spec は**コンパイルエラー**で落ちる (黙って通らない)
 
@@ -667,6 +684,7 @@ parity ハーネスで既に守られていることの裏付けでもある。
 本リポジトリは §7 で前者 2 つのギャップ (検証の演劇) を潰してきたが、
 3 つ目のギャップ — 実行そのものの不在 — は測っていなかった。
 実測値は 409 中 11 = 2.7%。テストコードもコードであり、書きっぱなしは腐る。
+しかも 1 ファイルは**コンパイルすら通らないまま**存在していた。
 
 ---
 

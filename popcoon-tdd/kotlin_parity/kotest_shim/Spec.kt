@@ -34,6 +34,13 @@ abstract class StringSpec(private val body: StringSpec.() -> Unit = {}) {
         return registered
     }
 
+    /** 各テストの前に走るフック (kotest の `beforeTest` 相当)。 */
+    val beforeHooks = mutableListOf<() -> Unit>()
+
+    fun beforeTest(hook: () -> Unit) {
+        beforeHooks += hook
+    }
+
     /** `"テスト名" { ... }` の登録。 */
     operator fun String.invoke(test: () -> Unit) {
         registered += this to test

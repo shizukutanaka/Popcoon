@@ -30,8 +30,8 @@
 9. **通知の抑制設計** — 誤検知対策の 1 サイクル遅延確認 (ユーザー承認済み設計)、
    1 同期あたり通知上限 3 件 + 優先度付け、いずれも純関数化されテスト済み
 10. **kotest spec が本環境で実行できる (2026-08)** — Maven Central 遮断下でも、テストが使う
-    42 シンボルだけを実装した `kotlin_parity/kotest_shim/` 経由で **31 spec / 409 アサーション**を
-    実行。テストファイルは 1 行も変えていない。「CI が無いから kotest は動かせない」を
+    42 シンボルだけを実装した `kotlin_parity/kotest_shim/` 経由で **36 spec / 542 アサーション**を
+    実行 (`-Xfriend-paths` で internal も可視化)。テストファイルの変更は誤りの修正のみ。「CI が無いから kotest は動かせない」を
     要件ごと疑って解消した (`docs/RESEARCH-2026-08.md` §14)
 11. **回復性** — 全 ViewModel mutating メソッドに CancellationException-aware try/catch、
     StateFlow の例外終了に catch フォールバック、Worker は全滅時のみ指数バックオフ retry
@@ -71,16 +71,18 @@
    移行設計は `backend/README.md` に文書化済みだが、wrangler 実行検証不可のため未実装
 6. **UI 自動テストが薄い** — Compose UI テスト 2 件 + androidTest 4 ファイルは本環境で実行不可。
    ユニットテスト 63 ファイルはロジック層に偏る (構造上やむを得ないが偏りは事実)。
-   2026-08 に **31 spec は実行可能**になった (長所 10) が、残り 32 は production 側が
+   2026-08 に **36 spec は実行可能**になった (長所 10) が、残り 27 は production 側が
    Android/Hilt/Room/ktor 依存でコンパイルできず、依然として **一度も実行されていない**。
-   内訳: 29 が依存不足、3 が `internal` 可視性 (`-Xfriend-paths` で救済可能)
+   最多の詰まりは Room エンティティ `WatchlistItem` (4 spec) — androidx.room の jar が要る
 
 10. **テストコードの腐敗が測定されていなかった (2026-08 に判明)** — 初めて 31 spec を実行した
-    ところ 409 アサーション中 **11 件 (2.7%) が偽**だった。production のバグは 1 件のみで、
+    ところ 409 アサーション中 **11 件 (2.7%) が偽**だった (その後 542 まで拡大しても追加の失敗は無し)。production のバグは 1 件のみで、
     残り 10 件はテスト側 — 実行日依存のフレーキー 2 件、外部仕様と食い違う定数 4 件、
     オラクルに対して一度も成立しない期待値 2 件、フィクスチャが不変条件を踏めないもの 1 件、
     そして**互いに矛盾する 2 テストの同居** 1 件。CI 有効化の初回実行は赤で始まるはずだった。
-    残り 32 spec には同種の腐敗が同じ比率で眠っている可能性がある (未測定)
+    さらに `DarkPatternTextDetectorTest` は演算子優先順位の誤り (`X in c shouldBe true` は
+    `X in (c shouldBe true)` と解釈される) で **kotest があってもコンパイルできない**状態だった。
+    残り 27 spec には同種の腐敗が同じ比率で眠っている可能性がある (未測定)
 7. ~~**Yahoo 会員ランク未モデル化**~~ — 2026-08 に実装済 (B4)。UserContext.yahooRank +
    設定 UI + 4 ロケール文字列を追加し、感謝デー (毎月 11日・22日) を実計算するようにした
 8. **名寄せの残課題** — groupByIdentity は JAN なし商品で O(m²) (粗ブロッキング B5 は未着手)。
@@ -126,7 +128,7 @@
 
 - Python: **549 passed / 1 skipped** (`popcoon-tdd/`)
 - Kotlin parity: **run_all.sh 全 18 ハーネス pass** (run.sh 202 matched / 0 mismatched、core compile 48 ファイル)
-- **app の kotest spec: 31 specs / 409 passed / 0 failed** (`run_kotest.sh`、シム経由)
+- **app の kotest spec: 36 specs / 542 passed / 0 failed** (`run_kotest.sh`、シム経由)
 - backend: **tsc 0 errors / vitest 108 tests / 5 files pass**
 - i18n: **4 ロケール × 365 strings** (+4 plurals) 完全一致
 - ファイル数: Kotlin main 133 / unit test 63 / androidTest 4、Python 36
