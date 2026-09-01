@@ -30,7 +30,7 @@
 9. **通知の抑制設計** — 誤検知対策の 1 サイクル遅延確認 (ユーザー承認済み設計)、
    1 同期あたり通知上限 3 件 + 優先度付け、いずれも純関数化されテスト済み
 10. **kotest spec が本環境で実行できる (2026-08)** — Maven Central 遮断下でも、テストが使う
-    42 シンボルだけを実装した `kotlin_parity/kotest_shim/` 経由で **36 spec / 542 アサーション**を
+    42 シンボルだけを実装した `kotlin_parity/kotest_shim/` 経由で **38 spec / 568 アサーション**を
     実行 (`-Xfriend-paths` で internal も可視化)。テストファイルの変更は誤りの修正のみ。「CI が無いから kotest は動かせない」を
     要件ごと疑って解消した (`docs/RESEARCH-2026-08.md` §14)
 11. **回復性** — 全 ViewModel mutating メソッドに CancellationException-aware try/catch、
@@ -71,9 +71,8 @@
    移行設計は `backend/README.md` に文書化済みだが、wrangler 実行検証不可のため未実装
 6. **UI 自動テストが薄い** — Compose UI テスト 2 件 + androidTest 4 ファイルは本環境で実行不可。
    ユニットテスト 63 ファイルはロジック層に偏る (構造上やむを得ないが偏りは事実)。
-   2026-08 に **36 spec は実行可能**になった (長所 10) が、残り 27 は production 側が
-   Android/Hilt/Room/ktor 依存でコンパイルできず、依然として **一度も実行されていない**。
-   最多の詰まりは Room エンティティ `WatchlistItem` (4 spec) — androidx.room の jar が要る
+   2026-08 に **38 spec は実行可能**になった (長所 10) が、残り 25 は production 側が
+   Android/Hilt/ktor 依存でコンパイルできず、依然として **一度も実行されていない**
 
 10. **テストコードの腐敗が測定されていなかった (2026-08 に判明)** — 初めて 31 spec を実行した
     ところ 409 アサーション中 **11 件 (2.7%) が偽**だった (その後 542 まで拡大しても追加の失敗は無し)。production のバグは 1 件のみで、
@@ -127,8 +126,8 @@
 ## 検証基準線 (2026-08 実測 — 記載コマンドを実際に流して確認)
 
 - Python: **549 passed / 1 skipped** (`popcoon-tdd/`)
-- Kotlin parity: **run_all.sh 全 18 ハーネス pass** (run.sh 202 matched / 0 mismatched、core compile 48 ファイル)
-- **app の kotest spec: 36 specs / 542 passed / 0 failed** (`run_kotest.sh`、シム経由)
+- Kotlin parity: **run_all.sh 全 18 ハーネス pass** (run.sh 202 matched / 0 mismatched、core compile 51 ファイル)
+- **app の kotest spec: 38 specs / 568 passed / 0 failed** (`run_kotest.sh`、シム経由)
 - backend: **tsc 0 errors / vitest 108 tests / 5 files pass**
 - i18n: **4 ロケール × 365 strings** (+4 plurals) 完全一致
 - ファイル数: Kotlin main 133 / unit test 63 / androidTest 4、Python 36
@@ -266,26 +265,42 @@ CLAUDE.md は外部仕様値を出典なしに変えることを禁じている�
 A/B/C いずれも実施していない。到達不能だった `0.05` 既定値の除去 (挙動不変) のみ実施済み。
 
 
-## 判断待ち: Room エンティティの置き場所と kotest の追加解錠 (2026-08 測定)
+## 完了: Room エンティティの置き場所による巻き添え (2026-08 に解消)
 
-`app/src/test` の 63 spec のうち 36 は実行可能になったが、残り 27 の最多の詰まりは
-Room エンティティ `WatchlistItem` である。ただし**本当の制約は Room ではなくファイルの置き場所**:
+`app/src/test` の 63 spec のうち残っていた詰まりの最多要因は Room エンティティ
+`WatchlistItem` だったが、**本当の制約は Room ではなくファイルの置き場所**だった:
 
 - `androidx.room` を import する production ファイルは 2 つだけ
   (`data/db/PopcoonDatabase.kt` / `di/DatabaseModule.kt`)
 - `WatchlistItem` が要求するのは `@Entity` / `@Index` / `@PrimaryKey` の**アノテーション 3 つのみ**
-  (本文書が既に「プロセッサ不在では実物も不活性」と判定している、嘘をつけない種類のスタブ)
+  (本文書が既に「プロセッサ不在では実物も不活性」と判定している、嘘をつけない種類)
 - しかしエンティティが `PopcoonDatabase.kt` に同居しているため `data.db` パッケージ全体が
-  Android 依存として扱われ、純ロジックのファイルまで巻き添えになる
+  Android 依存として扱われ、純ロジックのファイルまで巻き添えになっていた
 
-**実測した巻き添え: 2 件** — `feature/cart/SmartCartService.kt` と
-`feature/watchlist/WatchlistSort.kt` (どちらも差別化機能かつ ¥0 汚染監査の対象)。
-解消すれば実コンパイル 48 → 50 ファイル、kotest 36 → 38 spec。
+**production を一切変更せずに解消した。** `RStub.kt` と同じ方式で、
+`run_compile_core.sh` が **実ファイルから毎回 `@Entity` ブロックを切り出して**
+`EntityStub.kt` を生成する。コピーではなく実ソースの部分集合なので、本体を変えれば
+次回の実行に自動反映される (ドリフト不可能)。DAO 等の未提供宣言を参照するファイルが
+混ざれば実コンパイルが失敗して顕在化するので、黙ってカバレッジが減る方向には倒れない。
 
-| 案 | 内容 | 費用とリスク |
+結果: 実コンパイル **48 → 51 ファイル** (`SmartCartService.kt` / `WatchlistSort.kt` が復帰)、
+kotest **36 → 38 spec / 542 → 568 アサーション**、いずれも 0 failed。
+
+## 判断待ち: テスト可能な純ロジックが Android 依存ファイルに同居している
+
+残り 25 spec のうち複数は、**依存が本当に必要なわけではなく、純粋な関数が
+Compose/Android のファイルに同居している**ために動かせない。本リポジトリは既に
+`WidgetVerdict` / `PriceSyncPlanner` / `BundlePackDetector` で「純ロジックを別ファイルへ
+切り出す」パターンを確立しており、同じ処方が効く。該当例:
+
+| テストが要求する宣言 | 同居先 | 性質 |
 |---|---|---|
-| A | エンティティを `data/db/Entities.kt` へ切り出す | production の構成変更。Room のスキーマはアノテーションで決まるのでファイル移動は挙動不変だが、`PopcoonDatabase.kt` 自体はコンパイル検証できないままなので移動の正しさを実行で確かめられない。`check_migrations.py` の解析対象にも影響 |
-| B | `RStub.kt` と同じくハーネスが実ファイルからエンティティを切り出して生成 | production を一切触らない。実ファイルから毎回生成するのでドリフトも起きない。ただし対象選定に「このパッケージの一部だけ利用可能」という概念を足す必要がある |
-| C | 現状維持 | 27 spec は CI 有効化まで未実行のまま |
+| `watchlistBuyVerdict` | `ui/screens/watchlist/WatchlistScreen.kt` | 純関数 (Compose 不要) |
+| `SearchRow` | `ui/screens/search/SearchScreen.kt` | data class |
+| `filterByRange` | `ui/components/PriceChart*.kt` | 純関数 |
+| `csvEscape` | `feature/export/*` | 純関数 |
+| `PopcoonWidgetLogic` | `widget/*` | 純ロジック |
 
-費用対効果が中程度 (+2 ファイル / +2 spec) なので、エージェント側では実施していない。
+切り出せばそれぞれ実コンパイル + kotest の対象になる。ただし **production の構成変更**で
+あり、UI 層はこの環境でコンパイル検証できないため、1 件ずつ静的ゲートで守りながら進める
+必要がある。着手前に対象と順序を提示して承認を得ること。

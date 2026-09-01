@@ -96,6 +96,61 @@ def strip_noncode(s):
     return s
 
 
+# ── Room エンティティのスタブ生成 ───────────────────────────────────────────
+# `data/db/PopcoonDatabase.kt` は RoomDatabase / Dao / Migration という **実クラス** を
+# 要求するのでコンパイルできない。しかし同居している `@Entity data class` が要求するのは
+# `@Entity` / `@Index` / `@PrimaryKey` の **アノテーションだけ** で、これらはプロセッサ不在では
+# 実物も不活性なのでスタブが嘘をつけない (ASSESSMENT の判定と同じ)。
+#
+# エンティティが DB クラスと同居しているせいで `data.db` パッケージ全体が Android 依存と
+# 見なされ、それを import する **純ロジックのファイルまで巻き添え** になっていた
+# (実測: SmartCartService.kt / WatchlistSort.kt)。
+#
+# そこで RStub.kt と同じ方式 — **実ファイルから毎回切り出して生成** する。コピーではなく
+# 実ソースの部分集合なので、本体を変更すれば次回の実行に自動で反映される (ドリフト不可能)。
+DB_FILE = os.path.join(src, "io/github/shizukutanaka/popcoon/data/db/PopcoonDatabase.kt")
+if not os.path.exists(DB_FILE):
+    DB_FILE = os.path.join(src, "data/db/PopcoonDatabase.kt")
+_db_lines = io.open(DB_FILE, encoding="utf-8").read().split("\n")
+_entity_blocks, _entity_names = [], []
+_i = 0
+while _i < len(_db_lines):
+    if _db_lines[_i].startswith("@Entity"):
+        _start = _i
+        while _i < len(_db_lines) and not re.match(r"data class (\w+)\(", _db_lines[_i]):
+            _i += 1
+        _entity_names.append(re.match(r"data class (\w+)\(", _db_lines[_i]).group(1))
+        _depth = _db_lines[_i].count("(") - _db_lines[_i].count(")")
+        _i += 1
+        while _i < len(_db_lines) and _depth > 0:
+            _depth += _db_lines[_i].count("(") - _db_lines[_i].count(")")
+            _i += 1
+        _entity_blocks.append("\n".join(_db_lines[_start:_i]))
+    else:
+        _i += 1
+if not _entity_names:
+    raise SystemExit("ERROR: PopcoonDatabase.kt から @Entity を 1 つも切り出せなかった")
+
+io.open(os.path.join(out, "RoomAnnotationStub.kt"), "w", encoding="utf-8").write(
+    "package androidx.room\n\n"
+    "// Room アノテーションのスタブ。プロセッサ不在では実物も不活性なので意味的に同一。\n"
+    "annotation class Entity(val tableName: String = \"\", val indices: Array<Index> = [])\n"
+    "annotation class Index(val value: Array<String> = [])\n"
+    "annotation class PrimaryKey(val autoGenerate: Boolean = false)\n"
+    "annotation class ColumnInfo(val name: String = \"\", val defaultValue: String = \"\")\n"
+    "annotation class Ignore\n")
+
+ENTITY_STUB = os.path.join(out, "EntityStub.kt")
+io.open(ENTITY_STUB, "w", encoding="utf-8").write(
+    f"package {PKG}.data.db\n\n"
+    "import androidx.room.Entity\n"
+    "import androidx.room.Index\n"
+    "import androidx.room.PrimaryKey\n"
+    "import androidx.room.ColumnInfo\n"
+    "import java.time.Instant\n\n"
+    "// PopcoonDatabase.kt から自動生成 (コピーではなく毎回の切り出し)。手で編集しないこと。\n\n"
+    + "\n\n".join(_entity_blocks) + "\n")
+
 info = {}
 for f in sorted(pathlib.Path(src).rglob("*.kt")):
     text = io.open(f, encoding="utf-8").read()
@@ -109,6 +164,15 @@ for f in sorted(pathlib.Path(src).rglob("*.kt")):
         "imports": {i.rsplit(".", 1)[0] for i in proj_import.findall(text) if i != f"{PKG}.R"},
         "decls": top_level_decls(text),
     }
+
+# 生成したエンティティスタブを「Android 非依存で data.db パッケージを提供するファイル」として
+# 合成登録する。これにより data.db を import する純ロジックのファイルが (b) を通過できる。
+# DAO 等 **提供していない宣言** を参照するファイルが混ざれば実コンパイルが失敗して顕在化する
+# (このスクリプトの設計方針どおり「黙ってカバレッジが減る方向」には倒れない)。
+info[ENTITY_STUB] = {
+    "text": "", "code": "", "pkg": f"{PKG}.data.db", "android": False,
+    "imports": set(), "decls": set(_entity_names),
+}
 
 keep = {f for f, v in info.items() if not v["android"]}
 while True:
@@ -152,7 +216,7 @@ PY
 mapfile -t TARGETS < "$OUT/targets.txt"
 java -cp "$LIB/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
   -cp "$ST:$SER:$COR:$INJ" -d "$OUT/core.jar" -nowarn -no-reflect \
-  "$OUT/RStub.kt" "${TARGETS[@]}" 2>&1 | grep -v 'unable to find kotlin' || true
+  "$OUT/RStub.kt" "$OUT/RoomAnnotationStub.kt" "${TARGETS[@]}" 2>&1 | grep -v 'unable to find kotlin' || true
 
 # run_kotest.sh 用に、生成した core.jar と R スタブを外へ渡す (指定時のみ)。
 # kotest シムは同じ production クラス群に対してテストを走らせる必要があり、
@@ -163,7 +227,7 @@ fi
 
 # 対象ファイル数の下限。Android 依存 import が増えると自動判定で対象が減るため、
 # 「黙ってカバレッジが縮む」ことを検知する。意図的に減らす場合はこの値も更新すること。
-MIN_TARGETS=47
+MIN_TARGETS=50
 if [[ ${#TARGETS[@]} -lt $MIN_TARGETS ]]; then
   echo "CORE COMPILE: coverage shrank (${#TARGETS[@]} < $MIN_TARGETS files)." >&2
   echo "  Android/AndroidX/Hilt(dagger)/ktor への依存が増えていないか確認し、" >&2
