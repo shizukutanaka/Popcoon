@@ -154,6 +154,13 @@ java -cp "$LIB/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
   -cp "$ST:$SER:$COR:$INJ" -d "$OUT/core.jar" -nowarn -no-reflect \
   "$OUT/RStub.kt" "${TARGETS[@]}" 2>&1 | grep -v 'unable to find kotlin' || true
 
+# run_kotest.sh 用に、生成した core.jar と R スタブを外へ渡す (指定時のみ)。
+# kotest シムは同じ production クラス群に対してテストを走らせる必要があり、
+# 対象ファイルの選定規則をここと二重管理したくない。
+if [[ -n "${POPCOON_CORE_JAR_OUT:-}" ]]; then
+  cp "$OUT/core.jar" "$POPCOON_CORE_JAR_OUT"
+fi
+
 # 対象ファイル数の下限。Android 依存 import が増えると自動判定で対象が減るため、
 # 「黙ってカバレッジが縮む」ことを検知する。意図的に減らす場合はこの値も更新すること。
 MIN_TARGETS=47
