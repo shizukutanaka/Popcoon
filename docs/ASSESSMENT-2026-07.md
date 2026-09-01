@@ -264,3 +264,28 @@ CLAUDE.md は外部仕様値を出典なしに変えることを禁じている�
 
 **製品挙動変更 + ゴールデン移行**のため、CLAUDE.md の方針に従いエージェント側では
 A/B/C いずれも実施していない。到達不能だった `0.05` 既定値の除去 (挙動不変) のみ実施済み。
+
+
+## 判断待ち: Room エンティティの置き場所と kotest の追加解錠 (2026-08 測定)
+
+`app/src/test` の 63 spec のうち 36 は実行可能になったが、残り 27 の最多の詰まりは
+Room エンティティ `WatchlistItem` である。ただし**本当の制約は Room ではなくファイルの置き場所**:
+
+- `androidx.room` を import する production ファイルは 2 つだけ
+  (`data/db/PopcoonDatabase.kt` / `di/DatabaseModule.kt`)
+- `WatchlistItem` が要求するのは `@Entity` / `@Index` / `@PrimaryKey` の**アノテーション 3 つのみ**
+  (本文書が既に「プロセッサ不在では実物も不活性」と判定している、嘘をつけない種類のスタブ)
+- しかしエンティティが `PopcoonDatabase.kt` に同居しているため `data.db` パッケージ全体が
+  Android 依存として扱われ、純ロジックのファイルまで巻き添えになる
+
+**実測した巻き添え: 2 件** — `feature/cart/SmartCartService.kt` と
+`feature/watchlist/WatchlistSort.kt` (どちらも差別化機能かつ ¥0 汚染監査の対象)。
+解消すれば実コンパイル 48 → 50 ファイル、kotest 36 → 38 spec。
+
+| 案 | 内容 | 費用とリスク |
+|---|---|---|
+| A | エンティティを `data/db/Entities.kt` へ切り出す | production の構成変更。Room のスキーマはアノテーションで決まるのでファイル移動は挙動不変だが、`PopcoonDatabase.kt` 自体はコンパイル検証できないままなので移動の正しさを実行で確かめられない。`check_migrations.py` の解析対象にも影響 |
+| B | `RStub.kt` と同じくハーネスが実ファイルからエンティティを切り出して生成 | production を一切触らない。実ファイルから毎回生成するのでドリフトも起きない。ただし対象選定に「このパッケージの一部だけ利用可能」という概念を足す必要がある |
+| C | 現状維持 | 27 spec は CI 有効化まで未実行のまま |
+
+費用対効果が中程度 (+2 ファイル / +2 spec) なので、エージェント側では実施していない。

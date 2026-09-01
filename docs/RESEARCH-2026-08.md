@@ -665,6 +665,32 @@ parity ハーネスで既に守られていることの裏付けでもある。
 まるごと 1 つ**、誰にも気付かれずに存在していた。同種の誤りが他に無いか全テストを走査し、
 残る 2 箇所 (`DatabaseIntegrityTest`) は正しく括弧が付いていることを確認した。
 
+### 残り 27 spec の詰まりを測った (実装は見送り、判断項目として記録)
+
+最多の詰まりは Room エンティティ `WatchlistItem`。ただし本当の制約は Room ではなく
+**ファイルの置き場所**だった:
+
+- `androidx.room` を import する production ファイルは **2 つだけ**
+  (`data/db/PopcoonDatabase.kt` と `di/DatabaseModule.kt`)
+- `WatchlistItem` が要求する Room シンボルは `@Entity` / `@Index` / `@PrimaryKey` の
+  **アノテーション 3 つのみ**。ASSESSMENT が既に「プロセッサ不在では実物も不活性なので
+  スタブが嘘をつけない」と判定している種類
+- しかしエンティティが `PopcoonDatabase.kt` に同居しているため、`data.db` パッケージ全体が
+  Android 依存として扱われ、それを import する**純ロジックのファイルまで巻き添え**になる
+
+巻き添えの実測: **自身は Android 非依存なのに `data.db` の import だけで落ちているのは 2 件** —
+`feature/cart/SmartCartService.kt` と `feature/watchlist/WatchlistSort.kt`。
+どちらも差別化機能かつ ¥0 汚染監査の対象だった重要ファイル。
+解消すれば実コンパイル +2 ファイル、kotest +2 spec (`SmartCartServiceTest` / `WatchlistSortTest`)。
+
+**見送りの理由**: 費用対効果が中程度 (+2/+2) なのに対し、実現手段が 2 つともコストを伴う。
+(a) エンティティを別ファイルへ切り出す = production の構成変更で、`PopcoonDatabase.kt` 自体は
+コンパイル検証できないままなので移動の正しさを実行で確かめられない。
+(b) `RStub.kt` と同じくハーネスが実ファイルからエンティティを切り出して生成する =
+ドリフトは起きない (毎回実ファイルから生成するため) が、対象選定ロジックに
+「このパッケージの一部だけ利用可能」という概念を持ち込む必要がある。
+どちらも設計判断なので `docs/ASSESSMENT-2026-07.md` の判断待ちへ回す。
+
 ### 明示した限界 (過大評価しない)
 
 実行のたびに件数を表示する。63 spec 中:
