@@ -40,7 +40,12 @@ class PointSimulatorTest : StringSpec({
     "Yahoo 5のつく日 + プレミアム = 7%" {
         val ctx = PointSimulator.UserContext(
             yahooPremium = true,
-            purchaseDate = LocalDate.of(2026, 4, 5),
+            // 4/15 = 5のつく日かつ水曜。以前は 2026-04-05 を使っていたが、この日は
+            // **日曜**でもあり、プレミアムな日曜日 +5% (プレミアム会員 + ¥5,000 以上、
+            // 2026-07 リサーチで反映した実仕様) が正しく発火して 12% になる。
+            // このテストの主眼は「5のつく日 + プレミアム」の 2 要素なので、
+            // 日曜と重ならない 5 のつく日に固定する。
+            purchaseDate = LocalDate.of(2026, 4, 15),
         )
         val r = PointSimulator.simulate(product(Platform.YAHOO, 10_000), ctx)
         // 1% (基本) + 4% (5のつく日) + 2% (プレミアム) = 7%
@@ -89,7 +94,13 @@ class PointSimulatorTest : StringSpec({
     }
 
     "送料が実質価格に加算される" {
-        val ctx = PointSimulator.UserContext(rakutenSpu = 1)
+        // purchaseDate を固定しないと既定の LocalDate.now() が使われ、実行日が
+        // 5/0 のつく日 (毎月 6 日ある) だと +1% されて 5,400 になる**フレーキー**だった
+        // (kotest シムの初回実行が 8/25 で、実際に落ちて発覚)。
+        val ctx = PointSimulator.UserContext(
+            rakutenSpu = 1,
+            purchaseDate = LocalDate.of(2026, 4, 1),
+        )
         val r = PointSimulator.simulate(
             product(Platform.RAKUTEN, 5000, shipping = 500L), ctx,
         )

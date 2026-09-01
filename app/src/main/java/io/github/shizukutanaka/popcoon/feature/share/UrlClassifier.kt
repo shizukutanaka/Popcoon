@@ -81,12 +81,20 @@ object UrlClassifier {
         return null
     }
 
+    /** 抽出する URL の総長上限。ReDoS/メモリの安全弁 (慣例の URL 長上限に合わせる)。 */
+    private const val MAX_URL_LENGTH = 2048
+
     /**
      * 共有された文字列から URL を抽出 (テキストに混じった URL を救出)。
      * Twitter共有などでは「商品名 + URL」形式の場合あり。
+     *
+     * 総長は [MAX_URL_LENGTH] で切り詰める。以前は regex の量指定子だけで制限しており、
+     * スキーム 8 文字 (`https://`) + 2048 = **2056 文字**が返っていた —
+     * テスト名とコメントが宣言する「上限 2048 文字」と実装が食い違っていた
+     * (kotest シム run_kotest.sh で 63 spec を初めて実行して発覚)。
      */
     fun extractUrl(text: String): String? =
-        Regex("""https?://\S{1,2048}""").find(text)?.value
+        Regex("""https?://\S{1,$MAX_URL_LENGTH}""").find(text)?.value?.take(MAX_URL_LENGTH)
 
     private fun String.removeQuery(): String =
         substringBefore('?').substringBefore('#')

@@ -18,19 +18,19 @@ class UrlClassifierEdgeCasesTest : StringSpec({
     "Amazon モバイル URL: m.amazon.co.jp もマッチする" {
         // regex は amazon.co.jp をサブストリングとして検索するため m. prefix も一致する
         val result = UrlClassifier.classify(
-            "https://m.amazon.co.jp/dp/B0CTEST9999"
+            "https://m.amazon.co.jp/dp/B0CTEST990"
         )
         result.shouldNotBeNull()
         result.platform shouldBe Platform.AMAZON
-        result.sku shouldBe "B0CTEST9999"
+        result.sku shouldBe "B0CTEST990"
     }
 
     "Amazon URL: www. なしでもマッチする" {
         val result = UrlClassifier.classify(
-            "https://amazon.co.jp/dp/B0SMARTPHONE"
+            "https://amazon.co.jp/dp/B0SMARTPH0"
         )
         result.shouldNotBeNull()
-        result.sku shouldBe "B0SMARTPHONE"
+        result.sku shouldBe "B0SMARTPH0"
     }
 
     "楽天 URL: 末尾スラッシュなし" {
@@ -69,12 +69,12 @@ class UrlClassifierEdgeCasesTest : StringSpec({
     }
 
     "Twitter共有テキスト: 商品名 + URL の混在" {
-        val text = "この商品めっちゃ良いよ！\nhttps://www.amazon.co.jp/dp/B0TWITTER12 #ステマ"
+        val text = "この商品めっちゃ良いよ！\nhttps://www.amazon.co.jp/dp/B0TWITTER0 #ステマ"
         val url = UrlClassifier.extractUrl(text)
-        url shouldBe "https://www.amazon.co.jp/dp/B0TWITTER12"
+        url shouldBe "https://www.amazon.co.jp/dp/B0TWITTER0"
 
         val classified = UrlClassifier.classify(url!!)
-        classified?.sku shouldBe "B0TWITTER12"
+        classified?.sku shouldBe "B0TWITTER0"
     }
 
     "LINE 共有テキスト: 改行と日本語混在" {

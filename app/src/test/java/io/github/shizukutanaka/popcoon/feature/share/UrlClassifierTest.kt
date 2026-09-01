@@ -74,8 +74,8 @@ class UrlClassifierTest : StringSpec({
     }
 
     "前後空白を許容" {
-        val r = UrlClassifier.classify("  https://www.amazon.co.jp/dp/B0SPACE1234  ")
+        val r = UrlClassifier.classify("  https://www.amazon.co.jp/dp/B0SPACE120  ")
         r.shouldNotBeNull()
-        r.sku shouldBe "B0SPACE1234"
+        r.sku shouldBe "B0SPACE120"
     }
 })

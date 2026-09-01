@@ -35,9 +35,13 @@ class TCOCalculatorTest : StringSpec({
     "レーザープリンター: トナー + ドラム + 用紙" {
         val r = TCOCalculator.calculate(25_000, "laser_printer", 5)
         r.consumablesTotal shouldBeGreaterThan 0L
-        // レーザーはインクジェットより消耗品が高い (トナー6000円/本 × 1.5回/年)
+        // 消耗品はインクジェットの方が高い。係数表から: インクジェット 21,200 円/年
+        // (インク黒 10,800 + カラー 8,800 + 用紙 1,600) > レーザー 13,440 円/年
+        // (トナー 9,000 + ドラム 2,640 + 用紙 1,800)。旧アサーションは不等号が逆で、
+        // 「インク代が高い」という本製品のインクタンク式比較機能の前提とも矛盾していた
+        // (kotest シム初回実行で発覚)。
         val inkjet = TCOCalculator.calculate(25_000, "inkjet_printer", 5)
-        r.consumablesTotal shouldBeGreaterThan inkjet.consumablesTotal
+        inkjet.consumablesTotal shouldBeGreaterThan r.consumablesTotal
     }
 
     // 回帰: ドラムは使用強度 (intensity) で増減しない (0.33/年 固定)。Python 参照と一致。
@@ -74,11 +78,16 @@ class TCOCalculatorTest : StringSpec({
         r.consumablesTotal shouldBe 29_200L
     }
 
-    "未知カテゴリ: 消耗品・電気代 0、購入価格のみ" {
+    "未知カテゴリ: 消耗品・電気代 0、購入価格 + 保守費のみ" {
         val r = TCOCalculator.calculate(50_000, "unknown_device", 5)
         r.consumablesTotal shouldBe 0L
         r.energyTotal shouldBe 0L
-        r.totalTco shouldBe 50_000L
+        // years=5 は保守費バンド 4..6 に入るため purchasePrice/10 = 5,000 が乗る。
+        // 旧期待値 50,000 は保守費を無視しており、オラクル (calculate_tco) に対して
+        // 一度も成立したことがなかった (kotest シム初回実行で発覚)。
+        // 導出: 50,000 + 0 (消耗品) + 0 (電気) + 5,000 (保守) − 0 (残価 5% − 5×1% = 0) = 55,000
+        r.maintenance shouldBe 5_000L
+        r.totalTco shouldBe 55_000L
     }
 
     "intensity 2.0: 消耗品が倍増" {
@@ -87,11 +96,19 @@ class TCOCalculatorTest : StringSpec({
         heavy.consumablesTotal shouldBeGreaterThan normal.consumablesTotal
     }
 
-    "レーザープリンター intensity 2.0: ドラムも intensity に比例 (drum bug regression)" {
+    // ⚠️ このテストは以前「ドラムも intensity に比例 (×2)」を主張していたが、それは
+    // 差分パリティで検出・修正済みの**旧バグの挙動**で、同ファイルの
+    // 「レーザー: intensity=2.0 でもドラムはスケールしない」(121,200 を固定) と真っ向から
+    // 矛盾していた。両テストは同時に成立し得ない — kotest が一度も実行されて
+    // いなかったため矛盾したまま同居できていた (kotest シム初回実行で発覚)。
+    // 現仕様 (Python calculate_tco と一致): ドラムは 0.33/年 固定で intensity 非適用。
+    // 導出 (25,000, years=1): i=1.0 → 9,000+2,640+1,800 = 13,440
+    //                         i=2.0 → 18,000+2,640+3,600 = 24,240 (≠ 13,440×2 = 26,880)
+    "レーザープリンター intensity 2.0: ドラムだけは比例しない (drum bug の修正を固定)" {
         val normal = TCOCalculator.calculate(25_000, "laser_printer", 1, intensity = 1.0)
         val heavy = TCOCalculator.calculate(25_000, "laser_printer", 1, intensity = 2.0)
-        // 全消耗品 (toner/drum/paper) が intensity に比例するので 2倍になる
-        heavy.consumablesTotal shouldBe normal.consumablesTotal * 2
+        normal.consumablesTotal shouldBe 13_440L
+        heavy.consumablesTotal shouldBe 24_240L
     }
 
     "tcoPerMonth は totalTco / (years × 12)" {

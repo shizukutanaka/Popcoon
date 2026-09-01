@@ -88,18 +88,31 @@ class AdviceCacheTest : StringSpec({
     // 回帰: 旧実装は作成時刻ベースの FIFO で、直近アクセスされたエントリでも
     // 最古なら追い出されていた。真の LRU なら「最近 get() された」エントリは生き残る
     // (機能過不足監査で発見: ドキュメント上の "LRU" と実装が食い違っていた)。
-    "直近アクセスしたエントリは 100件超でも追い出されない (真の LRU 回帰)" {
+    //
+    // ⚠️ フィクスチャの順序が本体。以前は put(SKU0) → get(SKU0) → 100件 put の順で、
+    // アクセス後に 100 件挿入されるため **LRU でも FIFO でも SKU0 が最古**になり、
+    // 両方式を区別できないうえ「SKU0 が残る」という誤った結果を主張していた
+    // (kotest シム run_kotest.sh で初めて実行して発覚 — 真の LRU 実装に対して落ちる)。
+    // 判別できる順序は「満杯にしてから最古候補を触り、その後に 1 件足す」:
+    //   LRU  → 触った SKU0 は最新扱いになり、SKU1 が追い出される
+    //   FIFO → 作成が最古の SKU0 が追い出される
+    "満杯直前に get したエントリは追い出されない (真の LRU 判別)" {
         val cache = AdviceCache()
         val p0 = mkProduct("SKU0")
+        val p1 = mkProduct("SKU1")
         cache.put(p0, mkScore(), "advice0")
-        // SKU0 を明示的にアクセスして「最近使った」扱いにする
-        cache.get(p0, mkScore()).shouldNotBeNull()
-        // 残り100件を追加 (合計101件 → 1件追い出される)
-        repeat(100) { i ->
+        // SKU1..SKU99 を追加して満杯 (100 件) にする
+        repeat(99) { i ->
             cache.put(mkProduct("SKU${i + 1}"), mkScore(), "advice${i + 1}")
         }
         cache.size() shouldBe 100
-        // FIFO なら SKU0 (最古の作成時刻) が追い出されるはずだが、LRU なら直近アクセス済みなので生存する
+        // 最古候補 SKU0 をここでアクセスして「最近使った」扱いにする
+        cache.get(p0, mkScore()).shouldNotBeNull()
+        // 101 件目 → 1 件追い出し
+        cache.put(mkProduct("SKU100"), mkScore(), "advice100")
+        cache.size() shouldBe 100
+        // LRU: 直近アクセス済みの SKU0 は生存し、次に古い SKU1 が追い出される
         cache.get(p0, mkScore()) shouldBe "advice0"
+        cache.get(p1, mkScore()).shouldBeNull()
     }
 })
