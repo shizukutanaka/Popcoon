@@ -56,8 +56,8 @@
 ## 4. Android / Google Play 2026 要件
 
 **主な知見 (期限つき)**
-- **target API 36 (Android 16)**: 新規/更新は **2026-08-31** から必須 (延長申請で 11/1)。 <https://developer.android.com/google/play/requirements/target-sdk>
-- **Play Billing Library 8+**: 同じく **2026-08-31** 期限。現状 7.1.1。 <https://developer.android.com/google/play/billing/deprecation-faq>
+- **target API 36 (Android 16)**: 新規/更新は **2026-08-31** から必須 (延長申請で 11/1)。**`compileSdk`/`targetSdk` とも 36 に設定済み**。 <https://developer.android.com/google/play/requirements/target-sdk>
+- **Play Billing Library 8+**: 同じく **2026-08-31** 期限。**2026-08 に 8.3.0 へ移行済み** (`gradle/libs.versions.toml`)。 <https://developer.android.com/google/play/billing/deprecation-faq>
 - **16 KB ページサイズ**: 2025-11-01 から新規/更新で必須。純 Kotlin は既定で適合、native .so (ML Kit 依存) は要確認。
 - Android 16 挙動変更: predictive back 既定 ON、edge-to-edge 強制、sw≥600dp で画面回転制限無視、WorkManager クォータ厳格化。
 - Compose: 安定 BOM 2026.06.01、material3 1.4.0 (M3 Expressive 初安定)、Navigation 3 安定、strong skipping 既定。Kotlin 2.3.x + KSP2、AGP 8.x 最新 (AGP 9 は要移行計画)。
