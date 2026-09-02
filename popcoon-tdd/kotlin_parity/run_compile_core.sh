@@ -290,6 +290,12 @@ python3 "$HERE/check_truncation.py" || exit 1
 #     初回実行が即死する類の設定ミスは静的に決まるので先に潰す。
 python3 "$HERE/check_build_config.py" || exit 1
 
+# 11. i18n の整合検査。既存の i18n ゲート (ci/verify.py) は **キーの個数**しか見ておらず、
+#     ja に A / en に B があっても通ってしまう。書式指定子がずれれば
+#     getString(id, args) が実行時例外を投げる。「4 ロケール完全一致」は ASSESSMENT が
+#     長所として掲げる性質なので、その主張に見合う検査にする。
+python3 "$HERE/check_i18n.py" || exit 1
+
 if [[ -f "$OUT/core.jar" ]]; then
   echo "CORE COMPILE: OK (${#TARGETS[@]} files)"
 else
