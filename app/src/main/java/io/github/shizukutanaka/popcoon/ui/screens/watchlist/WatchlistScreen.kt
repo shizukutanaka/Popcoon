@@ -21,8 +21,6 @@ import io.github.shizukutanaka.popcoon.R
 import io.github.shizukutanaka.popcoon.data.db.WatchlistItem
 import io.github.shizukutanaka.popcoon.ui.a11y.a11yDecorative
 import io.github.shizukutanaka.popcoon.feature.watchlist.WatchlistSort
-import io.github.shizukutanaka.popcoon.feature.watchlist.WidgetVerdict
-import io.github.shizukutanaka.popcoon.feature.scorer.BuyTimingScorer
 import io.github.shizukutanaka.popcoon.ui.components.SmartCartCard
 import io.github.shizukutanaka.popcoon.ui.components.SwipeToDelete
 import io.github.shizukutanaka.popcoon.ui.components.TagDialog
@@ -210,20 +208,6 @@ fun WatchlistScreen(
 
 private fun undoRemovedMessage(context: android.content.Context, title: String): String =
     context.getString(R.string.watchlist_undo_removed, title.take(15))
-
-/**
- * ウォッチリスト行の買い時バッジ用 Verdict を返す。
- *
- * 判定はホーム画面ウィジェットと同じ [WidgetVerdict]（テスト済み純関数・履歴/通信不要）を
- * 再利用し、「ウィジェットは買い時を出すのにアプリ内ウォッチリストは出さない」不整合を解消する。
- * NEUTRAL は視覚ノイズになるため null（バッジ非表示）を返し、BUY_NOW / WAIT のみ表示する。
- */
-internal fun watchlistBuyVerdict(item: WatchlistItem): BuyTimingScorer.Verdict? =
-    when (WidgetVerdict.forItem(item.realPrice, item.targetPrice, item.addedPrice)) {
-        WidgetVerdict.BUY_NOW -> BuyTimingScorer.Verdict.BUY_NOW
-        WidgetVerdict.WAIT -> BuyTimingScorer.Verdict.WAIT
-        else -> null
-    }
 
 /** WatchlistSort.Mode → 表示用文字列リソース。 */
 @Composable

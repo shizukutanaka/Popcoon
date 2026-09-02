@@ -7,7 +7,7 @@
 ## 長所
 
 1. **二重言語 TDD アーキテクチャ** — Python 仕様オラクル (549 tests) が真実の源、Kotlin 本番実装を
-   `kotlin_parity/` の 18 ハーネスが**実コンパイル・実行**で照合 (run.sh 202 ケース 0 乖離、`run_compile_core.sh` が 51 ファイルを型検査)。
+   `kotlin_parity/` の 18 ハーネスが**実コンパイル・実行**で照合 (run.sh 202 ケース 0 乖離、`run_compile_core.sh` が 55 ファイルを型検査)。
    Android SDK 無しの環境でもロジックの実行検証ができる、この規模のアプリでは希少な体制
 2. **テスト防御の深さ** — 11 階層 (unit/integration/golden/metamorphic/mutation/perf/fuzz/
    stateful/concurrency/differential/chaos)。mutation score 100% × 4 モジュール。
@@ -30,7 +30,7 @@
 9. **通知の抑制設計** — 誤検知対策の 1 サイクル遅延確認 (ユーザー承認済み設計)、
    1 同期あたり通知上限 3 件 + 優先度付け、いずれも純関数化されテスト済み
 10. **kotest spec が本環境で実行できる (2026-08)** — Maven Central 遮断下でも、テストが使う
-    42 シンボルだけを実装した `kotlin_parity/kotest_shim/` 経由で **38 spec / 568 アサーション**を
+    42 シンボルだけを実装した `kotlin_parity/kotest_shim/` 経由で **42 spec / 602 アサーション**を
     実行 (`-Xfriend-paths` で internal も可視化)。テストファイルの変更は誤りの修正のみ。「CI が無いから kotest は動かせない」を
     要件ごと疑って解消した (`docs/RESEARCH-2026-08.md` §14)
 11. **回復性** — 全 ViewModel mutating メソッドに CancellationException-aware try/catch、
@@ -50,7 +50,7 @@
    それでも残り 85 ファイルの型検査は不能。CI 有効化 (A1) の優先度は最上位。
    2026-08 に静的ゲートを 7 種へ拡張 (override / `R.*` 参照 / `when` 網羅 / テスト参照 /
    `realPrice` の ¥0 除外 / Room 移行チェーン / `take` の前の順序付け) し、
-   実コンパイルも 34 → 51 ファイルへ広げた。いずれも欠陥注入で検出能力を実証済み。
+   実コンパイルも 34 → 55 ファイルへ広げた。いずれも欠陥注入で検出能力を実証済み。
 
    **「スタブを作れば もっとコンパイルできるのでは」は 2026-08 に実測して見送った**
    (同じ検討を繰り返さないための記録):
@@ -71,7 +71,7 @@
    移行設計は `backend/README.md` に文書化済みだが、wrangler 実行検証不可のため未実装
 6. **UI 自動テストが薄い** — Compose UI テスト 2 件 + androidTest 4 ファイルは本環境で実行不可。
    ユニットテスト 63 ファイルはロジック層に偏る (構造上やむを得ないが偏りは事実)。
-   2026-08 に **38 spec は実行可能**になった (長所 10) が、残り 25 は production 側が
+   2026-08 に **42 spec は実行可能**になった (長所 10) が、残り 21 は production 側が
    Android/Hilt/ktor 依存でコンパイルできず、依然として **一度も実行されていない**
 
 10. **テストコードの腐敗が測定されていなかった (2026-08 に判明)** — 初めて 31 spec を実行した
@@ -81,7 +81,7 @@
     そして**互いに矛盾する 2 テストの同居** 1 件。CI 有効化の初回実行は赤で始まるはずだった。
     さらに `DarkPatternTextDetectorTest` は演算子優先順位の誤り (`X in c shouldBe true` は
     `X in (c shouldBe true)` と解釈される) で **kotest があってもコンパイルできない**状態だった。
-    残り 27 spec には同種の腐敗が同じ比率で眠っている可能性がある (未測定)
+    残り 21 spec には同種の腐敗が同じ比率で眠っている可能性がある (未測定)
 7. ~~**Yahoo 会員ランク未モデル化**~~ — 2026-08 に実装済 (B4)。UserContext.yahooRank +
    設定 UI + 4 ロケール文字列を追加し、感謝デー (毎月 11日・22日) を実計算するようにした
 8. **名寄せの残課題** — groupByIdentity は JAN なし商品で O(m²) (粗ブロッキング B5 は未着手)。
@@ -134,8 +134,8 @@
 ## 検証基準線 (2026-08 実測 — 記載コマンドを実際に流して確認)
 
 - Python: **549 passed / 1 skipped** (`popcoon-tdd/`)
-- Kotlin parity: **run_all.sh 全 18 ハーネス pass** (run.sh 202 matched / 0 mismatched、core compile 51 ファイル)
-- **app の kotest spec: 38 specs / 568 passed / 0 failed** (`run_kotest.sh`、シム経由)
+- Kotlin parity: **run_all.sh 全 18 ハーネス pass** (run.sh 202 matched / 0 mismatched、core compile 55 ファイル)
+- **app の kotest spec: 42 specs / 602 passed / 0 failed** (`run_kotest.sh`、シム経由)
 - backend: **tsc 0 errors / vitest 108 tests / 5 files pass**
 - i18n: **4 ロケール × 365 strings** (+4 plurals) 完全一致
 - ファイル数: Kotlin main 133 / unit test 63 / androidTest 4、Python 36
@@ -144,7 +144,7 @@
 **基準線は `python3 ci/verify.py` が自動照合する** — 手で書き換えず `--update` で同期すること。
 
 > 2026-08 の棚卸しで、この文書自身に陳腐化した数値が 7 箇所あった
-> (490→549 / 405→365 キー / 80→108 / 14→18 ハーネス / 46→51 ファイル / 155→202 ケース /
+> (490→549 / 405→365 キー / 80→108 / 14→18 ハーネス / 46→55 ファイル / 155→202 ケース /
 > 静的ゲート 4→7 種)。長所 #8 が「ドキュメントの誠実さ」を掲げている以上、
 > **数値の陳腐化はその主張に対する反例**になる。実測へ同期した。
 
@@ -294,21 +294,28 @@ A/B/C いずれも実施していない。到達不能だった `0.05` 既定値
 結果: 実コンパイル **48 → 51 ファイル** (`SmartCartService.kt` / `WatchlistSort.kt` が復帰)、
 kotest **36 → 38 spec / 542 → 568 アサーション**、いずれも 0 failed。
 
-## 判断待ち: テスト可能な純ロジックが Android 依存ファイルに同居している
+## 完了: テスト可能な純ロジックを Android 依存ファイルから切り出した (2026-08)
 
-残り 25 spec のうち複数は、**依存が本当に必要なわけではなく、純粋な関数が
-Compose/Android のファイルに同居している**ために動かせない。本リポジトリは既に
-`WidgetVerdict` / `PriceSyncPlanner` / `BundlePackDetector` で「純ロジックを別ファイルへ
-切り出す」パターンを確立しており、同じ処方が効く。該当例:
+残り spec の一部は、**依存が本当に必要なのではなく、純粋な関数が Compose/Android の
+ファイルに同居している**ために動かせなかった。`WidgetVerdict` / `PriceSyncPlanner` で
+確立済みの「純ロジックを別ファイルへ切り出す」パターンを 4 件に適用した。
+同一パッケージ内の分割なので**呼び出し側の import すら変わらず**、移した関数は
+実コンパイル対象に入るため検証は厚くなる方向にしか倒れない。
 
-| テストが要求する宣言 | 同居先 | 性質 |
-|---|---|---|
-| `watchlistBuyVerdict` | `ui/screens/watchlist/WatchlistScreen.kt` | 純関数 (Compose 不要) |
-| `SearchRow` | `ui/screens/search/SearchScreen.kt` | data class |
-| `filterByRange` | `ui/components/PriceChart*.kt` | 純関数 |
-| `csvEscape` | `feature/export/*` | 純関数 |
-| `PopcoonWidgetLogic` | `widget/*` | 純ロジック |
+| 宣言 | 元 | 移動先 | 解錠された spec |
+|---|---|---|---|
+| `watchlistBuyVerdict` | `WatchlistScreen.kt` (Compose) | `ui/screens/watchlist/WatchlistBuyVerdict.kt` | `WatchlistBuyVerdictTest` |
+| `PriceChartRange` / `filterByRange` / `plottableRecords` | `PriceChart.kt` (Compose Canvas) | `ui/components/PriceChartData.kt` | `PriceChartTest` |
+| `CSV_FORMULA_TRIGGERS` / `csvEscape` | `PriceHistoryCsvExporter.kt` (android.content) | `feature/export/CsvEscape.kt` | `CsvEscapeTest` |
+| `PopcoonWidgetLogic` | `PopcoonWidget.kt` (Glance) | `widget/PopcoonWidgetLogic.kt` | `WidgetSaleLogicTest` |
 
-切り出せばそれぞれ実コンパイル + kotest の対象になる。ただし **production の構成変更**で
-あり、UI 層はこの環境でコンパイル検証できないため、1 件ずつ静的ゲートで守りながら進める
-必要がある。着手前に対象と順序を提示して承認を得ること。
+結果: 実コンパイル **51 → 55 ファイル**、kotest **38 → 42 spec / 568 → 602 アサーション**、0 failed。
+欠陥注入 (`csvEscape` の数式ガードを外す → `CsvEscapeTest` が落ちる) で、移した関数が
+本当に spec に守られていることを確認した。
+`check_price_guard.py` が `PriceChart.kt` を報告するようになった (¥0 除外が
+`plottableRecords` と一緒に別ファイルへ移ったため) — 全読み出しが `plottableRecords`
+経由であることを根拠に ALLOWLIST へ登録。
+
+**見送り 1 件**: `SearchRow` (`SearchScreen.kt`) は `warnings: List<UiText>` を持ち、
+`UiText` が `@Composable fun asString()` を持つ Compose 束縛の型なので、切り出しても
+`SortAndFilterTest` は解錠できない。CI 有効化後の領分。

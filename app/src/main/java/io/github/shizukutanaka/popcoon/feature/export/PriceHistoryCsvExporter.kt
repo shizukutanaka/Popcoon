@@ -157,18 +157,3 @@ class PriceHistoryCsvExporter @Inject constructor(
         const val MAX_CONCURRENCY = 8
     }
 }
-
-/** 表計算ソフトで数式として解釈され得る先頭文字。 */
-internal const val CSV_FORMULA_TRIGGERS = "=+-@\t\r"
-
-/**
- * CSV フィールドを RFC 4180 準拠でエスケープし、数式インジェクションも防ぐ。
- * internal にしてテストから直接呼べるようにする。
- */
-internal fun String.csvEscape(): String {
-    // CSV インジェクション対策 (1): 数式起動文字で始まるフィールドは ' を前置
-    val guarded = if (isNotEmpty() && first() in CSV_FORMULA_TRIGGERS) "'$this" else this
-    // CSV インジェクション対策 (2): ダブルクォートをエスケープしてフィールドをクォート
-    val escaped = guarded.replace("\"", "\"\"")
-    return "\"$escaped\""
-}

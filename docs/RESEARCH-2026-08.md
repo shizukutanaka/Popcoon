@@ -706,7 +706,12 @@ DAO 等の未提供宣言を参照するファイルが混ざれば実コンパ�
 `SearchRow` (SearchScreen.kt)、`filterByRange` (PriceChart)、`csvEscape`、`PopcoonWidgetLogic`。
 本リポジトリは既に `WidgetVerdict` / `PriceSyncPlanner` / `BundlePackDetector` で
 「純ロジックを別ファイルへ切り出す」パターンを確立しており、同じ処方が効く。
-ただしこちらは **production の構成変更**なので ASSESSMENT の判断待ちへ記録した。
+**4 件を切り出した** (同一パッケージ内の分割なので呼び出し側は無変更): `watchlistBuyVerdict` →
+`WatchlistBuyVerdict.kt`、`PriceChartRange`/`filterByRange`/`plottableRecords` → `PriceChartData.kt`、
+`csvEscape` → `CsvEscape.kt`、`PopcoonWidgetLogic` → `PopcoonWidgetLogic.kt`。
+結果: 実コンパイル 51 → **55**、kotest 38 → **42 spec / 602 アサーション**、0 failed。
+`csvEscape` の数式ガードを外す欠陥注入で `CsvEscapeTest` が落ちることを確認。
+`SearchRow` だけは `List<UiText>` (Compose 束縛) を持つため見送り (`SortAndFilterTest` は CI 待ち)。
 
 ### 明示した限界 (過大評価しない)
 

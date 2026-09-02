@@ -49,6 +49,10 @@ GUARD = re.compile(
 # 例外は理由とセットでのみ許す。
 ALLOWLIST: dict[str, str] = {
     # 例: "path/To/File.kt": "理由",
+    "app/src/main/java/io/github/shizukutanaka/popcoon/ui/components/PriceChart.kt":
+        "realPrice の全読み出しは `sorted = remember(records) { plottableRecords(records) }` 経由で、"
+        "¥0 除外は同パッケージの PriceChartData.kt::plottableRecords が行う (純ロジック切り出しで"
+        "ガードだけ別ファイルへ移った。切り出し先は実コンパイル + PriceChartTest で検証される)",
 }
 
 

@@ -227,7 +227,7 @@ fi
 
 # 対象ファイル数の下限。Android 依存 import が増えると自動判定で対象が減るため、
 # 「黙ってカバレッジが縮む」ことを検知する。意図的に減らす場合はこの値も更新すること。
-MIN_TARGETS=50
+MIN_TARGETS=54
 if [[ ${#TARGETS[@]} -lt $MIN_TARGETS ]]; then
   echo "CORE COMPILE: coverage shrank (${#TARGETS[@]} < $MIN_TARGETS files)." >&2
   echo "  Android/AndroidX/Hilt(dagger)/ktor への依存が増えていないか確認し、" >&2
