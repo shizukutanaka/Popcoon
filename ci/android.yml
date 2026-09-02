@@ -184,6 +184,14 @@ jobs:
       - name: Make scripts executable
         run: chmod +x ./gradlew popcoon-tdd/kotlin_parity/*.sh
 
+      # ハーネスは Gradle 同梱の kotlin-compiler-embeddable を $HOME/.gradle・$GRADLE_HOME・
+      # /opt/gradle-*/lib から探す。この job は Android SDK を入れず ./gradlew も叩かないため、
+      # ラッパーの配布物が $HOME/.gradle に無いと **runner の GRADLE_HOME 頼み**になる。
+      # --version を 1 度だけ叩いて配布物を確定させ、job を自己完結させる
+      # (ハーネス自身がエラー時に案内している対処と同じ)。
+      - name: Materialise Gradle distribution (for kotlin-compiler-embeddable)
+        run: ./gradlew --version
+
       - name: Run parity & mapper harnesses
         run: bash popcoon-tdd/kotlin_parity/run_all.sh
 

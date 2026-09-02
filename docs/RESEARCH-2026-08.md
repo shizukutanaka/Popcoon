@@ -831,6 +831,23 @@ version catalog の `[plugins]` セクションに全て存在する。原因は
 catalog から hilt を削除 / Manifest のクラス名をタイポ / strings.xml を壊す /
 job から `runs-on` を削除 — いずれも検出して復旧を確認した。
 
+### ゲートを作ったら、それでワークフローを読み直した — 実際に欠陥が 1 件出た
+
+`parity` job は `run_all.sh` (18 ハーネス + 静的 8 門 + kotest シム) を回す要の job だが、
+**`./gradlew` を一度も起動しない**。ハーネスは Gradle 同梱の
+`kotlin-compiler-embeddable` を `$HOME/.gradle` / `$GRADLE_HOME` / `/opt/gradle-*/lib`
+から探すので、ラッパーの配布物が無い状態では **runner の `GRADLE_HOME` 頼み**になり、
+外れれば「ERROR: kotlin-compiler-embeddable not found」で **18 ハーネスが一斉に落ちる**。
+ハーネス自身がエラー時に案内している対処 (`./gradlew --version` を 1 度叩く) を
+ステップとして追加し、job を自己完結させた。
+
+この不変条件もゲート化した — 「kotlin_parity ハーネスを回す job は、その前に
+`./gradlew --version` を持つこと」。欠陥注入 (該当ステップを `echo` に置換) で検出を確認。
+
+なお `compare_oracle.py` の到達モジュール (popcoon_core / buy_timing_scorer / proto_* の
+計 8 本) は **stdlib のみ**で構成されていることも確認した。`parity` job が
+`requirements-dev.txt` を入れずに済むのはこの性質に依存しており、偶然ではなく設計として保たれている。
+
 ---
 
 ## 本セッションの実装サマリ (このブランチ)

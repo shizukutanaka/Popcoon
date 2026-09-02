@@ -157,7 +157,32 @@ def check_workflow() -> None:
         for jid, job in jobs.items():
             if not isinstance(job, dict) or "runs-on" not in job:
                 errors.append(f"ci/android.yml: job '{jid}' に runs-on が無い")
+                continue
+            _check_parity_job(jid, job)
         notes.append(f"ci/android.yml: 整形式 / job {len(jobs)} 個")
+
+
+def _check_parity_job(jid: str, job: dict) -> None:
+    """kotlin_parity ハーネスを回す job が、その前に Gradle 配布物を確定させているか。
+
+    ハーネスは Gradle 同梱の `kotlin-compiler-embeddable` を `$HOME/.gradle` /
+    `$GRADLE_HOME` / `/opt/gradle-*/lib` から探す。Android SDK を入れず `./gradlew` も
+    叩かない job では **runner の GRADLE_HOME 頼み**になり、
+    「ERROR: kotlin-compiler-embeddable not found」で全ハーネスが一斉に落ちる。
+    `./gradlew --version` を 1 度叩けば配布物が確定して job が自己完結する
+    (ハーネス自身がエラー時に案内している対処)。
+    """
+    steps = job.get("steps") or []
+    runs = [str(s.get("run", "")) for s in steps if isinstance(s, dict)]
+    harness_at = next((i for i, r in enumerate(runs)
+                       if "kotlin_parity" in r and "run_" in r and ".sh" in r), None)
+    if harness_at is None:
+        return
+    if not any("gradlew" in r and "--version" in r for r in runs[:harness_at]):
+        errors.append(
+            f"ci/android.yml: job '{jid}' は kotlin_parity ハーネスを回すのに、"
+            f"その前に `./gradlew --version` が無い "
+            f"(kotlin-compiler-embeddable が見つからず全ハーネスが落ちる)")
 
 
 def main() -> int:
