@@ -254,7 +254,7 @@ class PriceSyncWorker @AssistedInject constructor(
     }
 
     companion object {
-        internal const val WORK_NAME = "price_sync_daily"
+        // WORK_NAME は WorkNames.PRICE_SYNC へ移動 (衝突を目で見えるようにするため)。
         /** 1回の同期で送る**個別**通知の上限 (過剰通知防止 — arXiv PMC8523513)。
          *  超過分は 1 件のまとめ通知に集約する (情報は捨てない)。 */
         private const val MAX_NOTIFICATIONS = 3
@@ -294,14 +294,14 @@ class PriceSyncWorker @AssistedInject constructor(
                 .build()
 
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                WORK_NAME,
+                WorkNames.PRICE_SYNC,
                 ExistingPeriodicWorkPolicy.KEEP,
                 request,
             )
         }
 
         fun cancel(context: Context) {
-            WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            WorkManager.getInstance(context).cancelUniqueWork(WorkNames.PRICE_SYNC)
         }
     }
 }

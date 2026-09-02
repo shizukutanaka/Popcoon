@@ -53,4 +53,18 @@ class WatchlistBuyVerdictTest : StringSpec({
     "価格不明 (realPrice <= 0) → null" {
         watchlistBuyVerdict(item(real = 0, target = 500)) shouldBe null
     }
+
+    // 境界: 目標価格「ちょうど」も到達とみなす (WidgetVerdict は realPrice <= targetPrice)。
+    // ユーザーが明示した条件なので、ちょうど一致で買い時にならないのは仕様違反。
+    // 突然変異テスト (mutation_kotlin.py MU02) で「<= を < に変えても誰も気付かない」
+    // ことが分かったため追加した — 境界を踏むフィクスチャが 1 つも無かった。
+    "目標価格ちょうどは到達扱い (境界: realPrice == targetPrice)" {
+        watchlistBuyVerdict(item(real = 5_000, target = 5_000)) shouldBe
+            BuyTimingScorer.Verdict.BUY_NOW
+    }
+
+    "目標価格を 1 円上回るときは到達扱いにしない (境界の反対側)" {
+        // 追加時価格と同額にして「有意な値下がり」経路が発火しないようにする。
+        watchlistBuyVerdict(item(real = 5_001, target = 5_000, added = 5_001)) shouldBe null
+    }
 })

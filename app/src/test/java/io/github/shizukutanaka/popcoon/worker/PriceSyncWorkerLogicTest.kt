@@ -96,7 +96,7 @@ class PriceSyncWorkerLogicTest : StringSpec({
     // 識別: WorkManager は WORK_NAME で enqueue/cancel を紐付ける。値が変わると
     // 旧スケジュールがキャンセルされず二重同期になるため、具体値を固定する。
     "WORK_NAME は 'price_sync_daily' (WorkManager スケジュール一意識別子)" {
-        PriceSyncWorker.WORK_NAME shouldBe "price_sync_daily"
+        WorkNames.PRICE_SYNC shouldBe "price_sync_daily"
     }
 
     // PriceSyncWorker の実際の呼び出し経路 (PriceAlertDebouncer 越し) を確認する。

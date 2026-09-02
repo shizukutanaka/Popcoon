@@ -52,7 +52,7 @@ class WeeklyDigestWorker @AssistedInject constructor(
         if (watchlist.isEmpty()) return Result.success()
 
         val totalCount = watchlist.size
-        val dropCount = dropCountFrom(watchlist.map { it.realPrice to it.addedPrice })
+        val dropCount = WeeklyDigestLogic.dropCountFrom(watchlist.map { it.realPrice to it.addedPrice })
 
         // 値下がりが 1 件も無い週は送らない。本文は「N件中0件が値下がり中」となり
         // 情報量ゼロの週次割り込みにしかならず、本クラスが空ウォッチリストで既に
@@ -70,22 +70,8 @@ class WeeklyDigestWorker @AssistedInject constructor(
     }
 
     companion object {
-        internal const val WORK_NAME = "weekly_digest"
+        // WORK_NAME は WorkNames.WEEKLY_DIGEST へ移動 (衝突を目で見えるようにするため)。
 
-        /**
-         * 追加時価格より現在価格が低い商品の件数を返す純関数。
-         *
-         * 除外するもの:
-         *  - addedPrice == 0 — v3 以前に登録された基準なしアイテム。
-         *  - realPrice <= 0 — 取得失敗を 0 として記録してしまった汚染レコード。
-         *    `realPrice < addedPrice` だけで判定すると 0 円は常に「値下がり」になり、
-         *    ダイジェストの件数が実態より水増しされる (BuyTimingScorer と同じ ¥0 汚染。
-         *    書き込み側は塞いだが既存 DB の行は残りうるため、読み出し側でも無視する)。
-         */
-        fun dropCountFrom(pricesPairs: List<Pair<Long, Long>>): Int =
-            pricesPairs.count { (realPrice, addedPrice) ->
-                addedPrice > 0 && realPrice > 0 && realPrice < addedPrice
-            }
 
         fun schedule(context: Context) {
             val request = PeriodicWorkRequestBuilder<WeeklyDigestWorker>(
@@ -103,14 +89,14 @@ class WeeklyDigestWorker @AssistedInject constructor(
                 .build()
 
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                WORK_NAME,
+                WorkNames.WEEKLY_DIGEST,
                 ExistingPeriodicWorkPolicy.KEEP,
                 request,
             )
         }
 
         fun cancel(context: Context) {
-            WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            WorkManager.getInstance(context).cancelUniqueWork(WorkNames.WEEKLY_DIGEST)
         }
     }
 }
