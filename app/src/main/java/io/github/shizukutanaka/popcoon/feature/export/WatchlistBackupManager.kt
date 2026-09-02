@@ -127,37 +127,3 @@ class WatchlistBackupManager @Inject constructor(
         }
     }
 }
-
-
-internal fun WatchlistItem.toBackupEntry(): WatchlistBackupEntry = WatchlistBackupEntry(
-    productKey = productKey,
-    sku = sku,
-    title = title,
-    platform = platform,
-    realPrice = realPrice,
-    listPrice = listPrice,
-    url = url,
-    imageUrl = imageUrl,
-    addedAt = addedAt,
-    targetPrice = targetPrice,
-    addedPrice = addedPrice,
-    stockAlertEnabled = stockAlertEnabled,
-    tag = tag,
-)
-
-internal fun WatchlistBackupEntry.toWatchlistItem(): WatchlistItem = WatchlistItem(
-    productKey = productKey,
-    sku = sku,
-    title = title,
-    platform = platform,
-    realPrice = realPrice,
-    listPrice = listPrice,
-    url = url,
-    imageUrl = imageUrl,
-    addedAt = addedAt,
-    targetPrice = targetPrice,
-    addedPrice = addedPrice,
-    stockAlertEnabled = stockAlertEnabled,
-    previousInStock = null,
-    tag = tag,
-)

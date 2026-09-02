@@ -7,7 +7,7 @@
 ## 長所
 
 1. **二重言語 TDD アーキテクチャ** — Python 仕様オラクル (549 tests) が真実の源、Kotlin 本番実装を
-   `kotlin_parity/` の 18 ハーネスが**実コンパイル・実行**で照合 (run.sh 202 ケース 0 乖離、`run_compile_core.sh` が 55 ファイルを型検査)。
+   `kotlin_parity/` の 18 ハーネスが**実コンパイル・実行**で照合 (run.sh 202 ケース 0 乖離、`run_compile_core.sh` が 56 ファイルを型検査)。
    Android SDK 無しの環境でもロジックの実行検証ができる、この規模のアプリでは希少な体制
 2. **テスト防御の深さ** — 11 階層 (unit/integration/golden/metamorphic/mutation/perf/fuzz/
    stateful/concurrency/differential/chaos)。mutation score 100% × 4 モジュール。
@@ -50,7 +50,7 @@
    それでも残り 85 ファイルの型検査は不能。CI 有効化 (A1) の優先度は最上位。
    2026-08 に静的ゲートを 7 種へ拡張 (override / `R.*` 参照 / `when` 網羅 / テスト参照 /
    `realPrice` の ¥0 除外 / Room 移行チェーン / `take` の前の順序付け) し、
-   実コンパイルも 34 → 55 ファイルへ広げた。いずれも欠陥注入で検出能力を実証済み。
+   実コンパイルも 34 → 56 ファイルへ広げた。いずれも欠陥注入で検出能力を実証済み。
 
    **「スタブを作れば もっとコンパイルできるのでは」は 2026-08 に実測して見送った**
    (同じ検討を繰り返さないための記録):
@@ -134,7 +134,7 @@
 ## 検証基準線 (2026-08 実測 — 記載コマンドを実際に流して確認)
 
 - Python: **549 passed / 1 skipped** (`popcoon-tdd/`)
-- Kotlin parity: **run_all.sh 全 18 ハーネス pass** (run.sh 202 matched / 0 mismatched、core compile 55 ファイル)
+- Kotlin parity: **run_all.sh 全 18 ハーネス pass** (run.sh 202 matched / 0 mismatched、core compile 56 ファイル)
 - **app の kotest spec: 43 specs / 618 passed / 0 failed** (`run_kotest.sh`、シム経由)
 - backend: **tsc 0 errors / vitest 108 tests / 5 files pass**
 - i18n: **4 ロケール × 365 strings** (+4 plurals) 完全一致
@@ -144,7 +144,7 @@
 **基準線は `python3 ci/verify.py` が自動照合する** — 手で書き換えず `--update` で同期すること。
 
 > 2026-08 の棚卸しで、この文書自身に陳腐化した数値が 7 箇所あった
-> (490→549 / 405→365 キー / 80→108 / 14→18 ハーネス / 46→55 ファイル / 155→202 ケース /
+> (490→549 / 405→365 キー / 80→108 / 14→18 ハーネス / 46→56 ファイル / 155→202 ケース /
 > 静的ゲート 4→7 種)。長所 #8 が「ドキュメントの誠実さ」を掲げている以上、
 > **数値の陳腐化はその主張に対する反例**になる。実測へ同期した。
 
@@ -319,6 +319,22 @@ kotest **36 → 38 spec / 542 → 568 アサーション**、いずれも 0 fail
 `RobotsTxt` へ移し、production 3 箇所とテスト 3 箇所の参照を更新。
 kotest 42 → **43 spec / 618 アサーション**。欠陥注入 (`DENY_ALL_ROBOTS` を空 Disallow =
 全許可に) で `RobotsTxtTest` が落ちることを確認済み。
+
+**追加 2 件目 — バックアップ往復マッパー**: `toBackupEntry` / `toWatchlistItem` を
+`WatchlistBackupManager.kt` (android.content / Hilt) から `WatchlistBackupMapper.kt` へ切り出し、
+実コンパイル 55 → **56 ファイル**。往復マッピングはデータ欠落の直撃点で、
+`WatchlistItem` と `WatchlistBackupEntry` のフィールド不整合が型検査で captured されるようになった。
+ただし `WatchlistBackupManagerTest` 自体は解錠できていない — 後述の制約による。
+
+### 残る硬い制約: kotlinx.serialization コンパイラプラグインが無い
+
+`WatchlistBackupManagerTest` と `PriceRecordSerializationTest` は
+`WatchlistBackupEntry.serializer()` / `PriceRecord.serializer()` を呼ぶ。これらは
+**コンパイラプラグインが生成する**メンバーで、`@Serializable` アノテーションだけでは存在しない。
+`kotlin-serialization-compiler-plugin` の jar は Gradle 同梱ライブラリにも
+`kotlin-compiler-embeddable` 内部にも無く (実際に検索・jar 内走査で確認)、
+Maven Central が遮断されているため取得もできない。**アノテーションスタブでは代替できない
+種類の依存**なので、この 2 spec は CI 有効化まで実行不能。
 欠陥注入 (`csvEscape` の数式ガードを外す → `CsvEscapeTest` が落ちる) で、移した関数が
 本当に spec に守られていることを確認した。
 `check_price_guard.py` が `PriceChart.kt` を報告するようになった (¥0 除外が
