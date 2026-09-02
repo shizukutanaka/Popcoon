@@ -283,6 +283,13 @@ python3 "$HERE/check_migrations.py" || exit 1
 #    静かに落ちる。3 回目を人間の注意力に頼らないための規則化。
 python3 "$HERE/check_truncation.py" || exit 1
 
+# 10. ビルド構成の整合検査。この環境では `./gradlew` を動かせず、CI 有効化も人手ゲート
+#     (GitHub App に `workflows` 権限が無いことを再測定で確認) なので、
+#     **最初の CI 実行が初めての実ビルド**になる。型検査はソースしか見ておらず、
+#     version catalog / Manifest / リソース XML / ワークフロー YAML は誰も見ていなかった。
+#     初回実行が即死する類の設定ミスは静的に決まるので先に潰す。
+python3 "$HERE/check_build_config.py" || exit 1
+
 if [[ -f "$OUT/core.jar" ]]; then
   echo "CORE COMPILE: OK (${#TARGETS[@]} files)"
 else

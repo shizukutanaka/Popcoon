@@ -786,6 +786,51 @@ Python 側は `mutation_test.py` で検出能力を測っていたが、Kotlin �
 実行できるようにした直後に測ったからこそ「実行はされているが検証していない」箇所
 (MU02) と「そもそも実行経路が無い」箇所 (MU15) を切り分けられた。
 
+## 16. 初回 CI 実行を守る — ビルド構成の静的検査 (2026-08、静的ゲート 8 種目)
+
+### 前提の再測定
+
+「CI 有効化は人手ゲート」を記憶ではなく**実測で確認し直した**。
+`.github/workflows/android.yml` を含むブランチを push すると:
+
+```
+! [remote rejected] (refusing to allow a GitHub App to create or update workflow
+  `.github/workflows/android.yml` without `workflows` permission)
+```
+
+GitHub App に `workflows` 権限が無い。これは硬いゲートで、エージェント側からは越えられない。
+
+### 「ビルド検証は実行するか諦めるかの二択」を疑う
+
+越えられないのは *実行* だけである。**初回 CI 実行が即死する類の設定ミスは静的に決まる**。
+`run_compile_core.sh` の型検査がカバーするのはソースだけで、
+ビルド構成 — version catalog / Manifest / リソース XML / ワークフロー YAML — は
+**誰も見ていなかった**。初回実行はこの環境で唯一の実ビルドになるので、
+そこで初めて分かる必要のない失敗を先に潰す価値が高い。
+
+`check_build_config.py` (静的ゲート 8 種目) の検査:
+
+| 検査 | 落ちたときに起きること |
+|---|---|
+| `libs.*` が `gradle/libs.versions.toml` に実在するか | `Unresolved reference: libs` で構成フェーズ即死 |
+| `AndroidManifest.xml` の `android:name` のクラスが実在するか | **ビルドは通り、実行時に ClassNotFoundException** |
+| `res/` の XML が整形式か | aapt が即座に落ちる |
+| `ci/android.yml` が整形式 YAML で `name`/`on`/`jobs`/`runs-on` を持つか | 1 ステップも走らない |
+
+`on:` が YAML 1.1 で真偽値 `True` に解釈される GitHub Actions の既知の罠にも対応した。
+
+### ここでも自ツールが先に嘘をついた
+
+初回実行は 16 件の「未定義」を報告した — `libs.plugins.hilt` など。しかし実際には
+version catalog の `[plugins]` セクションに全て存在する。原因は
+**セクションごとの名前空間** (`[libraries]` → `libs.X` / `[plugins]` → `libs.plugins.X` /
+`[bundles]` → `libs.bundles.X`) を落としていたこと。
+§13・§15 に続き 3 回目の「ゲートを足すときはまずベースライン実行が自分を検算する」。
+
+欠陥注入 4 種で全ての検査経路を実証:
+catalog から hilt を削除 / Manifest のクラス名をタイポ / strings.xml を壊す /
+job から `runs-on` を削除 — いずれも検出して復旧を確認した。
+
 ---
 
 ## 本セッションの実装サマリ (このブランチ)
