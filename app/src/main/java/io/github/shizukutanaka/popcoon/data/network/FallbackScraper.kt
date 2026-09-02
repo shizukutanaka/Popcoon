@@ -28,7 +28,7 @@ class FallbackScraper {
 
     private val client = HttpClient {
         install(UserAgent) {
-            agent = USER_AGENT
+            agent = RobotsTxt.USER_AGENT
         }
         install(HttpTimeout) {
             connectTimeoutMillis = 5_000
@@ -45,17 +45,10 @@ class FallbackScraper {
     private val robotsCache = java.util.concurrent.ConcurrentHashMap<String, String>()
 
     companion object {
-        const val USER_AGENT =
-            "Popcoon-Fallback/0.1 (+https://github.com/shizukutanaka/popcoon)"
-
-        /**
-         * robots.txt が「取得不能」(429 / 5xx) のときにキャッシュする合成 robots.txt。
-         *
-         * 専用の状態型を増やさず、**全面禁止を意味する robots.txt そのもの**を入れることで
-         * 既存の [RobotsTxt.isAllowed] をそのまま通す。判定経路が 1 本のままなので、
-         * 「禁止状態だけ別扱いにして片方の分岐を直し忘れる」余地が無い。
-         */
-        internal const val DENY_ALL_ROBOTS = "User-agent: *\nDisallow: /"
+        // USER_AGENT / DENY_ALL_ROBOTS は robots.txt プロトコル側の定数なので
+        // RobotsTxt.kt へ移した (そちらは import ゼロの純ロジックで、実コンパイルと
+        // RobotsTxtTest の対象になる)。ここに置いていた間は ktor 依存の本クラスに
+        // 巻き込まれ、RFC 9309 準拠の判定が **どのハーネスでも検証されていなかった**。
 
         // JSON-LD 抽出パターンは定数なので 1 度だけコンパイルする。
         private val JSON_LD_PATTERN = Regex(
@@ -135,7 +128,7 @@ class FallbackScraper {
                 val resp = client.get("$scheme://$host/robots.txt")
                 when {
                     resp.status.isSuccess() -> resp.bodyAsText()
-                    resp.status.value == 429 || resp.status.value >= 500 -> DENY_ALL_ROBOTS
+                    resp.status.value == 429 || resp.status.value >= 500 -> RobotsTxt.DENY_ALL_ROBOTS
                     else -> ""
                 }
             }.getOrElse { e ->
@@ -145,7 +138,7 @@ class FallbackScraper {
             robotsCache[host] = body
             body
         }
-        return RobotsTxt.isAllowed(robotsBody, path, USER_AGENT)
+        return RobotsTxt.isAllowed(robotsBody, path, RobotsTxt.USER_AGENT)
     }
 
     /**

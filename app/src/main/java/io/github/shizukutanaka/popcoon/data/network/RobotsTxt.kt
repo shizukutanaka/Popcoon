@@ -15,6 +15,19 @@ package io.github.shizukutanaka.popcoon.data.network
  */
 object RobotsTxt {
 
+    /** robots.txt の突き合わせと HTTP リクエストの両方で使う自称 UA。 */
+    const val USER_AGENT =
+        "Popcoon-Fallback/0.1 (+https://github.com/shizukutanaka/popcoon)"
+
+    /**
+     * robots.txt が「取得不能」(429 / 5xx) のときにキャッシュする合成 robots.txt。
+     *
+     * 専用の状態型を増やさず、**全面禁止を意味する robots.txt そのもの**を入れることで
+     * 既存の [isAllowed] をそのまま通す。判定経路が 1 本のままなので、
+     * 「禁止状態だけ別扱いにして片方の分岐を直し忘れる」余地が無い。
+     */
+    const val DENY_ALL_ROBOTS = "User-agent: *\nDisallow: /"
+
     private data class Rule(val allow: Boolean, val pattern: String)
 
     /**

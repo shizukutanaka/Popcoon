@@ -30,7 +30,7 @@
 9. **通知の抑制設計** — 誤検知対策の 1 サイクル遅延確認 (ユーザー承認済み設計)、
    1 同期あたり通知上限 3 件 + 優先度付け、いずれも純関数化されテスト済み
 10. **kotest spec が本環境で実行できる (2026-08)** — Maven Central 遮断下でも、テストが使う
-    42 シンボルだけを実装した `kotlin_parity/kotest_shim/` 経由で **42 spec / 602 アサーション**を
+    42 シンボルだけを実装した `kotlin_parity/kotest_shim/` 経由で **43 spec / 618 アサーション**を
     実行 (`-Xfriend-paths` で internal も可視化)。テストファイルの変更は誤りの修正のみ。「CI が無いから kotest は動かせない」を
     要件ごと疑って解消した (`docs/RESEARCH-2026-08.md` §14)
 11. **回復性** — 全 ViewModel mutating メソッドに CancellationException-aware try/catch、
@@ -71,7 +71,7 @@
    移行設計は `backend/README.md` に文書化済みだが、wrangler 実行検証不可のため未実装
 6. **UI 自動テストが薄い** — Compose UI テスト 2 件 + androidTest 4 ファイルは本環境で実行不可。
    ユニットテスト 63 ファイルはロジック層に偏る (構造上やむを得ないが偏りは事実)。
-   2026-08 に **42 spec は実行可能**になった (長所 10) が、残り 21 は production 側が
+   2026-08 に **43 spec は実行可能**になった (長所 10) が、残り 20 は production 側が
    Android/Hilt/ktor 依存でコンパイルできず、依然として **一度も実行されていない**
 
 10. **テストコードの腐敗が測定されていなかった (2026-08 に判明)** — 初めて 31 spec を実行した
@@ -81,7 +81,7 @@
     そして**互いに矛盾する 2 テストの同居** 1 件。CI 有効化の初回実行は赤で始まるはずだった。
     さらに `DarkPatternTextDetectorTest` は演算子優先順位の誤り (`X in c shouldBe true` は
     `X in (c shouldBe true)` と解釈される) で **kotest があってもコンパイルできない**状態だった。
-    残り 21 spec には同種の腐敗が同じ比率で眠っている可能性がある (未測定)
+    残り 20 spec には同種の腐敗が同じ比率で眠っている可能性がある (未測定)
 7. ~~**Yahoo 会員ランク未モデル化**~~ — 2026-08 に実装済 (B4)。UserContext.yahooRank +
    設定 UI + 4 ロケール文字列を追加し、感謝デー (毎月 11日・22日) を実計算するようにした
 8. **名寄せの残課題** — groupByIdentity は JAN なし商品で O(m²) (粗ブロッキング B5 は未着手)。
@@ -135,7 +135,7 @@
 
 - Python: **549 passed / 1 skipped** (`popcoon-tdd/`)
 - Kotlin parity: **run_all.sh 全 18 ハーネス pass** (run.sh 202 matched / 0 mismatched、core compile 55 ファイル)
-- **app の kotest spec: 42 specs / 602 passed / 0 failed** (`run_kotest.sh`、シム経由)
+- **app の kotest spec: 43 specs / 618 passed / 0 failed** (`run_kotest.sh`、シム経由)
 - backend: **tsc 0 errors / vitest 108 tests / 5 files pass**
 - i18n: **4 ロケール × 365 strings** (+4 plurals) 完全一致
 - ファイル数: Kotlin main 133 / unit test 63 / androidTest 4、Python 36
@@ -310,6 +310,15 @@ kotest **36 → 38 spec / 542 → 568 アサーション**、いずれも 0 fail
 | `PopcoonWidgetLogic` | `PopcoonWidget.kt` (Glance) | `widget/PopcoonWidgetLogic.kt` | `WidgetSaleLogicTest` |
 
 結果: 実コンパイル **51 → 55 ファイル**、kotest **38 → 42 spec / 568 → 602 アサーション**、0 failed。
+
+**追加 1 件 — 定数の置き場所**: `RobotsTxt.kt` は import ゼロの純ロジックで実コンパイル対象
+だったが、`RobotsTxtTest` は `USER_AGENT` / `DENY_ALL_ROBOTS` が ktor 依存の
+`FallbackScraper` の companion にあるせいで実行できず、**RFC 9309 準拠の判定が
+どのハーネスでも検証されていなかった** (Amazon の唯一のデータ源が FallbackScraper で
+あることを踏まえると重要な空白)。両定数は robots.txt プロトコル側の概念なので
+`RobotsTxt` へ移し、production 3 箇所とテスト 3 箇所の参照を更新。
+kotest 42 → **43 spec / 618 アサーション**。欠陥注入 (`DENY_ALL_ROBOTS` を空 Disallow =
+全許可に) で `RobotsTxtTest` が落ちることを確認済み。
 欠陥注入 (`csvEscape` の数式ガードを外す → `CsvEscapeTest` が落ちる) で、移した関数が
 本当に spec に守られていることを確認した。
 `check_price_guard.py` が `PriceChart.kt` を報告するようになった (¥0 除外が

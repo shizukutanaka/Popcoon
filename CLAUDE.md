@@ -32,7 +32,7 @@ ci/           android.yml (未稼働 — workflows 権限が無く人手で ci/e
 |---|---|---|
 | Python オラクル全体 | `cd popcoon-tdd && python3 -m pytest -q` | **549 passed, 1 skipped** |
 | Kotlin 実行 parity 全体 | `bash popcoon-tdd/kotlin_parity/run_all.sh` | 全 18 ハーネス pass (`run.sh` は 202 matched / 0 mismatched、`run_compile_core.sh` は 55 ファイル実コンパイル) |
-| app の kotest spec | `bash popcoon-tdd/kotlin_parity/run_kotest.sh` | **42 specs / 602 passed / 0 failed** (kotest jar 不在のためシム経由。63 中 21 は Android/Hilt/ktor 依存で対象外) |
+| app の kotest spec | `bash popcoon-tdd/kotlin_parity/run_kotest.sh` | **43 specs / 618 passed / 0 failed** (kotest jar 不在のためシム経由。63 中 20 は Android/Hilt/ktor 依存で対象外) |
 | 個別 parity | `bash popcoon-tdd/kotlin_parity/run_matcher.sh` 等 | "all assertions passed" |
 | backend 型検査 | `cd backend && npx tsc --noEmit` | エラー 0 |
 | backend テスト | `cd backend && npx vitest run` | **108 tests / 5 files pass** |
@@ -45,7 +45,7 @@ ci/           android.yml (未稼働 — workflows 権限が無く人手で ci/e
 - **依存 jar が手元にある 55 ファイルは `run_compile_core.sh` が一括実コンパイル**する (when 網羅漏れ・未解決参照・`R.string.*` 未定義・型不一致を検出)。同スクリプトは `check_overrides.py` / `check_resources.py` / `check_when_exhaustive.py` も呼び、**コンパイル不能な 85 ファイルも含む全ソース**で (a) インタフェース実装の `override` 欠落、(b) `R.*` 参照 (string/drawable/color/plurals/xml/style/mipmap/id) の実在、(c) enum に対する `when` の網羅漏れ、(d) テストが参照する本番シンボルの実在 (kotest はコンパイル不能)、(e) `realPrice` を統計に使うファイルの ¥0 除外、(f) Room 移行チェーンの連続性と登録漏れ、(g) コレクションを `take` で切る前の順序付け (`check_truncation.py`) を静的検査する。**UI 層を触ったら必ず実行すること** — 2026-08 に `UserPreferences` の override 欠落で app が約 1 か月コンパイル不能だった実績がある
 - **kotest は jar 不在だが 31 spec は実行できる**: Maven Central への egress が無く kotest の jar を取得できないが、
   テストが使う 42 シンボルだけを実装した `kotlin_parity/kotest_shim/` 経由で `run_kotest.sh` が
-  **テストファイルを 1 行も変えずに**コンパイル・実行する (602 アサーション)。残り 21 spec は production 側が
+  **テストファイルを 1 行も変えずに**コンパイル・実行する (618 アサーション)。残り 20 spec は production 側が
   Android/Hilt/Room/ktor 依存でコンパイル不能。プロパティテストは 300 回・シード固定 (kotest 既定の 1000 回ではない)
 - **wrangler ランタイム実行不可**: KV/DO/ratelimit binding の実挙動は検証できない。vitest (miniflare) の既知の制限は `backend/README.md` の「テスト構成」参照
 - git push は指定作業ブランチのみ許可 (タグ・他ブランチは 403)。`main` を動かすのは明示指示がある時だけ

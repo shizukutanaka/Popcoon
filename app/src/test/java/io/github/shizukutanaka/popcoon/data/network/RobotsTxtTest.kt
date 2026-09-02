@@ -146,12 +146,12 @@ class RobotsTxtTest : StringSpec({
     "DENY_ALL_ROBOTS はあらゆるパスを禁止する" {
         listOf("/", "/dp/B0ABC", "/gp/product/X?ref=1", "/item/12345").forEach { path ->
             RobotsTxt.isAllowed(
-                FallbackScraper.DENY_ALL_ROBOTS, path, FallbackScraper.USER_AGENT,
+                RobotsTxt.DENY_ALL_ROBOTS, path, RobotsTxt.USER_AGENT,
             ) shouldBe false
         }
     }
 
     "robots.txt 無し (4xx 相当の空文字) は従来どおり全許可" {
-        RobotsTxt.isAllowed("", "/dp/B0ABC", FallbackScraper.USER_AGENT) shouldBe true
+        RobotsTxt.isAllowed("", "/dp/B0ABC", RobotsTxt.USER_AGENT) shouldBe true
     }
 })
