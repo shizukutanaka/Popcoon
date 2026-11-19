@@ -3,6 +3,7 @@ package io.github.shizukutanaka.popcoon.feature.crash
 import android.content.Context
 import android.os.Build
 import io.github.shizukutanaka.popcoon.BuildConfig
+import io.github.shizukutanaka.popcoon.core.backendEndpoint
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -161,6 +162,7 @@ class PrivacyCrashReporter(
      */
     suspend fun uploadPendingCrashes() {
         if (!enabled) return
+        val url = backendEndpoint(backendUrl, "/v1/crash") ?: return
         val dir = File(context.filesDir, "crashes")
         dir.listFiles { f -> f.extension == "json" }?.forEach { file ->
             val report = runCatching {
@@ -171,7 +173,7 @@ class PrivacyCrashReporter(
                 return@forEach
             }
             runCatching {
-                client.post("$backendUrl/v1/crash") {
+                client.post(url) {
                     contentType(ContentType.Application.Json)
                     setBody(report)
                 }

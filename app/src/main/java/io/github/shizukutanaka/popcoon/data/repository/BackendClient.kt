@@ -1,6 +1,7 @@
 package io.github.shizukutanaka.popcoon.data.repository
 
 import io.github.shizukutanaka.popcoon.BuildConfig
+import io.github.shizukutanaka.popcoon.core.backendEndpoint
 import io.github.shizukutanaka.popcoon.data.model.PriceRecord
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -51,7 +52,7 @@ class BackendClient @Inject constructor() {
         }
     }
 
-    private val baseUrl = BuildConfig.BACKEND_URL
+    private val historyUrl = backendEndpoint(BuildConfig.BACKEND_URL, "/v1/history")
     private val asyncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     companion object {
@@ -79,6 +80,7 @@ class BackendClient @Inject constructor() {
      * 無制限に消費しないよう、バッチ全体に上限時間を設ける。
      */
     fun postPricesAsync(records: List<PriceRecord>) {
+        val url = historyUrl ?: return
         if (records.isEmpty()) return
         asyncScope.launch {
             withTimeoutOrNull(BATCH_TIMEOUT_MS) {
@@ -90,7 +92,7 @@ class BackendClient @Inject constructor() {
                         async {
                             semaphore.withPermit {
                                 val success = retryWithBackoff(maxAttempts = 3) {
-                                    client.post("$baseUrl/v1/history") {
+                                    client.post(url) {
                                         contentType(ContentType.Application.Json)
                                         setBody(record)
                                     }.bodyAsText()
@@ -132,8 +134,9 @@ class BackendClient @Inject constructor() {
     }
 
     suspend fun getPriceHistory(productKey: String): List<PriceRecord> {
+        val url = historyUrl ?: return emptyList()
         return runCatching {
-            client.get("$baseUrl/v1/history") {
+            client.get(url) {
                 parameter("key", productKey)
             }.body<HistoryResponse>().records
         }.getOrElse { e ->
