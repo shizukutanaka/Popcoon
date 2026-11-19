@@ -3,6 +3,7 @@ package io.github.shizukutanaka.popcoon.feature.ai
 import io.github.shizukutanaka.popcoon.BuildConfig
 import io.github.shizukutanaka.popcoon.core.PopcoonLogger
 import io.github.shizukutanaka.popcoon.core.CurrencyFormatter
+import io.github.shizukutanaka.popcoon.core.backendEndpoint
 import io.github.shizukutanaka.popcoon.data.model.Product
 import io.github.shizukutanaka.popcoon.feature.scorer.BuyTimingScorer
 import io.ktor.client.HttpClient
@@ -74,6 +75,7 @@ class BuyingAdvisor @Inject constructor(
         score: BuyTimingScorer.Score,
         userContext: String = "",
     ): String {
+        val url = backendEndpoint(BuildConfig.BACKEND_URL, "/v1/advice") ?: error("Backend is not configured")
         // 1. キャッシュチェック (ロケールもキーに含める — 下記参照)
         val locale = Locale.getDefault()
         cache.get(product, score, locale)?.let { return it }
@@ -124,7 +126,7 @@ class BuyingAdvisor @Inject constructor(
         val request = AdviceRequest(system = systemPrompt, userPrompt = userPrompt)
 
         val advice = try {
-            val response = client.post("${BuildConfig.BACKEND_URL}/v1/advice") {
+            val response = client.post(url) {
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }

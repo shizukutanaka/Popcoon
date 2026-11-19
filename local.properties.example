@@ -25,8 +25,8 @@ YAHOO_APP_ID=
 YAHOO_SID=
 
 # ── Backend URL ──────────────────────────────────────────────────────────────
-# Cloudflare Workers のデプロイ先 URL
-BACKEND_URL=https://popcoon-backend.workers.dev
+# 任意。Android ビルド時に環境変数 BACKEND_URL で自分のサーバーを指定する。
+# 未指定ならバックエンドには接続しない。このファイルからは読み込まれない。
 
 # ── Anthropic API キーはここに置かない ──────────────────────────────────────
 # AI アドバイザーの Claude 呼び出しはバックエンド (backend/src/index.ts の

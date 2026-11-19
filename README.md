@@ -14,7 +14,7 @@ Amazon / 楽天 / Yahoo! ショッピング横断の価格比較 Android アプ�
 - **AI 買い物アドバイザー** — Anthropic Claude が「今買うべきか」を 100 文字で助言
 - **エコ倫理スコア** — CO2 + 製造国の労働条件を統合評価
 - **セット販売実質単価** — 「3本セット ¥1,200」の実質単価を判定
-- **オープンソース MIT** + **テレメトリゼロ**
+- **オープンソース MIT** + **既定で Popcoon バックエンドへの通信なし**
 
 ## 競合と同水準の機能
 
@@ -96,7 +96,8 @@ export RAKUTEN_APP_ID=...
 export RAKUTEN_AFFILIATE_ID=...
 export YAHOO_APP_ID=...
 export YAHOO_SID=...
-export ANTHROPIC_API_KEY=...
+# 自分で運用するバックエンドを使う場合のみ指定 (任意)
+export BACKEND_URL=https://your-worker.example
 
 # Debug ビルド
 ./gradlew assembleDebug
@@ -113,7 +114,15 @@ export KEY_PASSWORD=...
 ./gradlew bundleRelease
 ```
 
-## バックエンドデプロイ
+## オプション: 自分のバックエンドを使う
+
+`BACKEND_URL` は Android ビルド時の環境変数。未設定なら Popcoon のバックエンドに
+接続せず、共有価格履歴・それを使う値下がり通知・Claude 助言・クラッシュ送信は使えない。
+ウォッチリストの端末内保存と、商品ページへの直接アクセス・在庫チェックは別経路。
+キーワード検索には引き続き各 EC API の設定が必要。
+
+これらの共有機能が必要な場合だけ、自分の管理するバックエンド URL を指定してビルドする。
+Claude 用の鍵は Android 側ではなくバックエンドに設定する。詳細は [Backend](backend/README.md)。
 
 ```bash
 cd backend

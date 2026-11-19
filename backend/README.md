@@ -42,9 +42,8 @@ Cloudflare Workers。詳細な設計方針は `src/index.ts` 冒頭のコメン�
    ```
 
 5. **Android アプリ側の `BACKEND_URL` を実デプロイ先に向ける**
-   (`app/build.gradle.kts` の `buildConfigField("String", "BACKEND_URL", ...)`、
-   既定値は `https://popcoon-backend.workers.dev` — 実際にこの URL にデプロイされて
-   いない場合はビルド時 `BACKEND_URL` 環境変数で上書きする)。
+   (ビルド時に `BACKEND_URL` 環境変数で自分が管理する URL を指定する。
+   未設定なら Android アプリからバックエンドへのリクエストは送信されない)。
 
 ## デプロイ後の動作確認
 
